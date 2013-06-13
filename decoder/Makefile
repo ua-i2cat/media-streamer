@@ -3,18 +3,17 @@ RANLIB        = ranlib
 CC            = gcc -std=gnu99
 CXX           = g++
 LINKER        = g++
-CFLAGS        = -g -DHAVE_CONFIG_H -g -O2 -I. -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -I/usr/local/include    -DPATH_PREFIX=/usr/local -DLIB_DIR=${exec_prefix}/lib -msse2
+CFLAGS        = -g -DHAVE_CONFIG_H -g -O2 -I. -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations    -DPATH_PREFIX=/usr/local -DLIB_DIR=${exec_prefix}/lib -msse2
 CPPFLAGS      =  -I.
 CXXFLAGS      = -g -DHAVE_CONFIG_H -g -O2 -fPIC -DPATH_PREFIX=/usr/local -DLIB_DIR=${exec_prefix}/lib -Wno-multichar -Wno-deprecated -msse2
-LDFLAGS      =  -shared -Wl,--dynamic-list-data,-soname,libvideo_decompress.so
+LDFLAGS      =  -shared -Wl,--dynamic-list-data,-soname,vdecompress.so
 LDFLAGS_TEST  =  -Wl,--dynamic-list-data
-#LIBS         += -lrt -lpthread -ldl -pthread -L/usr/local/lib -lavcodec -ldl -lva -lx264 -lvpx -lrtmp -lgnutls -lopencore-amrwb -lopencore-amrnb -lass -lz -lrt -lavutil -lieee
 
-LIBS         += -lrt  -lpthread    -ldl    -lSDL  -lX11    -lGL   -lX11 -lXfixes       -ljack -lasound   -pthread -L/usr/local/lib -lavcodec -ldl -lva -lXfixes -lXext -lX11 -ljack -lasound -lSDL -lx264 -lvpx -lvorbisenc -lvorbis -ltheoraenc -ltheoradec -logg -lspeex -lrtmp -lgnutls -lopencore-amrwb -lopencore-amrnb -lmp3lame -lfaac -lass -lz -lrt -lavutil -lm   -L/usr/local/lib -lavutil -lm    -lieee -lm  \
+LIBS         += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -pthread
 
 INC           = -I.
 		  
-TARGET        = lib/libvideo_decompress.so
+TARGET        = lib/libvdecompress.so
 TARGET_TEST   = bin/test
 
 DOCS 	      = COPYRIGHT README REPORTING-BUGS
@@ -35,11 +34,11 @@ HEADERS	      =
 OBJS	      = video_decompress/libavcodec.o \
 		debug.o \
 		tile.o \
+		utils/resource_manager.o \
 		video.o \
 		video_codec.o \
 		video_decompress/null.o \
 		video_decompress.o \
-		utils/resource_manager.o \
 
 TEST_OBJS     = test/main.o \
 
@@ -62,7 +61,7 @@ configure-messages:
 test: $(TARGET) $(TEST_OBJS)
 	@if [ ! -d bin ]; then mkdir bin; fi
 	
-	$(LINKER) $(LDFLAGS_TEST) $(OBJS) $(TEST_OBJS) $(LIBS) -o $(TARGET_TEST)
+	$(LINKER) $(LDFLAGS_TEST) -I. $(TEST_OBJS) $(LIBS) -L./lib -lvdecompress -o $(TARGET_TEST)
 	
 
 # -------------------------------------------------------------------------------------------------
