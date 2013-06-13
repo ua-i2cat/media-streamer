@@ -61,7 +61,6 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <pthread.h>
-#include "capture_filter.h"
 #include "debug.h"
 #include "host.h"
 #include "perf.h"
@@ -769,8 +768,6 @@ int main()
         
         struct state_uv *uv;
         int ch;
-
-        char *requested_capture_filter = NULL;
 
         pthread_t receiver_thread_id,
                   tx_thread_id;
