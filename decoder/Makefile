@@ -6,23 +6,28 @@ LINKER        = g++
 CFLAGS        = -g -DHAVE_CONFIG_H -g -O2 -I. -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -I/usr/local/include    -DPATH_PREFIX=/usr/local -DLIB_DIR=${exec_prefix}/lib -msse2
 CPPFLAGS      =  -I.
 CXXFLAGS      = -g -DHAVE_CONFIG_H -g -O2 -fPIC -DPATH_PREFIX=/usr/local -DLIB_DIR=${exec_prefix}/lib -Wno-multichar -Wno-deprecated -msse2
-LDFLAGS      =  -shared -Wl,--dynamic-list-data,-soname,decompress.so
-LIBS         += -lrt -lpthread -ldl -pthread -L/usr/local/lib -lavcodec -ldl -lva -lx264 -lvpx -lrtmp -lgnutls -lopencore-amrwb -lopencore-amrnb -lass -lz -lrt -lavutil -lieee
+LDFLAGS      =  -shared -Wl,--dynamic-list-data,-soname,libvideo_decompress.so
+LDFLAGS_TEST  =  -Wl,--dynamic-list-data
+#LIBS         += -lrt -lpthread -ldl -pthread -L/usr/local/lib -lavcodec -ldl -lva -lx264 -lvpx -lrtmp -lgnutls -lopencore-amrwb -lopencore-amrnb -lass -lz -lrt -lavutil -lieee
+
+LIBS         += -lrt  -lpthread    -ldl    -lSDL  -lX11    -lGL   -lX11 -lXfixes       -ljack -lasound   -pthread -L/usr/local/lib -lavcodec -ldl -lva -lXfixes -lXext -lX11 -ljack -lasound -lSDL -lx264 -lvpx -lvorbisenc -lvorbis -ltheoraenc -ltheoradec -logg -lspeex -lrtmp -lgnutls -lopencore-amrwb -lopencore-amrnb -lmp3lame -lfaac -lass -lz -lrt -lavutil -lm   -L/usr/local/lib -lavutil -lm    -lieee -lm  \
+
 INC           = -I.
 		  
-TARGET        = lib/decompress.so
+TARGET        = lib/libvideo_decompress.so
+TARGET_TEST   = bin/test
 
 DOCS 	      = COPYRIGHT README REPORTING-BUGS
 
-#PREFIX = $HOME/local
-#prefix = $(PREFIX)
-#exec_prefix = ${prefix}
+PREFIX = /usr/local
+prefix = $(PREFIX)
+exec_prefix = ${prefix}
 #INSTALL = /usr/bin/install -c
-#bindir = ${exec_prefix}/bin
-#libdir = ${exec_prefix}/lib
-#datadir = ${datarootdir}
+bindir = ${exec_prefix}/bin
+libdir = ${exec_prefix}/lib
+datadir = ${datarootdir}
 #docdir = ${datarootdir}/doc/${PACKAGE_TARNAME}/ultragrid/
-#datarootdir = ${prefix}/share
+datarootdir = ${prefix}/share
 #uv_datadir = ${datarootdir}/ultragrid/
 
 HEADERS	      =  
@@ -35,7 +40,8 @@ OBJS	      = video_decompress/libavcodec.o \
 		video_decompress/null.o \
 		video_decompress.o \
 		utils/resource_manager.o \
-		
+
+TEST_OBJS     = test/main.o \
 
 # -------------------------------------------------------------------------------------------------
 all: $(TARGET)
@@ -53,12 +59,17 @@ $(TARGET): $(OBJS) $(HEADERS)
 configure-messages:
 	@echo ""
 
+test: $(TARGET) $(TEST_OBJS)
+	@if [ ! -d bin ]; then mkdir bin; fi
+	
+	$(LINKER) $(LDFLAGS_TEST) $(OBJS) $(TEST_OBJS) $(LIBS) -o $(TARGET_TEST)
+	
 
 # -------------------------------------------------------------------------------------------------
 
 # -------------------------------------------------------------------------------------------------
 clean:
-	-rm -f $(OBJS) $(HEADERS) $(TARGET)
+	-rm -f $(OBJS) $(TEST_OBJS) $(HEADERS) $(TARGET)
 #	-rm -f $(TEST_OBJS) test/run_tests
 #	-rm -f ag_plugin/uvReceiverService.zip ag_plugin/uvSenderService.zip
 #	-rm -rf $(BUNDLE)
