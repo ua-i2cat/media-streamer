@@ -7,17 +7,11 @@ int main (){
   struct compress_state *sc;
   sc = (struct compress_state *) calloc(2, sizeof(struct compress_state *));
   
-  printf("Trying to initialize compressor\n");
- 
+  printf("Give me some compressor help\n");
   show_compress_help();
-  printf("Compressor initialized ;^)\n");
- 
+  
   printf("Trying to initialize encoder\n");
-  if (is_compress_none(sc)){
-    if (compress_init("string", sc)){
-      return 1;
-    }
-  }
+  compress_init("libavcodec:codec=H.264", &sc);
   printf("Encoder initialized ;^)\n");
  
   printf("Free allocated memory\n");
