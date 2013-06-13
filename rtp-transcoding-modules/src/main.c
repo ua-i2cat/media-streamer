@@ -81,9 +81,6 @@
 #include "tfrc.h"
 #include "lib_common.h"
 #include "compat/platform_semaphore.h"
-#include "audio/audio.h"
-#include "audio/codec.h"
-#include "audio/utils.h"
 #include <unistd.h>
 
 #if defined DEBUG && defined HAVE_LINUX
@@ -100,22 +97,6 @@
 #define EXIT_FAIL_DECODER	8
 
 #define PORT_BASE               5004
-#define PORT_AUDIO              5006
-
-/* please see comments before transmit.c:audio_tx_send() */
-/* also note that this actually differs from video */
-#define DEFAULT_AUDIO_FEC       "mult:3"
-
-#define OPT_AUDIO_CHANNEL_MAP (('a' << 8) | 'm')
-#define OPT_AUDIO_CAPTURE_CHANNELS (('a' << 8) | 'c')
-#define OPT_AUDIO_SCALE (('a' << 8) | 's')
-#define OPT_ECHO_CANCELLATION (('E' << 8) | 'C')
-#define OPT_CUDA_DEVICE (('C' << 8) | 'D')
-#define OPT_MCAST_IF (('M' << 8) | 'I')
-#define OPT_EXPORT (('E' << 8) | 'X')
-#define OPT_IMPORT (('I' << 8) | 'M')
-#define OPT_AUDIO_CODEC (('A' << 8) | 'C')
-#define OPT_CAPTURE_FILTER (('O' << 8) | 'F')
 
 #ifdef HAVE_MACOSX
 #define INITIAL_VIDEO_RECV_BUFFER_SIZE  5944320
@@ -179,7 +160,6 @@ static bool should_exit_sender = false;
 static struct state_uv *uv_state;
 bool net_frame_decoded = false;
 struct video_frame *net_video_frame;
-//char* net_audio_frame;
 
 //
 // prototypes
@@ -214,8 +194,6 @@ static void _exit_uv(int status) {
                 if(uv_state->display_device) {
                         should_exit_receiver = true;
                 }
-                if(uv_state->audio)
-                        audio_finish(uv_state->audio);
         }
         wait_to_finish = FALSE;
 }
@@ -706,9 +684,6 @@ static void *compress_thread(void *arg)
 
                         i = (i + 1) % 2;
 
-                        video_export(uv->video_exporter, tx_frame);
-
-
                         /* when sending uncompressed video, we simply post it for send
                          * and wait until done */
                         if(is_compress_none(compression)) {
@@ -761,48 +736,6 @@ compress_done:
         return NULL;
 }
 
-static bool enable_export(char *dir)
-{
-        if(!dir) {
-                for (int i = 1; i <= 9999; i++) {
-                        char name[16];
-                        snprintf(name, 16, "export.%04d", i);
-                        int ret = platform_mkdir(name);
-                        if(ret == -1) {
-                                if(errno == EEXIST) {
-                                        continue;
-                                } else {
-                                        fprintf(stderr, "[Export] Directory creation failed: %s\n",
-                                                        strerror(errno));
-                                        return false;
-                                }
-                        } else {
-                                export_dir = strdup(name);
-                                break;
-                        }
-                }
-        } else {
-                int ret = platform_mkdir(dir);
-                if(ret == -1) {
-                                if(errno == EEXIST) {
-                                        fprintf(stderr, "[Export] Warning: directory %s exists!\n", dir);
-                                } else {
-                                        perror("[Export] Directory creation failed");
-                                        return false;
-                                }
-                }
-
-                export_dir = strdup(dir);
-        }
-
-        if(export_dir) {
-                printf("Using export directory: %s\n", export_dir);
-                return true;
-        } else {
-                return false;
-        }
-}
-
 struct video_frame* get_net_video_frame(){
 	return net_video_frame;
 }
@@ -823,14 +756,8 @@ int main()
         char *network_device = NULL;
         char *capture_cfg = NULL;
         char *display_cfg = NULL;
-        const char *audio_recv = "none";
-        const char *audio_send = "none";
         char *jack_cfg = NULL;
         char *requested_video_fec = strdup("none");
-        char *requested_audio_fec = strdup(DEFAULT_AUDIO_FEC);
-        char *audio_channel_map = NULL;
-        char *audio_scale = "mixauto";
-
         bool echo_cancellation = false;
         bool use_ipv6 = false;
         char *mcast_if = NULL;
@@ -840,23 +767,17 @@ int main()
 
         int bitrate = 0;
         
-        char *audio_host = NULL;
-        int audio_rx_port = -1, audio_tx_port = -1;
-
         struct state_uv *uv;
         int ch;
 
         char *requested_capture_filter = NULL;
 
-        audio_codec_t audio_codec = AC_PCM;
-        
         pthread_t receiver_thread_id,
                   tx_thread_id;
 	bool receiver_thread_started = false,
 		  tx_thread_started = false;
         unsigned vidcap_flags = 0,
                  display_flags = 0;
-        int compressed_audio_sample_rate = 48000;
         int ret;
 
 #if defined DEBUG && defined HAVE_LINUX
@@ -868,7 +789,6 @@ int main()
         uv = (struct state_uv *)malloc(sizeof(struct state_uv));
         uv_state = uv;
 
-        uv->audio = NULL;
         uv->ts = 0;
         uv->capture_device = NULL;
         uv->display_device = NULL;
@@ -939,11 +859,8 @@ int main()
         printf("\n");
         printf("Display device   : %s\n", uv->requested_display);
         printf("Capture device   : %s\n", uv->requested_capture);
-        printf("Audio capture    : %s\n", audio_send);
-        printf("Audio playback   : %s\n", audio_recv);
         printf("MTU              : %d B\n", uv->requested_mtu);
         printf("Video compression: %s\n", uv->requested_compression);
-        printf("Audio codec      : %s\n", get_name_to_audio_codec(audio_codec));
 
         printf("Network protocol : ");
         switch(uv->tx_protocol) {
@@ -951,14 +868,8 @@ int main()
                         printf("UltraGrid RTP\n"); break;
         }
 
-        printf("Audio FEC        : %s\n", requested_audio_fec);
         printf("Video FEC        : %s\n", requested_video_fec);
         printf("\n");
-
-        if(audio_rx_port == -1) {
-                audio_tx_port = uv->send_port_number + 2;
-                audio_rx_port = uv->recv_port_number + 2;
-        }
 
         if(should_export) {
                 if(!enable_export(export_opts)) {
@@ -994,21 +905,6 @@ int main()
 	}
 #endif
 
-        if(!audio_host) {
-                audio_host = network_device;
-        }
-        uv->audio = audio_cfg_init (audio_host, audio_rx_port,
-                        audio_tx_port, audio_send, audio_recv,
-                        jack_cfg, requested_audio_fec, audio_channel_map,
-                        audio_scale, echo_cancellation, use_ipv6, mcast_if,
-                        audio_codec, compressed_audio_sample_rate);
-        free(requested_audio_fec);
-        if(!uv->audio)
-                goto cleanup;
-
-        vidcap_flags |= audio_get_vidcap_flags(uv->audio);
-        display_flags |= audio_get_display_flags(uv->audio);
-
         uv->participants = pdb_init();
 
         // Display initialization should be prior to modules that may use graphic card (eg. GLSL) in order
@@ -1019,11 +915,9 @@ int main()
                 printf("Unable to open display device: %s\n",
                        uv->requested_display);
                 exit_uv(EXIT_FAIL_DISPLAY);
-                goto cleanup_wait_audio;
         }
         if(ret > 0) {
                 exit_uv(EXIT_SUCCESS);
-                goto cleanup_wait_audio;
         }
 
         printf("Display initialized-%s\n", uv->requested_display);
@@ -1033,11 +927,9 @@ int main()
                 printf("Unable to open capture device: %s\n",
                        uv->requested_capture);
                 exit_uv(EXIT_FAIL_CAPTURE);
-                goto cleanup_wait_audio;
         }
         if(ret > 0) {
                 exit_uv(EXIT_SUCCESS);
-                goto cleanup_wait_audio;
         }
         printf("Video capture initialized-%s\n", uv->requested_capture);
 
@@ -1131,7 +1023,7 @@ int main()
                 }
 
                 if (strcmp("none", uv->requested_capture) != 0) {
-                        pthread_mutex_lock(&uv->master_lock); 
+                        pthread_mutex_lock(&uv->master_lock);
                         if (pthread_create
                             (&tx_thread_id, NULL, compress_thread,
                              (void *)uv) != 0) {
@@ -1158,17 +1050,11 @@ cleanup_wait_capture:
                          tx_thread_started)
                 pthread_join(tx_thread_id, NULL);
 
-cleanup_wait_audio:
-        /* also wait for audio threads */
-        audio_join(uv->audio);
-
 cleanup:
         while(wait_to_finish)
                 ;
         threads_joined = TRUE;
 
-        if(uv->audio)
-                audio_done(uv->audio);
         if(uv->tx)
                 tx_done(uv->tx);
 	if(uv->tx_protocol == ULTRAGRID_RTP && uv->network_devices)

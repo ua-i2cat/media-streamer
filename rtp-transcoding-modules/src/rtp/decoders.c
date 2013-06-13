@@ -274,7 +274,7 @@ static void *ldgm_thread(void *args) {
                                         debug_msg("\n");
                                 }
                         }
-                
+
 
                 pthread_mutex_lock(&decoder->lock);
                 {

@@ -19,22 +19,11 @@ OBJS =  src/debug.o \
 		src/tfrc.o \
 		src/rtp/pbuf.o \
 		src/rtp/decoders.o \
-		src/rtp/audio_decoders.o \
 		src/rtp/ptime.o \
 		src/rtp/net_udp.o \
 		src/rtp/ll.o \
 		src/rtp/rtp.o \
 		src/rtp/rtp_callback.o \
-		src/audio/audio.o \
-		src/audio/audio_capture.o \
-		src/audio/audio_playback.o \
-		src/audio/capture/none.o \
-		src/audio/codec.o \
-		src/audio/codec/dummy_pcm.o \
-		src/audio/export.o \
-		src/audio/playback/none.o \
-		src/audio/resampler.o \
-		src/audio/utils.o \
 		src/compat/drand48.o \
 		src/compat/gettimeofday.o \
 		src/compat/inet_ntop.o \
@@ -55,14 +44,12 @@ OBJS =  src/debug.o \
 		src/video.o \
 		src/video_codec.o \
 		src/video_capture.o \
-		src/video_capture/null.o \
 		src/video_capture/net.o \
 		src/video_compress.o \
 		src/video_compress/none.o \
 		src/video_decompress.o \
 		src/video_decompress/null.o \
 		src/video_display.o \
-		src/video_display/null.o \
 		src/video_display/net.o \
 		src/video_export.o \
 # -------------------------------------------------------------------------------------------------

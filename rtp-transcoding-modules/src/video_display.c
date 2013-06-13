@@ -56,7 +56,6 @@
 #include "perf.h"
 #include "video_display.h"
 
-#include "video_display/null.h"
 #include "video_display/net.h"
 
 #include "lib_common.h"
@@ -107,22 +106,6 @@ typedef struct {
 } display_table_t;
 
 static display_table_t display_device_table[] = {
-        {
-         0,
-         NULL,
-         MK_STATIC(display_null_probe),
-         MK_STATIC(display_null_init),
-         MK_STATIC(display_null_run),
-         MK_STATIC(display_null_done),
-         MK_STATIC(display_null_finish),
-         MK_STATIC(display_null_getf),
-         MK_STATIC(display_null_putf),
-         MK_STATIC(display_null_reconfigure),
-         MK_STATIC(display_null_get_property),
-         MK_STATIC(display_null_put_audio_frame),
-         MK_STATIC(display_null_reconfigure_audio),
-         NULL
-         },
         {
          0,
          NULL,
@@ -258,7 +241,7 @@ display_type_t *display_get_device_details(int index)
 
 display_id_t display_get_null_device_id(void)
 {
-        return DISPLAY_NULL_ID;
+        return 0;
 }
 
 /*

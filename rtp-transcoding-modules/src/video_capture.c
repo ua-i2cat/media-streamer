@@ -56,7 +56,6 @@
 #include "lib_common.h"
 #include "video_codec.h"
 #include "video_capture.h"
-#include "video_capture/null.h"
 #include "video_capture/net.h"
 #include <unistd.h>
 
@@ -100,16 +99,6 @@ struct vidcap_device_api {
 };
 
 struct vidcap_device_api vidcap_device_table[] = {
-        {
-         0,
-         NULL,
-         MK_STATIC(vidcap_null_probe),
-         MK_STATIC(vidcap_null_init),
-         MK_STATIC(vidcap_null_finish),
-         MK_STATIC(vidcap_null_done),
-         MK_STATIC(vidcap_null_grab),
-         NULL
-        },
         {
          0,
          NULL,
@@ -224,7 +213,7 @@ struct vidcap_type *vidcap_get_device_details(int index)
 
 vidcap_id_t vidcap_get_null_device_id(void)
 {
-        return VIDCAP_NULL_ID;
+        return 0;
 }
 
 /* API for video capture **************************************************************************/
