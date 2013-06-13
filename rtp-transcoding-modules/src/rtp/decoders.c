@@ -56,7 +56,6 @@
 #include "video_codec.h"
 #include "video_decompress.h"
 #include "video_display.h"
-#include "vo_postprocess.h"
 
 void (*decoder_destroy_extrn)(struct state_decoder *decoder) = decoder_destroy;
 
