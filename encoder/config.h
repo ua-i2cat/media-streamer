@@ -14,7 +14,7 @@
 #define AUDIO_PLAYBACK_ABI_VERSION 4
 
 /* Autoconf result */
-#define AUTOCONF_RESULT "  Target ...................... i686-pc-linux-gnu\n  Debug output ................ no\n  Profiling support ........... no\n  IPv6 support ................ yes\n  RT priority ................. no\n  Standalone modules .......... no\n  License ..................... unredistributeable\n  iHDTV support ............... no\n\n  Bluefish444 ................. no (audio: no)\n  DeckLink .................... yes\n  DirectShow .................. no\n  DELTACAST ................... no\n  DVS ......................... no\n  Linsys capture .............. yes\n  OpenGL ...................... no\n  Quicktime ................... no\n  SAGE ........................ no\n  SDL ......................... yes\n  Screen Capture .............. yes\n  V4L2 ........................ no\n  SW Video Mix ................ no\n\n  Portaudio ................... no\n  ALSA ........................ yes\n  CoreAudio ................... no\n  JACK  ....................... yes\n  JACK transport .............. no\n\n  FastDXT ..................... no\n  Realtime DXT (OpenGL) ....... no\n  JPEG ........................ no (static: yes)\n  UYVY dummy compression ...... no\n  Libavcodec .................. yes (audio: yes)\n\n  scale postprocessor ......... no\n  testcard extras ............. no\n  \n"
+#define AUTOCONF_RESULT "  Target ...................... i686-pc-linux-gnu\n  Debug output ................ no\n  Profiling support ........... no\n  IPv6 support ................ yes\n  RT priority ................. no\n  Standalone modules .......... no\n  License ..................... unredistributeable\n  iHDTV support ............... no\n\n  Bluefish444 ................. no (audio: no)\n  DeckLink .................... yes\n  DirectShow .................. no\n  DELTACAST ................... no\n  DVS ......................... no\n  Linsys capture .............. yes\n  OpenGL ...................... no\n  Quicktime ................... no\n  SAGE ........................ no\n  SDL ......................... yes\n  Screen Capture .............. yes\n  V4L2 ........................ no\n  SW Video Mix ................ no\n\n  Portaudio ................... no\n  ALSA ........................ yes\n  CoreAudio ................... no\n  JACK  ....................... yes\n  JACK transport .............. no\n\n  FastDXT ..................... no\n  Realtime DXT (OpenGL) ....... no\n  JPEG ........................ no (static: yes)\n  UYVY dummy compression ...... no\n  Libavcodec .................. yes (audio: no)\n\n  scale postprocessor ......... no\n  testcard extras ............. no\n  \n"
 
 /* Build drivers as a standalone libraries */
 /* #undef BUILD_LIBRARIES */
@@ -41,7 +41,7 @@
 /* #undef HAVE_AUDIOUNIT_AUDIOUNIT_H */
 
 /* Define to 1 if you have the `avcodec_encode_video2' function. */
-#define HAVE_AVCODEC_ENCODE_VIDEO2 1
+/* #undef HAVE_AVCODEC_ENCODE_VIDEO2 */
 
 /* Build with Bluefish444 support */
 /* #undef HAVE_BLUEFISH444 */
@@ -149,13 +149,13 @@
 #define HAVE_LAVC 1
 
 /* Build with LAVC audio support */
-#define HAVE_LAVC_AUDIO 1
+/* #undef HAVE_LAVC_AUDIO */
 
 /* Define to 1 if you have the `asound' library (-lasound). */
 #define HAVE_LIBASOUND 1
 
 /* Define to 1 if you have the `avcodec' library (-lavcodec). */
-/* #undef HAVE_LIBAVCODEC */
+#define HAVE_LIBAVCODEC 1
 
 /* Define to 1 if you have the <libavcodec/avcodec.h> header file. */
 /* #undef HAVE_LIBAVCODEC_AVCODEC_H */
