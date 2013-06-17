@@ -496,6 +496,7 @@ int udp_set_recv_buf(socket_udp *s, int size)
         }
 
         if(opt < size) {
+            	perror("opt < size \n");
                 return FALSE;
         }
 
