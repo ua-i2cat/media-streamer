@@ -480,13 +480,24 @@ static const char *udp_host_addr4(void)
 
 int udp_set_recv_buf(socket_udp *s, int size)
 {
+
+
         int opt = 0;
         socklen_t opt_size;
+
+
+		printf("Size: %d\n",size);
+		printf("Opt: %d\n",opt);
+
         if(SETSOCKOPT (s->fd, SOL_SOCKET, SO_RCVBUF, (const void *)&size,
                         sizeof(size)) != 0) {
                 perror("Unable to set socket buffer size");
                 return FALSE;
         }
+
+		printf("Size: %d\n",size);
+		printf("Opt: %d\n",opt);
+
 
         opt_size = sizeof(opt);
         if(GETSOCKOPT (s->fd, SOL_SOCKET, SO_RCVBUF, (void *)&opt,
@@ -494,6 +505,9 @@ int udp_set_recv_buf(socket_udp *s, int size)
                 perror("Unable to get socket buffer size");
                 return FALSE;
         }
+
+		printf("Size: %d\n",size);
+		printf("Opt: %d\n",opt);
 
         if(opt < size) {
             	perror("opt < size \n");

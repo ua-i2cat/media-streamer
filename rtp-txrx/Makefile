@@ -31,9 +31,12 @@ OBJS	      = compat/drand48.o \
 		perf.o \
 		tfrc.o \
 		ntp.o \
+		pdb.o \
 		compat/inet_pton.o \
 		compat/inet_ntop.o \
 		compat/vsnprintf.o \
+		rtp/pbuf.o \
+		rtp/rtp_callback.o \
 		rtp/net_udp.o \
 		rtp/rtp.o \
 		

@@ -64,10 +64,10 @@
 #include "config_unix.h"
 #endif // HAVE_CONFIG_H
 
-#include "video_display.h"
+//#include "video_display.h"
 
-#include "audio/audio.h"
-#include "utils/list.h"
+//#include "audio/audio.h"
+//#include "utils/list.h"
 
 /* The coded representation of a single frame */
 struct coded_data {
@@ -79,8 +79,8 @@ struct coded_data {
 
 /* The playout buffer */
 struct pbuf;
-struct state_decoder;
-struct state_audio_decoder;
+//struct state_decoder;
+//struct state_audio_decoder;
 
 struct vcodec_message {
         enum { FPS_CHANGED } type;
@@ -92,21 +92,21 @@ struct fps_changed_message {
         unsigned interframe_codec:1;
 };
 
-struct vcodec_state {
-        struct display *display;
-        struct state_decoder *decoder;
-        unsigned int max_frame_size; // maximal frame size
-                                     // to be returned to caller by a decoder to allow him adjust buffers accordingly
-        unsigned int decoded;
-        struct simple_linked_list *messages;
-};
+//struct vcodec_state {
+//        struct display *display;
+//        struct state_decoder *decoder;
+//        unsigned int max_frame_size; // maximal frame size
+//                                     // to be returned to caller by a decoder to allow him adjust buffers accordingly
+//        unsigned int decoded;
+//        struct simple_linked_list *messages;
+//};
 
-struct pbuf_audio_data {
-        audio_frame buffer;
-        struct state_audio_decoder *decoder;
-
-        bool reconfigured;
-};
+//struct pbuf_audio_data {
+//        audio_frame buffer;
+//        struct state_audio_decoder *decoder;
+//
+//        bool reconfigured;
+//};
 
 /**
  * @param decode_data
