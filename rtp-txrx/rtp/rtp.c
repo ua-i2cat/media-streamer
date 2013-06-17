@@ -66,17 +66,16 @@
 #include "config_unix.h"
 #include "memory.h"
 #include "debug.h"
-#include "net_udp.h"
+#include "rtp/net_udp.h"
 #include "crypto/random.h"
 #include "compat/drand48.h"
 #include "compat/gettimeofday.h"
 #include "crypto/crypt_des.h"
 #include "crypto/crypt_aes.h"
-#include "compat/drand48.h"
 #include "tv.h"
 #include "crypto/md5.h"
 #include "ntp.h"
-#include "rtp.h"
+#include "rtp/rtp.h"
 
 /*
  * Encryption stuff.

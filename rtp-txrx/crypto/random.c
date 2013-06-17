@@ -47,7 +47,6 @@
  */
 
 #include "config.h"
-#include "config_win32.h"
 #include "config_unix.h"
 #include "crypto/random.h"
 

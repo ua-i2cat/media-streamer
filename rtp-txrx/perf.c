@@ -1,8 +1,15 @@
 /*
- * FILE:     usleep.h
- * AUTHOR:   Colin Perkins
+ * FILE:    perf.c
+ * AUTHORS: Isidor Kouvelas 
+ *          Colin Perkins 
+ *          Mark Handley 
+ *          Orion Hodson
+ *          Jerry Isdale
  * 
- * Copyright (c) 1997-2001 University College London
+ * $Revision: 1.1 $
+ * $Date: 2007/11/08 09:48:59 $
+ *
+ * Copyright (c) 1995-2000 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -20,7 +27,7 @@
  * 4. Neither the name of the University nor of the Department may be used
  *    to endorse or promote products derived from this software without
  *    specific prior written permission.
- * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE
@@ -31,14 +38,52 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *
- * $Revision: 1.1 $
- * $Date: 2007/11/08 09:48:59 $
- *
  */
 
-#ifdef HAVE_WIN32
+#if defined PERF && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 1))
 
-int usleep(unsigned int usec);
+#include "config.h"
+#include "config_unix.h"
+#include "debug.h"
+#include "perf.h"
 
-#endif /* HAVE_WIN32 */
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <string.h>
+
+static volatile size_t _uvp_offset;
+static int _uvp_id;
+static char *_uvp_shm;
+
+void perf_init()
+{
+        _uvp_id = shmget(_uvp_key, BUFFER_LEN, IPC_CREAT | 0666);
+        _uvp_shm = shmat(_uvp_id, NULL, 0);
+        _uvp_offset = 0;
+}
+
+void perf_record(_uvp_event_t event, _uvp_arg_t arg)
+{
+        size_t current;
+        struct timeval tv;
+        char *ptr;
+
+        gettimeofday(&tv, NULL);
+        current = __sync_fetch_and_add(&_uvp_offset, ENTRY_LEN);
+        if(current == BUFFER_LEN)
+        {
+                _uvp_offset = 0;
+                current = 0;
+        } else if (current > BUFFER_LEN) {
+                while((current = __sync_fetch_and_add(&_uvp_offset, ENTRY_LEN)) > BUFFER_LEN)
+                        ;
+        }
+        ptr = _uvp_shm + current;
+        ((struct _uvp_entry *) ptr)->tv_sec = tv.tv_sec;
+        ((struct _uvp_entry *) ptr)->tv_usec = tv.tv_usec;
+        ((struct _uvp_entry *) ptr)->event = event;
+        ((struct _uvp_entry *) ptr)->arg = arg;
+}
+
+#endif /* PERF && __GNUC__ */

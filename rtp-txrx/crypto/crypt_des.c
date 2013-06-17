@@ -9,7 +9,6 @@ Added 2 August 1996, Saleem
 
 #include "config.h"
 #include "config_unix.h"
-#include "config_win32.h"
 #include "crypto/crypt_des.h"
 #include "crypto/random.h"
 

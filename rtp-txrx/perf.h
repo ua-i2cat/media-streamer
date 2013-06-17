@@ -1,8 +1,13 @@
 /*
- * FILE:     usleep.c
- * AUTHOR:   Martin Pulec
+ * FILE:    perf.h
+ * AUTHORS: Isidor Kouvelas 
+ *          Colin Perkins 
+ *          Mark Handley 
+ *          Orion Hodson
+ *          Jerry Isdale
  * 
- * Copyright (c) 1997-2001 University College London
+ * 
+ * Copyright (c) 1995-2000 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -20,7 +25,7 @@
  * 4. Neither the name of the University nor of the Department may be used
  *    to endorse or promote products derived from this software without
  *    specific prior written permission.
- * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE
@@ -31,22 +36,51 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *
- * $Revision: 1.1 $
- * $Date: 2007/11/08 09:48:59 $
- *
  */
+
+#ifndef _PERF_H
+#define _PERF_H
+
 
 #include "config.h"
 #include "config_unix.h"
-#include "config_win32.h"
 
-#ifdef HAVE_WIN32
+/* Public API */
+#define UVP_INIT 1
+#define UVP_GETFRAME 2
+#define UVP_PUTFRAME 3
+#define UVP_DECODEFRAME 4
+#define UVP_SEND 5
+#define UVP_CREATEPBUF 6
 
-int usleep(unsigned int usec)
-        Sleep(usec / 1000);
+#if (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 1)) && defined PERF
 
-        return 0;
-}
+typedef uint32_t _uvp_event_t;
+typedef int64_t _uvp_arg_t;
 
-#endif
+void perf_init(void);
+
+/* Private section */
+struct _uvp_entry {
+        long int tv_sec;
+        long int tv_usec;
+        _uvp_event_t event;
+        _uvp_arg_t arg;
+};
+
+#define ENTRY_LEN sizeof(struct _uvp_entry)
+#define BUFFER_LEN (ENTRY_LEN * 512)
+
+static key_t _uvp_key = 5043;
+
+void perf_record(_uvp_event_t event, _uvp_arg_t arg);
+
+#else
+
+#define perf_record(x,y) {}
+#define perf_init() {}
+
+#endif /* __GNUC__ && PERF */
+
+#endif /* _PERF_H */
+
