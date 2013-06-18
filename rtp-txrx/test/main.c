@@ -24,6 +24,7 @@ int main(){
 	struct timeval timeout;
 
 	int required_connections;
+	uint32_t ts;
 	int recv_port = 5004;
 	int send_port = 5004;
 	int index=0;
@@ -31,13 +32,15 @@ int main(){
 
 	gettimeofday(&curr_time, NULL);
 
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 10000;
+		
 	required_connections = 1;
 
 	devices = (struct rtp **) malloc((required_connections + 1) * sizeof(struct rtp *));
 	printf("RTP INIT IFACE\n");
-	devices[index] = rtp_init_if(addr, mcast_if, recv_port, send_port, ttl,
-				rtcp_bw, 0, rtp_recv_callback, pdb_init(),
-				0);
+	devices[index] = rtp_init_if(addr, mcast_if, recv_port, send_port, ttl, rtcp_bw, 0, rtp_recv_callback, pdb_init(), 0);
+	
 	if (devices[index] != NULL) {
 		printf("RTP INIT OPTIONS\n");
 		if (!rtp_set_option(devices[index], RTP_OPT_WEAK_VALIDATION, 1)) {
@@ -69,7 +72,7 @@ int main(){
 		rtp_update(devices[index], curr_time);
 		rtp_send_ctrl(devices[index], 0, 0, curr_time);
 
-		if (! rtp_recv_poll_r(devices[index], &timeout, 0)){
+		if (! rtp_recv_poll_r(devices, &timeout, 0)){
 			printf("PACKET NOT RECIEVED\n");
 			sleep(1);
 		} else {
