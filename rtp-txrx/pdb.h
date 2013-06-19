@@ -81,14 +81,15 @@ int                  pdb_add(struct pdb *db, uint32_t ssrc);
 struct pdb_e        *pdb_get(struct pdb *db, uint32_t ssrc);
 
 /* Remove the entry indexed by "ssrc" from the database, returning a
- * pointer to it in "item". Returns non-zero on if the entry was present.
+ * pointer to it in "item". Returns zero if the entry was present.
  */
 int                  pdb_remove(struct pdb *db, uint32_t ssrc, struct pdb_e **item);
 
+typedef void *pdb_iter_t;
 /*
- * Iterator for the database. Supports only one accessor at once.
+ * Iterator for the database.
  */ 
-struct pdb_e        *pdb_iter_init(struct pdb *db);
-struct pdb_e        *pdb_iter_next(struct pdb *db);
-void                 pdb_iter_done(struct pdb *db);
+struct pdb_e        *pdb_iter_init(struct pdb *db, pdb_iter_t *it);
+struct pdb_e        *pdb_iter_next(pdb_iter_t *it);
+void                 pdb_iter_done(pdb_iter_t *it);
 
