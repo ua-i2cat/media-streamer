@@ -39,6 +39,7 @@ OBJS	      = compat/drand48.o \
 		rtp/rtp_callback.o \
 		rtp/net_udp.o \
 		rtp/rtp.o \
+		rtp/rtpdec.o \
 		
 
 TEST_OBJS     = test/main.o \

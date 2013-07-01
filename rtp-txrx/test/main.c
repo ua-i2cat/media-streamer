@@ -1,22 +1,17 @@
-/*
- * main.c
-
- *
- *  Created on: Jun 17, 2013
- *      Author: gerardcl
- */
-
 #include "rtp/rtp.h"
 #include "rtp/rtp_callback.h"
+#include "rtp/rtpdec.h"
 #include "pdb.h"
-#define INITIAL_VIDEO_RECV_BUFFER_SIZE  262142//((1*1920*1080)*110/100)
-#define PACKAGE_STRING "rtp-module"
+#define INITIAL_VIDEO_RECV_BUFFER_SIZE  262142//((4*1920*1080)*110/100)
+
 
 
 int main(){
 	struct rtp **devices = NULL;
 	struct pdb *participants;
-    struct pdb_e *cp;
+	struct pdb_e *cp;
+	    
+	
 
 	double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
 	int ttl = 255;
@@ -25,6 +20,7 @@ int main(){
 	char *mcast_if= NULL;
 	struct timeval curr_time;
 	struct timeval timeout;
+	struct timeval prev_time;
 
 	int required_connections;
 	uint32_t ts;
@@ -33,10 +29,11 @@ int main(){
 	int index=0;
 	int exit = 1;
 
-	gettimeofday(&curr_time, NULL);
+	gettimeofday(&prev_time, NULL);
 
 	timeout.tv_sec = 0;
 	timeout.tv_usec = 10000;
+	
 		
 	required_connections = 1;
 
@@ -59,7 +56,7 @@ int main(){
 		}
 
 
-		int size = INITIAL_VIDEO_RECV_BUFFER_SIZE;
+		INITIAL_VIDEO_RECV_BUFFER_SIZE;
 		int ret = rtp_set_recv_buf(devices[index],
 				INITIAL_VIDEO_RECV_BUFFER_SIZE);
 		if (!ret) {
@@ -73,6 +70,7 @@ int main(){
 		}
 	}
 
+	gettimeofday(&curr_time, NULL);
 	while(exit){
 		rtp_update(devices[index], curr_time);
 		rtp_send_ctrl(devices[index], 0, 0, curr_time);
@@ -81,18 +79,33 @@ int main(){
 			printf("PACKET NOT RECIEVED\n");
 			sleep(1);
 		} else {
-			printf("PACKET RECIEVED\n");
-//		INTENT DE PACKET REFLECTOR... CAL ENTRAR MÉS A DINS (ug fa servir pdb_e)
-//			ts = get_local_mediatime();
-//			rtp_send_data_hdr(devices[0], ts, pt, m, 0, 0,
-//			                                  hdr, hdr_len,
-//			                                  data, data_len, 0, 0, 0);
-//
-			exit = 0;
+		  uint32_t xec = tv_diff_usec(curr_time, prev_time);
+		  printf("interlooping time: %d\n", xec);
+		  if (xec > 900){
+			  gettimeofday(&prev_time, NULL);
+			  pdb_iter_t it;
+			  cp = pdb_iter_init(participants, &it);
+			  int ret;
+			  printf("PACKET RECIEVED, building FRAME\n");
+			  while(cp != NULL){
+			    ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame, NULL);
+			    printf("DECODE return value: %d\n", ret);
+			    if (ret){
+			      printf("FRAME RECIEVED\n");
+			      exit = 0;
+			    } else {
+			      printf("FRAME not ready yet\n");
+			    }
+			    pbuf_remove(cp->playout_buffer, curr_time);
+			    cp = pdb_iter_next(&it);
+			  }
+		  } else {
+		    printf("PACKET RECIEVED, not yet for FRAME\n");
+		  }
 		}
 
 //FRAME REFLECTOR
-		pdb_iter_t it;
+/*		pdb_iter_t it;
 		cp = pdb_iter_init(participants, &it);
 		while (cp != NULL) {
 			if (tfrc_feedback_is_due(cp->tfrc_state, curr_time)) {
@@ -111,9 +124,9 @@ int main(){
 			pbuf_remove(cp->playout_buffer, curr_time);
 			cp = pdb_iter_next(&it);
 		}
-		pdb_iter_done(&it);
+		pdb_iter_done(&it);*/
 //END FRAME REFLECTOR
-
+	  gettimeofday(&curr_time, NULL);
 	}
 
 	rtp_done(devices[index]);
