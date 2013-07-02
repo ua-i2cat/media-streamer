@@ -85,7 +85,7 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
                         len = pckt->data_len - sizeof(video_payload_hdr_t);
                         data = (char *) hdr + sizeof(video_payload_hdr_t);
 
-                        printf("[DECODER]  packet data (first byte) = %x and total length = %d\n",data[0],len);
+                        //printf("[DECODER]  packet data (first byte) = %x and total length = %d\n",data[0],len);
 //                } else if (pt == PT_VIDEO_LDGM) {
 //                        len = pckt->data_len - sizeof(ldgm_video_payload_hdr_t);
 //                        data = (char *) hdr + sizeof(ldgm_video_payload_hdr_t);
@@ -134,7 +134,7 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
                 buffers->buffer_num[substream] = buffer_number;
                 buffers->buffer_len[substream] = buffer_length;
 
-                printf("[DECODER] buffer_length = %d /  data_pos = %d /  len = %d /  first byte data = %x\n",buffer_length, data_pos,len,data[0]);
+                //printf("[DECODER] buffer_length = %d /  data_pos = %d /  len = %d /  first byte data = %x\n",buffer_length, data_pos,len,data[0]);
 
                 //ll_insert(pckt_list[substream], data_pos, len);
                 

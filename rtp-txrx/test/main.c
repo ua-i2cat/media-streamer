@@ -20,9 +20,9 @@ int main(){
 
 	frame = vf_alloc(1);
 	vf_get_tile(frame, 0)->width=1080;
-	vf_get_tile(frame, 0)->width=720;
+	vf_get_tile(frame, 0)->height=720;
 	frame->fps=10;
-	frame->color_spec=RGBA;
+	frame->color_spec=H264;
 	frame->interlacing=PROGRESSIVE;
 
 	double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
@@ -39,7 +39,7 @@ int main(){
 	int required_connections;
 	uint32_t ts;
 	int recv_port = 6004;
-	int send_port = 5004;
+	int send_port = 7004;
 	int index=0;
 	int exit = 1;
 
@@ -101,7 +101,7 @@ int main(){
 		timeout.tv_usec = 10000;
 
 		if (!rtp_recv_poll_r(devices, &timeout, timestamp)){
-			printf("\nPACKET NOT RECIEVED\n");
+			//printf("\nPACKET NOT RECIEVED\n");
 			//sleep(1);
 		}// else {
             pdb_iter_t it;
@@ -114,7 +114,7 @@ int main(){
 				//printf("DECODE return value: %d\n", ret);
 				if (ret) {
 					gettimeofday(&curr_time, NULL);
-					printf("\nFRAME RECIEVED (first byte = %x)\n",rx_data->frame_buffer[0][0]);
+					//printf("\nFRAME RECIEVED (first byte = %x)\n",rx_data->frame_buffer[0][0]);
 					frame->tiles[0].data = rx_data->frame_buffer[0];
 					frame->tiles[0].data_len = rx_data->buffer_len[0];
 
@@ -129,7 +129,8 @@ int main(){
 //                            fwrite(frame->tiles[0].data,frame->tiles[0].data_len,1,F_video_rx);
 //                    //FI CAPTURA
 
-					printf("[FRAME TO SEND] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
+
+					//printf("[MAIN to SENDER] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
 					if(frame->tiles[0].data_len>0)
 						tx_send_base(vf_get_tile(frame, 0), devices[0], get_local_mediatime(), 1, frame->color_spec, frame->fps, frame->interlacing, 0, 0);
 
