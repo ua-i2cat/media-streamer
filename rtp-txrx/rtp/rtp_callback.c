@@ -197,7 +197,7 @@ void rtp_recv_callback(struct rtp *session, rtp_event * e)
         switch (e->type) {
         case RX_RTP:
                 if (pckt_rtp->data_len > 0) {   /* Only process packets that contain data... */
-                		printf("\n[RTP CALLBACK] DATA PACKET RECEIVED\n");
+                		//printf("\n[RTP CALLBACK] DATA PACKET RECEIVED\n");
                         pbuf_insert(state->playout_buffer, pckt_rtp);
                 }
                 gettimeofday(&curr_time, NULL);
