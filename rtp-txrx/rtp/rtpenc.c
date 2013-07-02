@@ -60,9 +60,7 @@ void tx_send_base(struct tile *tile, struct rtp *rtp_session,
         int pt = PT_VIDEO;            /* A value specified in our packet format */
         char *data;
         unsigned int pos;
-
         struct timespec start, stop;
-
         long delta;
         uint32_t tmp;
         unsigned int fps, fpsd, fd, fi;
@@ -81,6 +79,8 @@ void tx_send_base(struct tile *tile, struct rtp *rtp_session,
 
         data_to_send = tile->data;
         data_to_send_len = tile->data_len;
+
+        printf("[SENDER] data to send length = %d and first byte = %x\n",data_to_send_len,data_to_send[0]);
 
 //        if(tx->fec_scheme == FEC_MULT) {
 //                int i;

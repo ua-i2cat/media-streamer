@@ -13,9 +13,10 @@ int main(){
 	struct pdb *participants;
 	struct pdb_e *cp;
 	struct video_frame *frame;
-	struct recieved_data *rx_data;
 
-	rx_data = (struct recieved_data *)malloc(sizeof(struct recieved_data));
+	int ret;
+
+	//rx_data = (struct recieved_data *)malloc(sizeof(struct recieved_data));
 
 	frame = vf_alloc(1);
 	vf_get_tile(frame, 0)->width=1080;
@@ -37,8 +38,8 @@ int main(){
 
 	int required_connections;
 	uint32_t ts;
-	int recv_port = 5004;
-	int send_port = 6004;
+	int recv_port = 6004;
+	int send_port = 5004;
 	int index=0;
 	int exit = 1;
 
@@ -46,7 +47,6 @@ int main(){
 
 	timeout.tv_sec = 0;
 	timeout.tv_usec = 10000;
-	
 	uint32_t timestamp;
 		
 	required_connections = 1;
@@ -55,7 +55,7 @@ int main(){
 	participants = pdb_init();
 
 	printf("RTP INIT IFACE\n");
-	devices[index] = rtp_init_if(addr, mcast_if, recv_port, send_port, ttl, rtcp_bw, 0, rtp_recv_callback, participants, 0);
+	devices[index] = rtp_init_if(addr, mcast_if, recv_port, send_port, ttl, rtcp_bw, 0, rtp_recv_callback, (void *)participants, 0);
 	
 	if (devices[index] != NULL) {
 		printf("RTP INIT OPTIONS\n");
@@ -73,7 +73,7 @@ int main(){
 		//INITIAL_VIDEO_RECV_BUFFER_SIZE;
 		int ret = rtp_set_recv_buf(devices[index], INITIAL_VIDEO_RECV_BUFFER_SIZE);
 		if (!ret) {
-			printf("RTP INIT OPTIONS FAIL 3: set recv buf\n");
+			printf("RTP INIT OPTIONS FAIL 3: set recv buf \nset command: sudo sysctl -w net.core.rmem_max=9123840\n");
 			return -1;
 		}
 
@@ -81,10 +81,16 @@ int main(){
 			printf("RTP INIT OPTIONS FAIL 4: set send buf\n");
 			return -1;
 		}
+		ret=pdb_add(participants, rtp_my_ssrc(devices[index]));
+		printf("[PDB ADD] returned result = %d for ssrc = %x\n",ret,rtp_my_ssrc(devices[index]));
 	}
 
+	struct recieved_data *rx_data = calloc(1, sizeof(struct recieved_data));
+
 	tx_init();
+
 	int xec=0;
+
 	while(exit){
 		gettimeofday(&curr_time, NULL);
 		timestamp = tv_diff(curr_time, start_time) * 90000;
@@ -97,7 +103,7 @@ int main(){
 		if (!rtp_recv_poll_r(devices, &timeout, timestamp)){
 			printf("\nPACKET NOT RECIEVED\n");
 			//sleep(1);
-		} else {
+		}// else {
             pdb_iter_t it;
 			cp = pdb_iter_init(participants, &it);
 			int ret;
@@ -108,24 +114,24 @@ int main(){
 				//printf("DECODE return value: %d\n", ret);
 				if (ret) {
 					gettimeofday(&curr_time, NULL);
-					printf("\nFRAME RECIEVED\n");
+					printf("\nFRAME RECIEVED (first byte = %x)\n",rx_data->frame_buffer[0][0]);
 					frame->tiles[0].data = rx_data->frame_buffer[0];
 					frame->tiles[0].data_len = rx_data->buffer_len[0];
 
-                    //MODUL DE CAPTURA AUDIO A FITXER PER COMPROVACIONS EN TX
-                            //CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
-                            if(F_video_rx==NULL){
-                                    printf("recording rtx rx frame...\n");
-                                    F_video_rx=fopen("rx_frame", "wb");
-                            }
+//                    //MODUL DE CAPTURA AUDIO A FITXER PER COMPROVACIONS EN TX
+//                            //CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
+//                            if(F_video_rx==NULL){
+//                                    printf("recording rx frame...\n");
+//                                    F_video_rx=fopen("rx_frame", "wb");
+//                            }
+//
+//                            //fwrite(tx_frame->audio_data,tx_frame->audio_data_len,1,F_audio_tx_embed_BM);
+//                            fwrite(frame->tiles[0].data,frame->tiles[0].data_len,1,F_video_rx);
+//                    //FI CAPTURA
 
-                            //fwrite(tx_frame->audio_data,tx_frame->audio_data_len,1,F_audio_tx_embed_BM);
-                            fwrite(frame->tiles[0].data,frame->tiles[0].data_len,1,F_video_rx);
-                    //FI CAPTURA
-
-					printf("[FRAME TO SEND] data len = %d \n",frame->tiles[0].data_len);
-
-					tx_send_base(vf_get_tile(frame, 0), devices[0], get_local_mediatime(), 1, frame->color_spec, frame->fps, frame->interlacing, 0, 0);
+					printf("[FRAME TO SEND] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
+					if(frame->tiles[0].data_len>0)
+						tx_send_base(vf_get_tile(frame, 0), devices[0], get_local_mediatime(), 1, frame->color_spec, frame->fps, frame->interlacing, 0, 0);
 
 					//if (xec > 3)
 					//	exit = 0;
@@ -139,7 +145,7 @@ int main(){
 			}
 			pdb_iter_done(&it);
 
-		}
+		//}
 	}
 
 	rtp_done(devices[index]);

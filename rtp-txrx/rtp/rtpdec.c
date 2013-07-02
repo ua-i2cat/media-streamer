@@ -48,7 +48,7 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
         //        return FALSE;
         //}
         
-        int k = 0, m = 0, c = 0, seed = 0; // LDGM
+        //int k = 0, m = 0, c = 0, seed = 0; // LDGM
         int buffer_number, buffer_length;
 
         // first, dispatch "messages"
@@ -64,7 +64,7 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
         }*/
 
         int pt;
-        bool buffer_swapped = false;
+        //bool buffer_swapped = false;
 
         while (cdata != NULL) {
                 uint32_t *hdr;
@@ -79,22 +79,26 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
                 buffer_number = tmp & 0x3ffff;
                 buffer_length = ntohl(hdr[2]);
 
+                //printf("[DECODER] substream = %u\n", substream);
+
                 if(pt == PT_VIDEO) {
                         len = pckt->data_len - sizeof(video_payload_hdr_t);
                         data = (char *) hdr + sizeof(video_payload_hdr_t);
-                } else if (pt == PT_VIDEO_LDGM) {
-                        len = pckt->data_len - sizeof(ldgm_video_payload_hdr_t);
-                        data = (char *) hdr + sizeof(ldgm_video_payload_hdr_t);
 
-                        tmp = ntohl(hdr[3]);
-                        k = tmp >> 19;
-                        m = 0x1fff & (tmp >> 6);
-                        c = 0x3f & tmp;
-                        seed = ntohl(hdr[4]);
+                        printf("[DECODER]  packet data (first byte) = %x and total length = %d\n",data[0],len);
+//                } else if (pt == PT_VIDEO_LDGM) {
+//                        len = pckt->data_len - sizeof(ldgm_video_payload_hdr_t);
+//                        data = (char *) hdr + sizeof(ldgm_video_payload_hdr_t);
+//
+//                        tmp = ntohl(hdr[3]);
+//                        k = tmp >> 19;
+//                        m = 0x1fff & (tmp >> 6);
+//                        c = 0x3f & tmp;
+//                        seed = ntohl(hdr[4]);
                 } else {
                         fprintf(stderr, "[decoder] Unknown packet type: %d.\n", pckt->pt);
                         //exit_uv(1);i
-			printf("unknown packet type\n");
+                        printf("unknown packet type\n");
                         ret = FALSE;
                         goto cleanup;
                 }
@@ -130,19 +134,24 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
                 buffers->buffer_num[substream] = buffer_number;
                 buffers->buffer_len[substream] = buffer_length;
 
+                printf("[DECODER] buffer_length = %d /  data_pos = %d /  len = %d /  first byte data = %x\n",buffer_length, data_pos,len,data[0]);
+
                 //ll_insert(pckt_list[substream], data_pos, len);
                 
                 //if (pt == PT_VIDEO && decoder->decoder_type == LINE_DECODER) {
 
 		//} else { /* PT_VIDEO_LDGM or external decoder */
+               // if (pt == PT_VIDEO) {
                         memcpy(buffers->frame_buffer[substream] + data_pos, (unsigned char*) data,len);
-                //}
+
+               // }
+        //}
 
                 cdata = cdata->nxt;
         }
 
         if(!pckt) {
-		printf("no packet, dude!\n");
+        		printf("no packet, dude!\n");
                 ret = FALSE;
                 goto cleanup;
         }
