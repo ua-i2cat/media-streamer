@@ -40,9 +40,14 @@ OBJS	      = compat/drand48.o \
 		rtp/net_udp.o \
 		rtp/rtp.o \
 		rtp/rtpdec.o \
+		rtp/rtpenc.o \
+		
 		
 
 TEST_OBJS     = test/main.o \
+				test/video.o \
+				test/video_codec.o \
+				test/tile.o \
 
 # -------------------------------------------------------------------------------------------------
 all: $(TARGET)

@@ -1,17 +1,28 @@
 #include "rtp/rtp.h"
 #include "rtp/rtp_callback.h"
 #include "rtp/rtpdec.h"
+#include "rtp/rtpenc.h"
 #include "pdb.h"
-#define INITIAL_VIDEO_RECV_BUFFER_SIZE  262142//((4*1920*1080)*110/100)
+#include "test/video.h"
+#define INITIAL_VIDEO_RECV_BUFFER_SIZE  ((4*1920*1080)*110/100) //command line net.core setup: sysctl -w net.core.rmem_max=9123840
 
-
+FILE *F_video_rx=NULL;
 
 int main(){
 	struct rtp **devices = NULL;
 	struct pdb *participants;
 	struct pdb_e *cp;
-	    
-	
+	struct video_frame *frame;
+	struct recieved_data *rx_data;
+
+	rx_data = (struct recieved_data *)malloc(sizeof(struct recieved_data));
+
+	frame = vf_alloc(1);
+	vf_get_tile(frame, 0)->width=1080;
+	vf_get_tile(frame, 0)->width=720;
+	frame->fps=10;
+	frame->color_spec=RGBA;
+	frame->interlacing=PROGRESSIVE;
 
 	double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
 	int ttl = 255;
@@ -56,7 +67,7 @@ int main(){
 		}
 
 
-		INITIAL_VIDEO_RECV_BUFFER_SIZE;
+		//INITIAL_VIDEO_RECV_BUFFER_SIZE;
 		int ret = rtp_set_recv_buf(devices[index],
 				INITIAL_VIDEO_RECV_BUFFER_SIZE);
 		if (!ret) {
@@ -70,6 +81,7 @@ int main(){
 		}
 	}
 
+	tx_init();
 	gettimeofday(&curr_time, NULL);
 	while(exit){
 		rtp_update(devices[index], curr_time);
@@ -78,31 +90,36 @@ int main(){
 		if (!rtp_recv_poll_r(devices, &timeout, 0)){
 			printf("PACKET NOT RECIEVED\n");
 			sleep(1);
-		} else {
-		  uint32_t xec = tv_diff_usec(curr_time, prev_time);
-		  printf("interlooping time: %d\n", xec);
-		  if (xec > 900){
-			  gettimeofday(&prev_time, NULL);
-			  pdb_iter_t it;
-			  cp = pdb_iter_init(participants, &it);
-			  int ret;
-			  printf("PACKET RECIEVED, building FRAME\n");
-			  while(cp != NULL){
-			    ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame, NULL);
-			    printf("DECODE return value: %d\n", ret);
-			    if (ret){
-			      printf("FRAME RECIEVED\n");
-			      exit = 0;
-			    } else {
-			      printf("FRAME not ready yet\n");
-			    }
-			    pbuf_remove(cp->playout_buffer, curr_time);
-			    cp = pdb_iter_next(&it);
-			  }
-		  } else {
-		    printf("PACKET RECIEVED, not yet for FRAME\n");
-		  }
-		}
+		}// else {
+
+			gettimeofday(&prev_time, NULL );
+			pdb_iter_t it;
+			cp = pdb_iter_init(participants, &it);
+			int ret;
+			printf("PACKET RECIEVED, building FRAME\n");
+			while (cp != NULL ) {
+				ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame,
+						rx_data);
+				printf("DECODE return value: %d\n", ret);
+				if (ret) {
+					//printf("\n\n\n\n\n\n\n\nFRAME RECIEVED\n\n\n\n\n\n\n\n");
+					//frame->tiles[0].data = rx_data->frame_buffer[0];
+					//frame->tiles[0].data_len = rx_data->buffer_len[0];
+
+					//tx_send_base(vf_get_tile(frame, 0), devices[0], get_local_mediatime(), 1, frame->color_spec, frame->fps, frame->interlacing, 0, 0);
+					//if (xec > 1)
+					//exit = 0;
+					//xec++;
+
+				} else {
+					printf("FRAME not ready yet\n");
+				}
+				pbuf_remove(cp->playout_buffer, curr_time);
+				cp = pdb_iter_next(&it);
+			}
+
+		//}
+		pdb_iter_done(&it);
 
 //FRAME REFLECTOR
 /*		pdb_iter_t it;

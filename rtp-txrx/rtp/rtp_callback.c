@@ -197,6 +197,7 @@ void rtp_recv_callback(struct rtp *session, rtp_event * e)
         switch (e->type) {
         case RX_RTP:
                 if (pckt_rtp->data_len > 0) {   /* Only process packets that contain data... */
+                		printf("\n[RTP CALLBACK] DATA PACKET RECEIVED\n");
                         pbuf_insert(state->playout_buffer, pckt_rtp);
                 }
                 gettimeofday(&curr_time, NULL);
@@ -234,6 +235,7 @@ void rtp_recv_callback(struct rtp *session, rtp_event * e)
         case SOURCE_DELETED:
                 {
                         struct pdb_e *pdb_item = NULL;
+                        printf("\n[RTP CALLBACK] SOURCE DELETED\n");
                         if(pdb_remove(participants, e->ssrc, &pdb_item) == 0) {
 #ifndef SHARED_DECODER
                                 //destroy_decoder(pdb_item->video_decoder_state);
@@ -242,6 +244,7 @@ void rtp_recv_callback(struct rtp *session, rtp_event * e)
                 }
                 break;
         case SOURCE_CREATED:
+        		printf("\n[RTP CALLBACK] SOURCE CREATED\n");
                 pdb_add(participants, e->ssrc);
                 break;
         case RR_TIMEOUT:

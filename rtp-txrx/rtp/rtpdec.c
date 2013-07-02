@@ -10,7 +10,7 @@
 #include "rtp/rtpdec.h"
 
 
-int decode_frame(struct coded_data *cdata, void *decode_data)
+int decode_frame(struct coded_data *cdata, void *rx_data)
 {
         //struct vcodec_state *pbuf_data = (struct vcodec_state *) decode_data;
         //struct state_decoder *decoder = pbuf_data->decoder;
@@ -30,17 +30,15 @@ int decode_frame(struct coded_data *cdata, void *decode_data)
 
         int i;
         //struct linked_list *pckt_list[MAX_SUBSTREAMS];
-        uint32_t buffer_len[MAX_SUBSTREAMS];
-        uint32_t buffer_num[MAX_SUBSTREAMS];
         // the following is just LDGM related optimalization - normally we fill up
         // allocated buffers when we have compressed data. But in case of LDGM, there
         // is just the LDGM buffer present, so we point to it instead to copying
-        char *recv_buffers[MAX_SUBSTREAMS]; // for FEC or compressed data
+        struct recieved_data *buffers = (struct recieved_data *) rx_data; // for FEC or compressed data
         for (i = 0; i < (int) MAX_SUBSTREAMS; ++i) {
                 //pckt_list[i] = ll_create();
-                buffer_len[i] = 0;
-                buffer_num[i] = 0;
-                recv_buffers[i] = NULL;
+        		buffers->buffer_len[i] = 0;
+                buffers->buffer_num[i] = 0;
+                buffers->frame_buffer[i] = NULL;
         }
 
         //perf_record(UVP_DECODEFRAME, frame);
@@ -125,19 +123,19 @@ int decode_frame(struct coded_data *cdata, void *decode_data)
                         goto cleanup;
                 }
 
-                if(!recv_buffers[substream]) {
-                        recv_buffers[substream] = (char *) malloc(buffer_length);
+                if(!buffers->frame_buffer[substream]) {
+                	buffers->frame_buffer[substream] = (char *) malloc(buffer_length);
                 }
 
-                buffer_num[substream] = buffer_number;
-                buffer_len[substream] = buffer_length;
+                buffers->buffer_num[substream] = buffer_number;
+                buffers->buffer_len[substream] = buffer_length;
 
                 //ll_insert(pckt_list[substream], data_pos, len);
                 
                 //if (pt == PT_VIDEO && decoder->decoder_type == LINE_DECODER) {
 
 		//} else { /* PT_VIDEO_LDGM or external decoder */
-                        memcpy(recv_buffers[substream] + data_pos, (unsigned char*) data,len);
+                        memcpy(buffers->frame_buffer[substream] + data_pos, (unsigned char*) data,len);
                 //}
 
                 cdata = cdata->nxt;
