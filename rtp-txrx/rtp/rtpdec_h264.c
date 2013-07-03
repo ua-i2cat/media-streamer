@@ -11,11 +11,10 @@
 
 static const uint8_t start_sequence[] = { 0, 0, 0, 1 };
 
-int decode_frame(struct coded_data *cdata, void *rx_data)
+int decode_frame_h264(struct coded_data *cdata, void *rx_data)
 {
   int ret = TRUE;
   rtp_packet *pckt = NULL;
-  int pt;
   int substream = 0;
   struct coded_data *orig = cdata;
 
@@ -27,7 +26,14 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
   
   char *dst = NULL;
   
-  for(pass = 0; pre_pass < 2; pre_pass++){
+  struct recieved_data *buffers = (struct recieved_data *) rx_data;
+  for (int i = 0; i < (int) MAX_SUBSTREAMS; ++i) {
+    buffers->buffer_len[i] = 0;
+    buffers->buffer_num[i] = 0;
+    buffers->frame_buffer[i] = NULL;
+  }
+  
+  for(pass = 0; pass < 2; pass++){
     
     if (pass > 0){
       cdata = orig;   
@@ -39,7 +45,6 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
     
     while (cdata != NULL) {
       pckt = cdata->data;
-      pt = pckt->pt;
     
       nal  = (uint8_t) pckt->data[0];
       type = nal & 0x1f;
@@ -47,6 +52,8 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
       if (type >= 1 && type <= 23) {
 	type = 1;
       }
+      
+      const uint8_t *src = NULL;
       
       switch (type) {
 	case 0:
@@ -65,8 +72,8 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
 	  pckt->data++;
 	  pckt->data_len--;
 
-          const uint8_t *src = pckt = cdata->data;
-          int src_len        = pckt = cdata->data_len;
+          src = (const uint8_t *) pckt->data;
+          int src_len        = pckt->data_len;
 
           while (src_len > 2) {
               //uint16_t nal_size = AV_RB16(src);
@@ -111,11 +118,11 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
 	  pckt->data_len--;                 // skip the fu_indicator
 	  if (pckt->data_len > 1) {
             // these are the same as above, we just redo them here for clarity
-	    const uint8_t *src 		= cdata->data;
+	    src = (const uint8_t *) cdata->data;
 	    uint8_t fu_indicator      	= nal;
 	    uint8_t fu_header         	= *src;
 	    uint8_t start_bit         	= fu_header >> 7;
-	    uint8_t av_unused end_bit 	= (fu_header & 0x40) >> 6;
+	    uint8_t end_bit 		= (fu_header & 0x40) >> 6;
 	    uint8_t nal_type          	= fu_header & 0x1f;
 	    uint8_t reconstructed_nal;
 
@@ -160,5 +167,5 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
       cdata = cdata->nxt;
     }
   }
-  
+  return ret;
 }
