@@ -10,14 +10,14 @@
 #include "tfrc.h"
 #include "rtp/rtpenc.h"
 
-void tx_init()
+void tx_init_h264()
 {
     buffer_id =  lrand48() & 0x3fffff;
     bitrate = 6618;
     packet_rate = 1000 * mtu * 8 / bitrate;
 }
 
-void tx_send_base(struct tile *tile, struct rtp *rtp_session,
+void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
                   uint32_t ts, int send_m, codec_t color_spec,
                   double input_fps, enum interlacing_t interlacing,
                   unsigned int substream, int fragment_offset)
