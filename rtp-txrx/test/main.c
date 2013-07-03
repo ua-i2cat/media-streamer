@@ -1,6 +1,7 @@
 #include "rtp/rtp.h"
 #include "rtp/rtp_callback.h"
 #include "rtp/rtpdec.h"
+#include "rtp/rtpdec_h264.h"
 #include "rtp/rtpenc.h"
 #include "pdb.h"
 #include "test/video.h"
@@ -34,11 +35,11 @@ int main(){
 	struct timeval timeout;
 	struct timeval prev_time;
 	struct timeval start_time;
-    gettimeofday(&start_time, NULL);
+	gettimeofday(&start_time, NULL);
 
 	int required_connections;
 	uint32_t ts;
-	int recv_port = 6004;
+	int recv_port = 5004;
 	int send_port = 7004;
 	int index=0;
 	int exit = 1;
@@ -109,7 +110,7 @@ int main(){
 			int ret;
 			//printf("PACKET RECIEVED, building FRAME\n");
 			while (cp != NULL ) {
-				ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame,
+				ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264,
 						rx_data);
 				//printf("DECODE return value: %d\n", ret);
 				if (ret) {
