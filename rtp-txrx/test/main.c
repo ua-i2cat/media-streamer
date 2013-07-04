@@ -88,7 +88,7 @@ int main(){
 
 	struct recieved_data *rx_data = calloc(1, sizeof(struct recieved_data));
 
-	tx_init();
+	tx_init_h264();
 
 	int xec=0;
 
@@ -133,7 +133,7 @@ int main(){
 
 					printf("[MAIN to SENDER] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
 					if(frame->tiles[0].data_len>0)
-						tx_send_base(vf_get_tile(frame, 0), devices[0], get_local_mediatime(), 1, frame->color_spec, frame->fps, frame->interlacing, 0, 0);
+						tx_send_base_h264(vf_get_tile(frame, 0), devices[0], get_local_mediatime(), 1, frame->color_spec, frame->fps, frame->interlacing, 0, 0);
 
 					//if (xec > 3)
 					//	exit = 0;
