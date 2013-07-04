@@ -25,6 +25,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
   int total_length = 0;
   
   char *dst = NULL;
+  int src_len;
   
   struct recieved_data *buffers = (struct recieved_data *) rx_data;
   for (int i = 0; i < (int) MAX_SUBSTREAMS; ++i) {
@@ -39,13 +40,14 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
       cdata = orig;   
       buffers->buffer_len[substream] = total_length;
       buffers->frame_buffer[substream] = (char*) malloc(total_length);
-      dst = buffers->frame_buffer[substream];
+      dst = buffers->frame_buffer[substream] + total_length;
     }
     
+    printf("\n\n\nPASS %d\n\n\n", pass);
     
     while (cdata != NULL) {
       pckt = cdata->data;
-    
+      
       nal  = (uint8_t) pckt->data[0];
       type = nal & 0x1f;
   
@@ -53,28 +55,35 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
 	type = 1;
       }
       
-      const uint8_t *src = NULL;
+      printf("\n\n\n\ntype of nal: %d\n", type);
+      printf("byte 1: %d ", pckt->data[0]);
+      printf("byte 2: %d ", pckt->data[1]);
+      printf("byte 3: %d ", pckt->data[2]);
+      printf("byte 4: %d \n", pckt->data[3]);
+      
+      const char *src = NULL;
       
       switch (type) {
 	case 0:
 	//One packet one NAL
 	case 1: 
+	  printf("NAL TYPE 1\n");
 	  if (pass == 0){
 	    total_length += sizeof(start_sequence) + pckt->data_len;
 	  } else {
+	    dst -= pckt->data_len + sizeof(start_sequence);
 	    memcpy(dst, start_sequence, sizeof(start_sequence));
 	    memcpy(dst + sizeof(start_sequence), pckt->data, pckt->data_len);
-	    dst += pckt->data_len + sizeof(start_sequence);
 	  }
 	  break;
 	//One packet multiple NALs
 	case 24:
-	  pckt->data++;
-	  pckt->data_len--;
+	  src = (const char *) pckt->data;
+          src_len        = pckt->data_len;
 
-          src = (const uint8_t *) pckt->data;
-          int src_len        = pckt->data_len;
-
+	  src++;
+	  src_len--;
+	  
           while (src_len > 2) {
               //uint16_t nal_size = AV_RB16(src);
               uint16_t nal_size;
@@ -114,11 +123,15 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
 	//error unhandled type
 	  break;
 	case 28:
-	  pckt->data++;
-	  pckt->data_len--;                 // skip the fu_indicator
-	  if (pckt->data_len > 1) {
+	  src = (const char *) pckt->data;
+          src_len        = pckt->data_len;
+
+	  src++;
+	  src_len--;                // skip the fu_indicator
+	  
+	  if (src_len > 1) {
             // these are the same as above, we just redo them here for clarity
-	    src = (const uint8_t *) cdata->data;
+            
 	    uint8_t fu_indicator      	= nal;
 	    uint8_t fu_header         	= *src;
 	    uint8_t start_bit         	= fu_header >> 7;
@@ -131,18 +144,30 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
              * packet's nal. */
 	    reconstructed_nal  = fu_indicator & 0xe0;
 	    reconstructed_nal |= nal_type;
+	    
+	    printf("\nsrc byte 1: %d ", src[0]); 
+	    printf("\nsrc byte 2: %d ", src[1]);
+	    printf("\nsrc byte 3: %d ", src[2]);
+	    printf("\nsrc byte 4: %d \n", src[3]);
+	    
+	    printf("fu_indicator: %d\n", fu_indicator);
+	    printf("fu_header: %d\n", fu_header);
+	    printf("start_bit: %d\n", start_bit);
+	    printf("end_bit: %d\n", end_bit);
+	    printf("nal_type: %d\n", nal_type);
+	    printf("reconstructed_nal: %d\n", reconstructed_nal);
 
           // skip the fu_header
-	    pckt->data++;
-	    pckt->data_len--;
+	    src++;
+	    src_len--;
 
             //if (start_bit)
             //    COUNT_NAL_TYPE(data, nal_type);
 	    if (pass == 0){
 	      if (start_bit) {
-                total_length += sizeof(start_sequence) + sizeof(nal) + pckt->data_len;
+                total_length += sizeof(start_sequence) + sizeof(nal) + src_len;
 	      } else {
-		total_length += pckt->data_len;
+		total_length += src_len;
 	      }
 	    } else {
 	      if (start_bit) {
@@ -150,12 +175,12 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
 		assert(dst);
 		memcpy(dst, start_sequence, sizeof(start_sequence));
 		dst[sizeof(start_sequence)] = reconstructed_nal;
-		memcpy(dst + sizeof(start_sequence) + sizeof(nal), pckt->data, pckt->data_len);
-		dst += sizeof(start_sequence) + sizeof(nal) + pckt->data_len;
+		memcpy(dst + sizeof(start_sequence) + sizeof(nal), src, src_len);
+		dst += sizeof(start_sequence) + sizeof(nal) + src_len;
 	      } else {
 		assert(dst);
-		memcpy(dst, pckt->data, pckt->data_len);
-		dst += pckt->data_len;
+		memcpy(dst, src, src_len);
+		dst += src_len;
 	      }
 	    }
 	  } else {
