@@ -67,7 +67,6 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
 	case 0:
 	//One packet one NAL
 	case 1: 
-	  printf("NAL TYPE 1\n");
 	  if (pass == 0){
 	    total_length += sizeof(start_sequence) + pckt->data_len;
 	  } else {
@@ -98,9 +97,9 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
                       total_length += sizeof(start_sequence) + nal_size;
                   } else {
                       assert(dst);
+		      dst -= nal_size + sizeof(start_sequence);
                       memcpy(dst, start_sequence, sizeof(start_sequence));
                       memcpy(dst + sizeof(start_sequence), src, nal_size);
-                      dst += nal_size + sizeof(start_sequence);
                   }
               } else {
                     //av_log(ctx, AV_LOG_ERROR,
@@ -161,11 +160,9 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
 	    src++;
 	    src_len--;
 
-            //if (start_bit)
-            //    COUNT_NAL_TYPE(data, nal_type);
 	    if (pass == 0){
 	      if (start_bit) {
-                total_length += sizeof(start_sequence) + sizeof(nal) + src_len;
+                total_length += sizeof(start_sequence) + sizeof(reconstructed_nal) + src_len;
 	      } else {
 		total_length += src_len;
 	      }
@@ -173,14 +170,14 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
 	      if (start_bit) {
 		/* copy in the start sequence, and the reconstructed nal */
 		assert(dst);
+		dst -= sizeof(start_sequence) + sizeof(reconstructed_nal) + src_len;
 		memcpy(dst, start_sequence, sizeof(start_sequence));
-		dst[sizeof(start_sequence)] = reconstructed_nal;
-		memcpy(dst + sizeof(start_sequence) + sizeof(nal), src, src_len);
-		dst += sizeof(start_sequence) + sizeof(nal) + src_len;
+		memcpy(dst + sizeof(start_sequence), &reconstructed_nal, sizeof(reconstructed_nal));
+		memcpy(dst + sizeof(start_sequence) + sizeof(reconstructed_nal), src, src_len);
 	      } else {
 		assert(dst);
+		dst -= src_len;
 		memcpy(dst, src, src_len);
-		dst += src_len;
 	      }
 	    }
 	  } else {
