@@ -11,7 +11,84 @@
 #include "rtp/rtpenc_h264.h"
 
 
-void tx_init()
+static const uint8_t *rtp_find_startcode_internal(const uint8_t *p, const uint8_t *end)
+{
+    const uint8_t *a = p + 4 - ((intptr_t)p & 3);
+
+    for (end -= 3; p < a && p < end; p++) {
+        if (p[0] == 0 && p[1] == 0 && p[2] == 1)
+            return p;
+    }
+
+    for (end -= 3; p < end; p += 4) {
+        uint32_t x = *(const uint32_t*)p;
+//      if ((x - 0x01000100) & (~x) & 0x80008000) // little endian
+//      if ((x - 0x00010001) & (~x) & 0x00800080) // big endian
+        if ((x - 0x01010101) & (~x) & 0x80808080) { // generic
+            if (p[1] == 0) {
+                if (p[0] == 0 && p[2] == 1)
+                    return p;
+                if (p[2] == 0 && p[3] == 1)
+                    return p+1;
+            }
+            if (p[3] == 0) {
+                if (p[2] == 0 && p[4] == 1)
+                    return p+2;
+                if (p[4] == 0 && p[5] == 1)
+                    return p+3;
+            }
+        }
+    }
+
+    for (end += 3; p < end; p++) {
+        if (p[0] == 0 && p[1] == 0 && p[2] == 1)
+            return p;
+    }
+
+    return end + 3;
+}
+
+const uint8_t *rtpc_find_startcode(const uint8_t *p, const uint8_t *end){
+    const uint8_t *out= rtp_find_startcode_internal(p, end);
+    if(p<out && out<end && !out[-1]) out--;
+    return out;
+}
+
+typedef struct {
+    uint8_t *data;
+    int size;
+}
+
+int rtp_parse_nal_units(const uint8_t *buf_in, int size, struct rtp_nal_t **nals, int *nnals)
+{
+    const uint8_t *p = buf_in;
+    const uint8_t *end = p + size;
+    const uint8_t *nal_start, *nal_end;
+
+    size = 0;
+    nal_start = rtp_find_startcode(p, end);
+    int nnals = 0;
+    for (;;) {
+        while (nal_start < end && !*(nal_start++));
+        if (nal_start == end)
+            break;
+
+        nal_end = rtp_find_startcode(nal_start, end);
+        int nal_size = 4 + nal_end - nal_start;
+        size += nal_size;
+
+        nals[nnals] = malloc(sizeof(rtp_nal_t));
+        nals[nnals]->data = nal_start;
+        nals[nnals]->size = nal_size;
+        nnals++;
+
+        nal_start = nal_end;
+    }
+    return size;
+}
+
+
+void tx_init_h264()
 {
     buffer_id =  lrand48() & 0x3fffff;
     bitrate = 6618;
@@ -24,14 +101,16 @@ void tx_send_base(struct tile *tile, struct rtp *rtp_session,
                        unsigned int substream, int fragment_offset)
 {
 
+
     char *data = tile->data;
     int data_len = tile->data_len;
 
-    // according to previous code
-    int headers_len = 40; //+ (sizeof(video_payload_hdr_t));
-    assert(data_len + headers_len <= mtu);
+    struct rtp_nal_t *nals[];
+    int nnals;
 
-    //char pt = PT_VIDEO;
+
+    rtp_parse_nal_units(data, data_len, nals, &nnals)
+
     char pt = 96; // h264
     int cc = 0;
     uint32_t csrc = NULL;
@@ -40,8 +119,26 @@ void tx_send_base(struct tile *tile, struct rtp *rtp_session,
     uint16_t extn_len = 0;
     uint16_t extn_type = 0;
 
-    int err = rtp_send_data(rtp_session, ts, pt, send_m, cc, &csrc, data,
-                            data_len, extn, extn_len, extn_type);
+    // according to previous code
+    int headers_len = 40; //+ (sizeof(video_payload_hdr_t));
+
+    int i;
+    for (i = 0; i < nnals; i++) {
+        struct rtp_nal_t *nal = nals[i];
+
+        int rtp_size = headers_len + nal->size;
+        if (rtp_size >= mtu) {
+            printf("[WARNING] RTP packet size exceeds the MTU size\n");
+        }
+        
+        int err = rtp_send_data(rtp_session, ts, pt, send_m, cc, &csrc,
+                                nal->data, nal->size, extn, extn_len,
+                                extn_type);
+        if (err != 0) {
+            printf("[ERROR] There was a problem sending the RTP packet\n");
+        }
+    }
+
 
 
 /*
