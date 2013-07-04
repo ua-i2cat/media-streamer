@@ -42,6 +42,7 @@ OBJS	      = compat/drand48.o \
 		rtp/rtpdec.o \
 		rtp/rtpenc.o \
 		rtp/rtpdec_h264.o \
+		rtp/rtpenc_h264.o \
 		
 		
 
