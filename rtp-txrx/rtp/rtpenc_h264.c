@@ -8,7 +8,7 @@
 #include "pdb.h"
 #include "rtp/rtp_callback.h"
 #include "tfrc.h"
-#include "rtp/rtpenc.h"
+#include "rtp/rtpenc_h264.h"
 
 void tx_init_h264()
 {
@@ -18,9 +18,9 @@ void tx_init_h264()
 }
 
 void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
-                  uint32_t ts, int send_m, codec_t color_spec,
-                  double input_fps, enum interlacing_t interlacing,
-                  unsigned int substream, int fragment_offset)
+                       uint32_t ts, int send_m, codec_t color_spec,
+                       double input_fps, enum interlacing_t interlacing,
+                       unsigned int substream, int fragment_offset)
 {
 
     char *data = tile->data;
@@ -30,7 +30,8 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
     int headers_len = 40; //+ (sizeof(video_payload_hdr_t));
     assert(data_len + headers_len <= mtu);
 
-    char pt = PT_VIDEO;
+    //char pt = PT_VIDEO;
+    char pt = 96; // h264
     int cc = 0;
     uint32_t csrc = NULL;
     
