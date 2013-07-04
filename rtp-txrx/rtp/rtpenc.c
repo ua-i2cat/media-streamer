@@ -10,6 +10,8 @@
 #include "tfrc.h"
 #include "rtp/rtpenc.h"
 
+unsigned int mtu = 1000;
+
 void tx_init(){
 	buffer_id =  lrand48() & 0x3fffff;
 	bitrate = 6618;
