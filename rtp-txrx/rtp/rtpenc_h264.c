@@ -12,19 +12,31 @@
 
 #define MAX_NALS 1024
 
-static const uint8_t *rtp_find_startcode_internal(const uint8_t *p, const uint8_t *end)
+struct rtp_nal_t {
+    uint8_t *data;
+    int size;
+};
+
+static uint8_t *rtp_find_startcode_internal(uint8_t *start, uint8_t *end);
+uint8_t *rtp_find_startcode(uint8_t *p, uint8_t *end);
+int rtp_parse_nal_units(uint8_t *buf_in, int size, struct rtp_nal_t *nals, int *nnals);
+
+static uint8_t *rtp_find_startcode_internal(uint8_t *start, uint8_t *end)
 {
+    uint8_t *p = start;
+    uint8_t *pend = end;
+
     const uint8_t *a = p + 4 - ((intptr_t)p & 3);
 
-    for (end -= 3; p < a && p < end; p++) {
+    for (pend -= 3; p < a && p < pend; p++) {
         if (p[0] == 0 && p[1] == 0 && p[2] == 1)
             return p;
     }
 
-    for (end -= 3; p < end; p += 4) {
+    for (pend -= 3; p < pend; p += 4) {
         uint32_t x = *(const uint32_t*)p;
-//      if ((x - 0x01000100) & (~x) & 0x80008000) // little endian
-//      if ((x - 0x00010001) & (~x) & 0x00800080) // big endian
+        //if ((x - 0x01000100) & (~x) & 0x80008000) // little endian
+        //if ((x - 0x00010001) & (~x) & 0x00800080) // big endian
         if ((x - 0x01010101) & (~x) & 0x80808080) { // generic
             if (p[1] == 0) {
                 if (p[0] == 0 && p[2] == 1)
@@ -41,30 +53,28 @@ static const uint8_t *rtp_find_startcode_internal(const uint8_t *p, const uint8_
         }
     }
 
-    for (end += 3; p < end; p++) {
-        if (p[0] == 0 && p[1] == 0 && p[2] == 1)
+    for (pend += 3; p < pend; p++) {
+        if (p[0] == 0 && p[1] == 0 && p[2] == 1) {
             return p;
+        }
     }
 
-    return end + 3;
+    return pend + 3;
 }
 
-const uint8_t *rtp_find_startcode(const uint8_t *p, const uint8_t *end){
-    const uint8_t *out= rtp_find_startcode_internal(p, end);
-    if(p<out && out<end && !out[-1]) out--;
+uint8_t *rtp_find_startcode(uint8_t *p, uint8_t *end) {
+    uint8_t *out = rtp_find_startcode_internal(p, end);
+    if (p < out && out < end && !out[-1]) {
+        out--;
+    }
     return out;
 }
 
-struct rtp_nal_t {
-    uint8_t *data;
-    int size;
-};
-
-int rtp_parse_nal_units(const uint8_t *buf_in, int size, struct rtp_nal_t *nals, int *nnals)
+int rtp_parse_nal_units(uint8_t *buf_in, int size, struct rtp_nal_t *nals, int *nnals)
 {
-    const uint8_t *p = buf_in;
-    const uint8_t *end = p + size;
-    const uint8_t *nal_start, *nal_end;
+    uint8_t *p = buf_in;
+    uint8_t *end = p + size;
+    uint8_t *nal_start, *nal_end;
 
     size = 0;
     nal_start = rtp_find_startcode(p, end);
@@ -102,7 +112,7 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
 {
 
 
-    char *data = tile->data;
+    uint8_t *data = (uint8_t *)tile->data;
     int data_len = tile->data_len;
 
     struct rtp_nal_t nals[MAX_NALS];
@@ -111,9 +121,11 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
 
     rtp_parse_nal_units(data, data_len, nals, &nnals);
 
+    printf("[DEBUG] %d NAL units found in buffer", nnals);
+
     char pt = 96; // h264
     int cc = 0;
-    uint32_t csrc = NULL;
+    uint32_t csrc = 0;
     
     char *extn = 0;
     uint16_t extn_len = 0;
@@ -132,7 +144,7 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
         }
         
         int err = rtp_send_data(rtp_session, ts, pt, send_m, cc, &csrc,
-                                nal.data, nal.size, extn, extn_len,
+                                (char *)nal.data, nal.size, extn, extn_len,
                                 extn_type);
         if (err != 0) {
             printf("[ERROR] There was a problem sending the RTP packet\n");
