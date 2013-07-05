@@ -4,7 +4,7 @@ LINKER        = g++
 CFLAGS        = -g -DHAVE_CONFIG_H -g -I. -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
 CPPFLAGS      = -I.
 CXXFLAGS      = -g -DHAVE_CONFIG_H -g -fPIC -Wno-multichar -Wno-deprecated -msse2
-LDFLAGS       = -shared -Wl,--dynamic-list-data,-soname,rtp.so
+LDFLAGS       = -shared -Wl,--dynamic-list-data,-soname,librtp.so
 LDFLAGS_TEST  = -Wl,--dynamic-list-data
 
 LIBS         += -lrt -ldl -lieee -lm
