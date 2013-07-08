@@ -77,9 +77,9 @@ OBJS_DEC        += src/video_decompress/libavcodec.o \
 
 
 
-TEST_OBJS_RTP = test/rtp.o \
-TEST_OBJS_ENC = test/encoder.o \
-TEST_OBJS_DEC = test/decoder.o \
+TEST_OBJS_RTP = tests/rtp.o
+TEST_OBJS_ENC = tests/encoder.o
+TEST_OBJS_DEC = tests/decoder.o
 TEST_OBJS     = $(TEST_OBJS_RTP) $(TEST_OBJS_ENC) $(TEST_OBJS_DEC)
 # -------------------------------------------------------------------------------------------------
 all: $(TARGET)

@@ -1,10 +1,10 @@
-#include "src/rtp/rtp.h"
-#include "src/rtp/rtp_callback.h"
-#include "src/rtp/rtpdec.h"
-#include "src/rtp/rtpdec_h264.h"
-#include "src/rtp/rtpenc_h264.h"
-#include "src/pdb.h"
-#include "src/video.h"
+#include "rtp/rtp.h"
+#include "rtp/rtp_callback.h"
+#include "rtp/rtpdec.h"
+#include "rtp/rtpdec_h264.h"
+#include "rtp/rtpenc_h264.h"
+#include "pdb.h"
+#include "video.h"
 #define INITIAL_VIDEO_RECV_BUFFER_SIZE  ((4*1920*1080)*110/100) //command line net.core setup: sysctl -w net.core.rmem_max=9123840
 
 FILE *F_video_rx=NULL;

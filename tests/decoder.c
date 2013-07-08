@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
-#include "src/video_decompress.h"
-#include "src/video_decompress/libavcodec.h"
+#include "video_decompress.h"
+#include "video_decompress/libavcodec.h"
 
 int main (){
   struct state_decompress *sd;

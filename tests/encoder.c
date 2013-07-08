@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
-#include "src/video_compress.h"
-#include "src/video_compress/libavcodec.h"
+#include "video_compress.h"
+#include "video_compress/libavcodec.h"
 
 int main (){
   struct compress_state *sc;
