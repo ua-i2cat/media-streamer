@@ -13,7 +13,6 @@ static const uint8_t start_sequence[] = { 0, 0, 0, 1 };
 
 int decode_frame_h264(struct coded_data *cdata, void *rx_data)
 {
-  int ret = TRUE;
   rtp_packet *pckt = NULL;
   int substream = 0;
   struct coded_data *orig = cdata;
@@ -39,14 +38,17 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
     if (pass > 0){
       cdata = orig;   
       buffers->buffer_len[substream] = total_length;
-      buffers->frame_buffer[substream] = (char*) malloc(total_length);
+      buffers->frame_buffer[substream] = (uint8_t*) malloc(total_length);
       dst = buffers->frame_buffer[substream] + total_length;
     }
     
-    printf("\n\n\nPASS %d\n\n\n", pass);
-    
     while (cdata != NULL) {
       pckt = cdata->data;
+      
+      if (pckt->pt != PT_H264){
+	error_msg("Wrong Payload type: %u\n", pckt->pt);
+	return FALSE;
+      }
       
       nal  = (uint8_t) pckt->data[0];
       type = nal & 0x1f;
@@ -55,17 +57,10 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
 	type = 1;
       }
       
-      printf("\n\n\n\ntype of nal: %d\n", type);
-      printf("byte 1: %d ", pckt->data[0]);
-      printf("byte 2: %d ", pckt->data[1]);
-      printf("byte 3: %d ", pckt->data[2]);
-      printf("byte 4: %d \n", pckt->data[3]);
-      
-      const char *src = NULL;
+      const uint8_t *src = NULL;
       
       switch (type) {
 	case 0:
-	//One packet one NAL
 	case 1: 
 	  if (pass == 0){
 	    total_length += sizeof(start_sequence) + pckt->data_len;
@@ -75,20 +70,18 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
 	    memcpy(dst + sizeof(start_sequence), pckt->data, pckt->data_len);
 	  }
 	  break;
-	//One packet multiple NALs
 	case 24:
-	  src = (const char *) pckt->data;
-          src_len        = pckt->data_len;
+	  src = (const uint8_t *) pckt->data;
+          src_len = pckt->data_len;
 
 	  src++;
 	  src_len--;
 	  
           while (src_len > 2) {
-              //uint16_t nal_size = AV_RB16(src);
+	      //TODO: Not properly tested
               uint16_t nal_size;
               memcpy(&nal_size, src, sizeof(uint16_t));
 
-                    // consume the length of the aggregate
               src     += 2;
               src_len -= 2;
 		
@@ -96,22 +89,21 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
                   if (pass == 0) {
                       total_length += sizeof(start_sequence) + nal_size;
                   } else {
-                      assert(dst);
 		      dst -= nal_size + sizeof(start_sequence);
                       memcpy(dst, start_sequence, sizeof(start_sequence));
                       memcpy(dst + sizeof(start_sequence), src, nal_size);
                   }
               } else {
-                    //av_log(ctx, AV_LOG_ERROR,
-                    //       "nal size exceeds length: %d %d\n", nal_size, src_len);
+		error_msg("NAL size exceeds length: %u %d\n", nal_size, src_len);
+		return FALSE;
               }
-                    // eat what we handled
               src     += nal_size;
               src_len -= nal_size;
-
-                //if (src_len < 0)
-                    //av_log(ctx, AV_LOG_ERROR,
-                    //       "Consumed more bytes than we got! (%d)\n", src_len);
+	      
+	      if (src_len < 0){
+		error_msg("Consumed more bytes than we got! (%d)\n", src_len);
+		return FALSE;
+	      }
           }
           break;
   
@@ -119,20 +111,17 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
 	case 26:
 	case 27:
 	case 29:
-	//error unhandled type
-	  break;
+	  error_msg("Unhandled NAL type\n");
+	  return FALSE;
 	case 28:
-	  src = (const char *) pckt->data;
-          src_len        = pckt->data_len;
+	  src = (const uint8_t *) pckt->data;
+          src_len = pckt->data_len;
 
 	  src++;
-	  src_len--;                // skip the fu_indicator
+	  src_len--;
 	  
 	  if (src_len > 1) {
-            // these are the same as above, we just redo them here for clarity
-            
-	    uint8_t fu_indicator      	= nal;
-	    uint8_t fu_header         	= *src;
+            uint8_t fu_header         	= *src;
 	    uint8_t start_bit         	= fu_header >> 7;
 	    uint8_t end_bit 		= (fu_header & 0x40) >> 6;
 	    uint8_t nal_type          	= fu_header & 0x1f;
@@ -141,22 +130,10 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
             // Reconstruct this packet's true nal; only the data follows.
             /* The original nal forbidden bit and NRI are stored in this
              * packet's nal. */
-	    reconstructed_nal  = fu_indicator & 0xe0;
+	    reconstructed_nal  = nal & 0xe0;
 	    reconstructed_nal |= nal_type;
 	    
-	    printf("\nsrc byte 1: %d ", src[0]); 
-	    printf("\nsrc byte 2: %d ", src[1]);
-	    printf("\nsrc byte 3: %d ", src[2]);
-	    printf("\nsrc byte 4: %d \n", src[3]);
-	    
-	    printf("fu_indicator: %d\n", fu_indicator);
-	    printf("fu_header: %d\n", fu_header);
-	    printf("start_bit: %d\n", start_bit);
-	    printf("end_bit: %d\n", end_bit);
-	    printf("nal_type: %d\n", nal_type);
-	    printf("reconstructed_nal: %d\n", reconstructed_nal);
-
-          // skip the fu_header
+	    // skip the fu_header
 	    src++;
 	    src_len--;
 
@@ -168,26 +145,26 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
 	      }
 	    } else {
 	      if (start_bit) {
-		/* copy in the start sequence, and the reconstructed nal */
-		assert(dst);
 		dst -= sizeof(start_sequence) + sizeof(reconstructed_nal) + src_len;
 		memcpy(dst, start_sequence, sizeof(start_sequence));
 		memcpy(dst + sizeof(start_sequence), &reconstructed_nal, sizeof(reconstructed_nal));
 		memcpy(dst + sizeof(start_sequence) + sizeof(reconstructed_nal), src, src_len);
 	      } else {
-		assert(dst);
 		dst -= src_len;
 		memcpy(dst, src, src_len);
 	      }
 	    }
 	  } else {
-	      //av_log(ctx, AV_LOG_ERROR, "Too short data for FU-A H264 RTP packet\n");
-	      //result = AVERROR_INVALIDDATA;
+	    error_msg("Too short data for FU-A H264 RTP packet\n");
+	    return FALSE;
 	  }
 	  break;
+	default:
+	  error_msg("Unknown NAL type\n");
+	  return FALSE;
       }
       cdata = cdata->nxt;
     }
   }
-  return ret;
+  return TRUE;
 }
