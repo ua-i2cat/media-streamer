@@ -48,6 +48,7 @@
 #define PT_VIDEO 20
 #define PT_AUDIO 21
 #define PT_VIDEO_LDGM 22
+#define PT_H264 96
 
 /*
  * Video payload
