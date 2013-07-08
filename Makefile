@@ -8,17 +8,19 @@ LDFLAGS       = -shared -Wl,--dynamic-list-data,-soname
 LDFLAGS_RTP   =-shared -Wl,--dynamic-list-data,-soname,librtp.so
 LDFLAGS_ENC   =-shared -Wl,--dynamic-list-data,-soname,libvcompress.so
 LDFLAGS_DEC   =-shared -Wl,--dynamic-list-data,-soname,libvdecompress.so
+#LDFLAGS_UG_UG =-shared -Wl,--dynamic-list-data,-soname,librtp.so,libvcompress.so,libvdecompress.so
 LDFLAGS_TEST  = -Wl,--dynamic-list-data
 
 LIBS_RTP      += -lrt -ldl -lieee -lm
 LIBS_ENC      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -pthread
 LIBS_DEC      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -pthread
-LIBS          += $(LIBS_RTP) $(LIBS_ENC) $(LIBS_DEC)
+LIBS	      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -pthread
 	 	
 LIBS_RTP_TEST += $(LIBS_RTP) -L./lib -lrtp
 LIBS_ENC_TEST += $(LIBS_ENC) -L./lib -lvcompress
 LIBS_DEC_TEST += $(LIBS_DEC) -L./lib -lvdecompress
-LIBS_TEST     += $(LIBS) $(LIBS_RTP_TEST) $(LIBS_ENC_TEST) $(LIBS_DEC_TEST)
+
+LIBS_TEST     += $(LIBS) -L./lib -lrtp -lvcompress -lvdecompress
 
 INC           = -I./src 
 	  
@@ -30,6 +32,7 @@ TARGET        = $(TARGET_RTP) $(TARGET_ENC) $(TARGET_DEC)
 TARGET_RTP_TEST   = bin/rtptest
 TARGET_ENC_TEST   = bin/encodertest
 TARGET_DEC_TEST   = bin/decodertest
+TARGET_UG_UG_TEST = bin/ugugtest
 
 DOCS 	      = COPYRIGHT README REPORTING-BUGS
 
@@ -80,7 +83,9 @@ OBJS_DEC        += src/video_decompress/libavcodec.o \
 TEST_OBJS_RTP = tests/rtp.o
 TEST_OBJS_ENC = tests/encoder.o
 TEST_OBJS_DEC = tests/decoder.o
-TEST_OBJS     = $(TEST_OBJS_RTP) $(TEST_OBJS_ENC) $(TEST_OBJS_DEC)
+TEST_OBJS_UG_UG = tests/ug_ug.o
+
+TEST_OBJS     = $(TEST_OBJS_RTP) $(TEST_OBJS_ENC) $(TEST_OBJS_DEC) $(TEST_OBJS_UG_UG)
 # -------------------------------------------------------------------------------------------------
 all: $(TARGET)
 
@@ -109,7 +114,7 @@ rtptest: $(TARGET_RTP) $(TEST_OBJS_RTP)
 encoder: $(TARGET_ENC)
 $(TARGET_ENC): $(OBJS) $(OBJS_RM) $(OBJS_ENC) $(HEADERS)
 	@mkdir -p lib
-	$(LINKER) $(LDFLAGS) $(LDFLAGS_ENC) -o $(TARGET_ENC) $(OBJS) $(OBJS_ENC) $(LIBS_ENC)
+	$(LINKER) $(LDFLAGS) $(LDFLAGS_ENC) -o $(TARGET_ENC) $(OBJS) $(OBJS_RM) $(OBJS_ENC) $(LIBS_ENC)
 
 encodertest: $(TARGET_ENC) $(TEST_OBJS_ENC)
 	@mkdir -p bin
@@ -118,12 +123,16 @@ encodertest: $(TARGET_ENC) $(TEST_OBJS_ENC)
 decoder: $(TARGET_DEC)
 $(TARGET_DEC): $(OBJS) $(OBJS_RM) $(OBJS_DEC) $(HEADERS)
 	@mkdir -p lib
-	$(LINKER) $(LDFLAGS) $(LDFLAGS_DEC) -o $(TARGET_DEC) $(OBJS) $(OBJS_DEC) $(LIBS_DEC)
+	$(LINKER) $(LDFLAGS) $(LDFLAGS_DEC) -o $(TARGET_DEC) $(OBJS) $(OBJS_RM) $(OBJS_DEC) $(LIBS_DEC)
 
 decodertest: $(TARGET_DEC) $(TEST_OBJS_DEC)
 	@mkdir -p bin
 	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_DEC) $(LIBS_DEC_TEST) -o $(TARGET_DEC_TEST)
 	
+
+ugugtest: $(TARGET_DEC) $(TARGET_ENC) $(TARGET_RTP) $(TEST_OBJS_UG_UG)
+	@mkdir -p bin
+	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_UG_UG) $(LIBS_TEST) -o $(TARGET_UG_UG_TEST)
 
 # -------------------------------------------------------------------------------------------------
 
