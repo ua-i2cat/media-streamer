@@ -10,174 +10,287 @@
 #include "tfrc.h"
 #include "rtp/rtpenc_h264.h"
 
+#define MAX_NALS 1024
+#define RTP_H264_PT 96
 
-void tx_init()
+//#define DEBUG
+
+struct rtp_nal_t {
+    uint8_t *data;
+    int size;
+};
+
+static uint8_t *rtp_find_startcode_internal(uint8_t *start, uint8_t *end);
+uint8_t *rtp_find_startcode(uint8_t *p, uint8_t *end);
+int rtp_parse_nal_units(uint8_t *buf_in, int size, struct rtp_nal_t *nals, int *nnals);
+
+static uint8_t *rtp_find_startcode_internal(uint8_t *start, uint8_t *end)
+{
+    uint8_t *p = start;
+    uint8_t *pend = end;
+
+    const uint8_t *a = p + 4 - ((intptr_t)p & 3);
+
+    for (pend -= 3; p < a && p < pend; p++) {
+        if (p[0] == 0 && p[1] == 0 && p[2] == 1)
+            return p;
+    }
+
+    for (pend -= 3; p < pend; p += 4) {
+        uint32_t x = *(const uint32_t*)p;
+        //if ((x - 0x01000100) & (~x) & 0x80008000) // little endian
+        //if ((x - 0x00010001) & (~x) & 0x00800080) // big endian
+        if ((x - 0x01010101) & (~x) & 0x80808080) { // generic
+            if (p[1] == 0) {
+                if (p[0] == 0 && p[2] == 1)
+                    return p;
+                if (p[2] == 0 && p[3] == 1)
+                    return p+1;
+            }
+            if (p[3] == 0) {
+                if (p[2] == 0 && p[4] == 1)
+                    return p+2;
+                if (p[4] == 0 && p[5] == 1)
+                    return p+3;
+            }
+        }
+    }
+
+    for (pend += 3; p < pend; p++) {
+        if (p[0] == 0 && p[1] == 0 && p[2] == 1) {
+            return p;
+        }
+    }
+
+    return pend + 3;
+}
+
+uint8_t *rtp_find_startcode(uint8_t *p, uint8_t *end) {
+    uint8_t *out = rtp_find_startcode_internal(p, end);
+    if (p < out && out < end && !out[-1]) {
+        out--;
+    }
+    return out;
+}
+
+int rtp_parse_nal_units(uint8_t *buf_in, int size, struct rtp_nal_t *nals, int *nnals)
+{
+    uint8_t *p = buf_in;
+    uint8_t *end = p + size;
+    uint8_t *nal_start, *nal_end;
+
+    size = 0;
+    nal_start = rtp_find_startcode(p, end);
+    *nnals = 0;
+    for (;;) {
+        while (nal_start < end && !*(nal_start++));
+        if (nal_start == end)
+            break;
+
+        nal_end = rtp_find_startcode(nal_start, end);
+        int nal_size = 4 + nal_end - nal_start;
+        size += nal_size;
+
+        nals[(*nnals)].data = nal_start;
+        nals[(*nnals)].size = nal_size;
+        (*nnals)++;
+
+        nal_start = nal_end;
+    }
+    return size;
+}
+
+
+void tx_init_h264()
 {
     buffer_id =  lrand48() & 0x3fffff;
     bitrate = 6618;
-    packet_rate = 1000 * mtu * 8 / bitrate;
+    packet_rate = 1000 * 1000 * 8 / bitrate;
 }
 
-void tx_send_base(struct tile *tile, struct rtp *rtp_session,
+void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
                        uint32_t ts, int send_m, codec_t color_spec,
                        double input_fps, enum interlacing_t interlacing,
                        unsigned int substream, int fragment_offset)
 {
 
-    char *data = tile->data;
+
+    uint8_t *data = (uint8_t *)tile->data;
     int data_len = tile->data_len;
 
-    // according to previous code
-    int headers_len = 40; //+ (sizeof(video_payload_hdr_t));
-    assert(data_len + headers_len <= mtu);
+    struct rtp_nal_t nals[MAX_NALS];
+    int nnals;
 
-    //char pt = PT_VIDEO;
-    char pt = 96; // h264
+    rtp_parse_nal_units(data, data_len, nals, &nnals);
+
+    #ifdef DEBUG
+    printf("[RTPENC][DEBUG] %d NAL units found in buffer\n", nnals);
+    #endif
+
+    char pt = RTP_H264_PT;
     int cc = 0;
-    uint32_t csrc = NULL;
+    uint32_t csrc = 0;
     
     char *extn = 0;
     uint16_t extn_len = 0;
     uint16_t extn_type = 0;
 
-    int err = rtp_send_data(rtp_session, ts, pt, send_m, cc, &csrc, data,
-                            data_len, extn, extn_len, extn_type);
+    int i;
+    for (i = 0; i < nnals; i++) {
+        struct rtp_nal_t nal = nals[i];
 
+        int fragmentation = 0;
+        int nal_max_size = mtu - 40;
+        if (nal.size > nal_max_size) {
+            #ifdef DEBUG
+            printf("[RTPENC][WARNING] RTP packet size exceeds the MTU size\n");
+            #endif
+            fragmentation = 1;
+        }
 
-/*
-        int m;
-        int data_len;
-        // see definition in rtp_callback.h
-        video_payload_hdr_t video_hdr;
-        //ldgm_video_payload_hdr_t ldgm_hdr;
-        int pt = PT_VIDEO;            // A value specified in our packet format
-        char *data;
-        unsigned int pos;
-        struct timespec start;
-        struct timespec stop;
-        long delta;
-        uint32_t tmp;
-        unsigned int fps;
-        unsigned int fpsd;
-        unsigned int fd;
-        unsigned int fi;
-//        int mult_pos[FEC_MAX_MULT];
-//        int mult_index = 0;
-//        int mult_first_sent = 0;
-        int hdrs_len = 40 + (sizeof(video_payload_hdr_t));
-        char *data_to_send;
-        int data_to_send_len;
+        char *nal_header = (char *)nal.data;
+        int nal_header_size = 1;
+        
+        char *nal_payload = (char *)(nal.data + nal_header_size);
+        int nal_payload_size = nal.size - nal_header_size;
 
-        //assert(tx->magic == TRANSMIT_MAGIC);
+        #ifdef DEBUG
+        printf("[RTPENC][DEBUG] NAL header: %d %d %d %d %d %d %d %d\n",
+                ((*nal_header) & 0x80) >> 7, ((*nal_header) & 0x40) >> 6,
+                ((*nal_header) & 0x20) >> 5, ((*nal_header) & 0x10) >> 4,
+                ((*nal_header) & 0x08) >> 3, ((*nal_header) & 0x04) >> 2,
+                ((*nal_header) & 0x02) >> 1, ((*nal_header) & 0x01));
+        #endif
 
-        //tx_update(tx, tile);
-        //ldgm
-        //perf_record(UVP_SEND, ts);
+        const char type = (char)(*nal_header & 0x1f);
+        const char nri = (char)((*nal_header & 0x60) >> 5);
+        
+        #ifdef DEBUG
+        printf("[RTPENC][DEBUG] NAL type: %d\n", (int)type);
+        printf("[RTPENC][DEBUG] NAL NRI: %d\n", (int)nri);
+        #endif
 
-        data_to_send = tile->data;
-        data_to_send_len = tile->data_len;
+        char info_type;
+        if (type >= 1 || type <= 23) {
+            info_type = 1;
+        }
+        else {
+            info_type = type;
+        }
 
-        //printf("[SENDER] data to send length = %d and first byte = %x\n",data_to_send_len,data_to_send[0]);
+        #ifdef DEBUG
+        switch (info_type) {
+        case 0:
+        case 1:
+            printf("[RTPENC][DEBUG] Unfragmented or reconstructed NAL type\n");
+            break;
+        default:
+            printf("[RTPENC][ERROR] Non expected NAL type %d\n", (int)info_type);
+            return;
+            break;
+        }
+        #else
+        if (info_type != 0 && info_type != 1) {
+            printf("[RTPENC][ERROR] Non expected NAL type %d\n", (int)info_type);
+        }
+        #endif
 
-//        if(tx->fec_scheme == FEC_MULT) {
-//                int i;
-//                for (i = 0; i < tx->mult_count; ++i) {
-//                        mult_pos[i] = 0;
-//                }
-//                mult_index = 0;
-//        }
+        if (!fragmentation) {
+            int err = rtp_send_data_hdr(rtp_session, ts, pt, send_m, cc, &csrc,
+                                        nal_header, nal_header_size,
+                                        nal_payload, nal_payload_size, extn, extn_len,
+                                        extn_type);
+            if (err <= 0) {
+                printf("[RTPENC][ERROR] There was a problem sending the RTP packet\n");
+            } else {
+                #ifdef DEBUG
+                printf("[RTPENC][INFO] NAL sent over RTP (%d bytes)\n", nal.size);
+                #endif
+            }
+        }
+        else {
+            const char fu_indicator = 28 | (nri << 5); // new type, fragmented
+            char fu_header = type | (1 << 7); // start
 
-        m = 0;
-        pos = 0;
+            char frag_header[2];
+            int frag_header_size = 2;
 
-        video_hdr[3] = htonl(tile->width << 16 | tile->height);
-        video_hdr[4] = get_fourcc(color_spec);
-        video_hdr[2] = htonl(data_to_send_len);
-        tmp = substream << 22;
-        tmp |= buffer_id;
-        video_hdr[0] = htonl(tmp);
+            frag_header[0] = fu_indicator;
+            frag_header[1] = fu_header;
 
-        // word 6
-        tmp = interlacing << 29;
-        fps = round(input_fps);
-        fpsd = 1;
-        if(fabs(input_fps - round(input_fps) / 1.001) < 0.005)
-                fd = 1;
-        else
-                fd = 0;
-        fi = 0;
+            char *frag_payload = (char *)nal_payload;
+            int frag_payload_size = nal_max_size - frag_header_size;
 
-        tmp |= fps << 19;
-        tmp |= fpsd << 15;
-        tmp |= fd << 14;
-        tmp |= fi << 13;
-        video_hdr[5] = htonl(tmp);
+            int remaining_payload_size = nal_payload_size;
 
-        char *hdr;
-        int hdr_len;
-
-//        if(fec_is_ldgm(tx)) {
-//                hdrs_len = 40 + (sizeof(ldgm_video_payload_hdr_t));
-//                ldgm_encoder_encode(tx->fec_state, (char *) &video_hdr, sizeof(video_hdr),
-//                                tile->data, tile->data_len, &data_to_send, &data_to_send_len);
-//                tmp = substream << 22;
-//                tmp |= 0x3fffff & tx->buffer;
-//                // see definition in rtp_callback.h
-//                ldgm_hdr[0] = htonl(tmp);
-//                ldgm_hdr[2] = htonl(data_to_send_len);
-//                ldgm_hdr[3] = htonl(
-//                                (ldgm_encoder_get_k(tx->fec_state)) << 19 |
-//                                (ldgm_encoder_get_m(tx->fec_state)) << 6 |
-//                                ldgm_encoder_get_c(tx->fec_state));
-//                ldgm_hdr[4] = htonl(ldgm_encoder_get_seed(tx->fec_state));
-//
-//                pt = PT_VIDEO_LDGM;
-//
-//                hdr = (char *) &ldgm_hdr;
-//                hdr_len = sizeof(ldgm_hdr);
-//        } else {
-                hdr = (char *) &video_hdr;
-                hdr_len = sizeof(video_hdr);
-//        }
-
-        do {
-                int offset = pos + fragment_offset;
-
-                video_hdr[1] = htonl(offset);
-
-                data = data_to_send + pos;
-                data_len = mtu - hdrs_len;
-                data_len = (data_len / 48) * 48;
-
-                if (pos + data_len >= (unsigned int) data_to_send_len) {
-                        if (send_m) {
-                                m = 1;
-                        }
-                        data_len = data_to_send_len - pos;
+            while (remaining_payload_size + 2 > nal_max_size) {
+                
+                int err = rtp_send_data_hdr(rtp_session, ts, pt, send_m, cc, &csrc,
+                                            frag_header, frag_header_size,
+                                            frag_payload, frag_payload_size, extn, extn_len,
+                                            extn_type);
+                if (err <= 0) {
+                    printf("[RTPENC][ERROR] There was a problem sending the RTP packet\n");
                 }
-                pos += data_len;
-                GET_STARTTIME;
-                if(data_len) { // check needed for FEC_MULT
-                        rtp_send_data_hdr(rtp_session, ts, pt, m, 0, 0,
-                                  hdr, hdr_len,
-                                  data, data_len, 0, 0, 0);
-                        if (m) { //&& tx->fec_scheme != FEC_NONE
-                                int i;
-                                for(i = 0; i < 5; ++i) {
-                                        rtp_send_data_hdr(rtp_session, ts, pt, m, 0, 0,
-                                                  hdr, hdr_len,
-                                                  data, data_len, 0, 0, 0);
-                                }
-                        }
+                else {
+                    #ifdef DEBUG
+                    char frag_class;
+                    switch((frag_header[1] & 0xE0) >> 5) {
+                    case 0:
+                        frag_class = '0';
+                        break;
+                    case 2:
+                        frag_class = 'E';
+                        break;
+                    case 4:
+                        frag_class = 'S';
+                        break;
+                    default:
+                        frag_class = '!';
+                        break;
+                    }
+                    printf("[RTPENC][INFO] NAL fragment (%c) sent over RTP (%d bytes)\n", frag_class, frag_payload_size + frag_header_size);
+                    #endif
                 }
+             
+                remaining_payload_size -= frag_payload_size;
+                frag_payload += frag_payload_size;
+                
+                frag_header[1] &= ~(1 << 7); // not end, not start 
+            }
 
-                do {
-                        GET_STOPTIME;
-                        GET_DELTA;
-                        if (delta < 0)
-                                delta += 1000000000L;
-                } while (packet_rate - delta > 0);
+            frag_header[1] |= 1 << 6; // end
 
-        } while (pos < (unsigned int) data_to_send_len);
-*/
+            int err = rtp_send_data_hdr(rtp_session, ts, pt, send_m, cc, &csrc,
+                            frag_header, frag_header_size,
+                            frag_payload, remaining_payload_size, extn, extn_len,
+                            extn_type);
+            
+            if (err <= 0) {
+                printf("[RTPENC][ERROR] There was a problem sending the RTP packet\n");
+            }
+            else {
+                #ifdef DEBUG
+                char frag_class;
+                switch((frag_header[1] & 0xE0) >> 5) {
+                case 0:
+                    frag_class = '0';
+                    break;
+                case 2:
+                    frag_class = 'E';
+                    break;
+                case 4:
+                    frag_class = 'S';
+                    break;
+                default:
+                    frag_class = '!';
+                    break;
+                }
+                printf("[RTPENC][INFO] NAL fragment (%c) sent over RTP (%d bytes)\n",
+                    frag_class, remaining_payload_size + frag_header_size);
+                #endif
+            }
+
+        }
+    }
 }

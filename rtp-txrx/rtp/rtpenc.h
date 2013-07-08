@@ -1,4 +1,3 @@
-
 #include "test/video.h"
 
 
@@ -7,8 +6,9 @@
 #define GET_STOPTIME clock_gettime(CLOCK_REALTIME, &stop)
 #define GET_DELTA delta = stop.tv_nsec - start.tv_nsec
 
+extern unsigned int mtu;
+
 unsigned int buffer_id;
-unsigned mtu = 1000;
 int bitrate;
 long packet_rate;
 
