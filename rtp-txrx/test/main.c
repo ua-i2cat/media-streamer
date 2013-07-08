@@ -1,7 +1,8 @@
 #include "rtp/rtp.h"
 #include "rtp/rtp_callback.h"
 #include "rtp/rtpdec.h"
-#include "rtp/rtpenc.h"
+#include "rtp/rtpdec_h264.h"
+#include "rtp/rtpenc_h264.h"
 #include "pdb.h"
 #include "test/video.h"
 #define INITIAL_VIDEO_RECV_BUFFER_SIZE  ((4*1920*1080)*110/100) //command line net.core setup: sysctl -w net.core.rmem_max=9123840
@@ -34,11 +35,11 @@ int main(){
 	struct timeval timeout;
 	struct timeval prev_time;
 	struct timeval start_time;
-    gettimeofday(&start_time, NULL);
+	gettimeofday(&start_time, NULL);
 
 	int required_connections;
 	uint32_t ts;
-	int recv_port = 6004;
+	int recv_port = 5004;
 	int send_port = 7004;
 	int index=0;
 	int exit = 1;
@@ -87,7 +88,7 @@ int main(){
 
 	struct recieved_data *rx_data = calloc(1, sizeof(struct recieved_data));
 
-	tx_init();
+	tx_init_h264();
 
 	int xec=0;
 
@@ -109,7 +110,7 @@ int main(){
 			int ret;
 			//printf("PACKET RECIEVED, building FRAME\n");
 			while (cp != NULL ) {
-				ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame,
+				ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264,
 						rx_data);
 				//printf("DECODE return value: %d\n", ret);
 				if (ret) {
@@ -118,21 +119,21 @@ int main(){
 					frame->tiles[0].data = rx_data->frame_buffer[0];
 					frame->tiles[0].data_len = rx_data->buffer_len[0];
 
-//                    //MODUL DE CAPTURA AUDIO A FITXER PER COMPROVACIONS EN TX
-//                            //CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
-//                            if(F_video_rx==NULL){
-//                                    printf("recording rx frame...\n");
-//                                    F_video_rx=fopen("rx_frame", "wb");
-//                            }
-//
-//                            //fwrite(tx_frame->audio_data,tx_frame->audio_data_len,1,F_audio_tx_embed_BM);
-//                            fwrite(frame->tiles[0].data,frame->tiles[0].data_len,1,F_video_rx);
-//                    //FI CAPTURA
+                    //MODUL DE CAPTURA AUDIO A FITXER PER COMPROVACIONS EN TX
+                            //CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
+                            if(F_video_rx==NULL){
+                                    printf("recording rx frame...\n");
+                                    F_video_rx=fopen("rx_frame", "wb");
+                            }
+
+                            //fwrite(tx_frame->audio_data,tx_frame->audio_data_len,1,F_audio_tx_embed_BM);
+                            fwrite(frame->tiles[0].data,frame->tiles[0].data_len,1,F_video_rx);
+                    //FI CAPTURA
 
 
-					//printf("[MAIN to SENDER] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
+					printf("[MAIN to SENDER] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
 					if(frame->tiles[0].data_len>0)
-						tx_send_base(vf_get_tile(frame, 0), devices[0], get_local_mediatime(), 1, frame->color_spec, frame->fps, frame->interlacing, 0, 0);
+						tx_send_base_h264(vf_get_tile(frame, 0), devices[0], get_local_mediatime(), 1, frame->color_spec, frame->fps, frame->interlacing, 0, 0);
 
 					//if (xec > 3)
 					//	exit = 0;

@@ -1,34 +1,3 @@
-
-
-//void
-//tx_send_tile(struct tx *tx, struct video_frame *frame, int pos, struct rtp *rtp_session)
-//{
-//        struct tile *tile;
-//        int last = FALSE;
-//        uint32_t ts = 0;
-//        int fragment_offset = 0;
-//
-//        assert(!frame->fragment || tx->fec_scheme == FEC_NONE); // currently no support for FEC with fragments
-//        assert(!frame->fragment || frame->tile_count); // multiple tile are not currently supported for fragmented send
-//
-//        tile = vf_get_tile(frame, pos);
-//        ts = get_local_mediatime();
-//        if(frame->fragment &&
-//                        tx->last_frame_fragment_id == frame->frame_fragment_id) {
-//                ts = tx->last_ts;
-//        } else {
-//                tx->last_frame_fragment_id = frame->frame_fragment_id;
-//                tx->last_ts = ts;
-//        }
-//        if(!frame->fragment || frame->last_fragment)
-//                last = TRUE;
-//        if(frame->fragment)
-//                fragment_offset = vf_get_tile(frame, pos)->offset;
-//        	tx_send_base(tile, rtp_session, ts, last, frame->color_spec, frame->fps, frame->interlacing, pos, fragment_offset);
-
-//        tx->buffer ++;
-//}
-
 #include "config.h"
 #include "config_unix.h"
 #include "debug.h"
@@ -40,6 +9,8 @@
 #include "rtp/rtp_callback.h"
 #include "tfrc.h"
 #include "rtp/rtpenc.h"
+
+unsigned int mtu = 1000;
 
 void tx_init(){
 	buffer_id =  lrand48() & 0x3fffff;
