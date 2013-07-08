@@ -10,10 +10,8 @@
 #include "tfrc.h"
 #include "rtp/rtpenc_h264.h"
 
-#define MAX_NALS 1024
-#define RTP_H264_PT 96
-
-//#define DEBUG
+#define RTPENC_H264_MAX_NALS 1024
+#define RTPENC_H264_PT 96
 
 struct rtp_nal_t {
     uint8_t *data;
@@ -46,29 +44,29 @@ static void rtpenc_h264_debug_print_fragment_sent_info(uint8_t *header, int size
 
 static void rtpenc_h264_debug_print_nal_recv_info(uint8_t *header)
 {
-    printf("[RTPENC][DEBUG] NAL recv header: %d %d %d %d %d %d %d %d\n",
+    debug_msg("NAL recv header: %d %d %d %d %d %d %d %d\n",
             ((*header) & 0x80) >> 7, ((*header) & 0x40) >> 6,
             ((*header) & 0x20) >> 5, ((*header) & 0x10) >> 4,
             ((*header) & 0x08) >> 3, ((*header) & 0x04) >> 2,
             ((*header) & 0x02) >> 1, ((*header) & 0x01));
     int type = (int)(*header & 0x1f);
     int nri = (int)((*header & 0x60) >> 5);
-    printf("[RTPENC][DEBUG] NAL recv type: %d\n", type);
-    printf("[RTPENC][DEBUG] NAL recv NRI: %d\n", nri);
+    debug_msg("NAL recv type: %d\n", type);
+    debug_msg("NAL recv NRI: %d\n", nri);
 }
 
 static void rtpenc_h264_debug_print_nal_sent_info(uint8_t *header, int size)
 {
-    printf("[RTPENC][DEBUG] NAL sent over RTP (%d bytes)\n", size);
-    printf("[RTPENC][DEBUG] NAL sent header: %d %d %d %d %d %d %d %d\n",
+    debug_msg("NAL sent over RTP (%d bytes)\n", size);
+    debug_msg("NAL sent header: %d %d %d %d %d %d %d %d\n",
             ((*header) & 0x80) >> 7, ((*header) & 0x40) >> 6,
             ((*header) & 0x20) >> 5, ((*header) & 0x10) >> 4,
             ((*header) & 0x08) >> 3, ((*header) & 0x04) >> 2,
             ((*header) & 0x02) >> 1, ((*header) & 0x01));
     int type = (int)(*header & 0x1f);
     int nri = (int)((*header & 0x60) >> 5);
-    printf("[RTPENC][DEBUG] NAL sent type: %d\n", type);
-    printf("[RTPENC][DEBUG] NAL sent NRI: %d\n", nri);
+    debug_msg("NAL sent type: %d\n", type);
+    debug_msg("NAL sent NRI: %d\n", nri);
 }
 
 static void rtpenc_h264_debug_print_fragment_sent_info(uint8_t *header, int size)
@@ -88,7 +86,7 @@ static void rtpenc_h264_debug_print_fragment_sent_info(uint8_t *header, int size
         frag_class = '!';
         break;
     }
-    printf("[RTPENC][DEBUG] NAL fragment (%c) sent over RTP (%d bytes)\n", frag_class, size);
+    debug_msg("NAL fragment (%c) sent over RTP (%d bytes)\n", frag_class, size);
 }
 #endif /* DEBUG */
 
@@ -187,20 +185,26 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
                        unsigned int substream, int fragment_offset)
 {
 
+    UNUSED(color_spec);
+    UNUSED(input_fps);
+    UNUSED(interlacing);
+    UNUSED(substream);
+    UNUSED(fragment_offset);
+
 
     uint8_t *data = (uint8_t *)tile->data;
     int data_len = tile->data_len;
 
-    struct rtp_nal_t nals[MAX_NALS];
+    struct rtp_nal_t nals[RTPENC_H264_MAX_NALS];
     int nnals = 0;
     rtpenc_h264_parse_nal_units(data, data_len, nals, &nnals);
 
     rtpenc_h264_nals_recv += nnals;
     #ifdef DEBUG
-    printf("[RTPENC][DEBUG] %d NAL units found in buffer\n", nnals);
+    debug_msg("%d NAL units found in buffer\n", nnals);
     #endif
 
-    char pt = RTP_H264_PT;
+    char pt = RTPENC_H264_PT;
     int cc = 0;
     uint32_t csrc = 0;
     
@@ -216,7 +220,7 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
         int nal_max_size = mtu - 40;
         if (nal.size > nal_max_size) {
             #ifdef DEBUG
-            printf("[RTPENC][WARNING] RTP packet size exceeds the MTU size\n");
+            debug_msg("RTP packet size exceeds the MTU size\n");
             #endif
             fragmentation = 1;
         }
@@ -246,11 +250,11 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
         case 0:
         case 1:
             #ifdef DEBUG
-            printf("[RTPENC][DEBUG] Unfragmented or reconstructed NAL type\n");
+            debug_msg("Unfragmented or reconstructed NAL type\n");
             #endif
             break;
         default:
-            printf("[RTPENC][ERROR] Non expected NAL type %d\n", (int)info_type);
+            error_msg("Non expected NAL type %d\n", (int)info_type);
             return; // TODO maybe just warn and don't fail?
             break;
         }
@@ -261,7 +265,7 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
                                         (char *)nal_payload, nal_payload_size, extn, extn_len,
                                         extn_type);
             if (err < 0) {
-                printf("[RTPENC][ERROR] There was a problem sending the RTP packet\n");
+                error_msg("There was a problem sending the RTP packet\n");
             }
             else {
                 rtpenc_h264_nals_sent_nofrag++;
@@ -293,7 +297,7 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
                                             (char *)frag_payload, frag_payload_size, extn, extn_len,
                                             extn_type);
                 if (err < 0) {
-                    printf("[RTPENC][ERROR] There was a problem sending the RTP packet\n");
+                    error_msg("There was a problem sending the RTP packet\n");
                 }
                 else {
                     rtpenc_h264_nals_sent++;
@@ -315,7 +319,7 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
                             (char *)frag_payload, remaining_payload_size, extn, extn_len,
                             extn_type);            
             if (err < 0) {
-                printf("[RTPENC][ERROR] There was a problem sending the RTP packet\n");
+                error_msg("There was a problem sending the RTP packet\n");
             }
             else {
                 rtpenc_h264_nals_sent_frag++; // Each fragmented NAL has one E (end) NAL fragment
