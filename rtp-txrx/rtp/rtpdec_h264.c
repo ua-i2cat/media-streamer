@@ -26,11 +26,6 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
   char *dst = NULL;
   int src_len;
   
-  if (pckt->pt != PT_H264){
-    error_msg("Wrpng Payload type: %u\n", pckt->pt);
-    return FALSE;
-  }
-  
   struct recieved_data *buffers = (struct recieved_data *) rx_data;
   for (int i = 0; i < (int) MAX_SUBSTREAMS; ++i) {
     buffers->buffer_len[i] = 0;
@@ -49,6 +44,11 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
     
     while (cdata != NULL) {
       pckt = cdata->data;
+      
+      if (pckt->pt != PT_H264){
+	error_msg("Wrong Payload type: %u\n", pckt->pt);
+	return FALSE;
+      }
       
       nal  = (uint8_t) pckt->data[0];
       type = nal & 0x1f;
@@ -111,7 +111,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
 	case 26:
 	case 27:
 	case 29:
-	  error_msg("Unhandled NAL type");
+	  error_msg("Unhandled NAL type\n");
 	  return FALSE;
 	case 28:
 	  src = (const uint8_t *) pckt->data;
@@ -160,7 +160,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
 	  }
 	  break;
 	default:
-	  error_msg("Unknown NAL type");
+	  error_msg("Unknown NAL type\n");
 	  return FALSE;
       }
       cdata = cdata->nxt;
