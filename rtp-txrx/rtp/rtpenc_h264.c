@@ -191,7 +191,6 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
     UNUSED(substream);
     UNUSED(fragment_offset);
 
-
     uint8_t *data = (uint8_t *)tile->data;
     int data_len = tile->data_len;
 
@@ -277,13 +276,12 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
         }
         else {
             const char fu_indicator = 28 | (nri << 5); // new type, fragmented
-            char fu_header = type | (1 << 7); // start
 
             uint8_t frag_header[2];
             int frag_header_size = 2;
 
             frag_header[0] = fu_indicator;
-            frag_header[1] = fu_header;
+            frag_header[1] = type | (1 << 7); // start, initial fu_header
 
             uint8_t *frag_payload = nal_payload;
             int frag_payload_size = nal_max_size - frag_header_size;
