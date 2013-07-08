@@ -84,9 +84,9 @@ TEST_OBJS     = $(TEST_OBJS_RTP) $(TEST_OBJS_ENC) $(TEST_OBJS_DEC)
 # -------------------------------------------------------------------------------------------------
 all: $(TARGET)
 
-$(TARGET): $(OBJS) $(HEADERS)
-	@if [ ! -d lib ]; then mkdir lib; fi
-	$(LINKER) $(LDFLAGS) -o $(TARGET) $(OBJS) $(LIBS)
+#$(TARGET): $(OBJS) $(HEADERS)
+#	@mkdir -p lib
+#	$(LINKER) $(LDFLAGS) -o $(TARGET) $(OBJS) $(LIBS)
 
 .c.o:
 	$(CC) $(CFLAGS) $(INC) -c $< -o $@
@@ -99,29 +99,29 @@ configure-messages:
 
 rtp: $(TARGET_RTP)
 $(TARGET_RTP): $(OBJS) $(OBJS_RTP) $(HEADERS)
-	@if [ ! -d lib ]; then mkdir lib; fi
+	@mkdir -p lib
 	$(LINKER) $(LDFLAGS_RTP) -o $(TARGET_RTP) $(OBJS) $(OBJS_RTP) $(LIBS_RTP)
 
 rtptest: $(TARGET_RTP) $(TEST_OBJS)
-	@if [ ! -d bin ]; then mkdir bin; fi
+	@mkdir -p bin
 	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS) $(LIBS_TEST) -o $(TARGET_TEST)
 
 encoder: $(TARGET_ENC)
 $(TARGET_ENC): $(OBJS) $(OBJS_RM) $(OBJS_ENC) $(HEADERS)
-	@if [ ! -d lib ]; then mkdir lib; fi
+	@mkdir -p lib
 	$(LINKER) $(LDFLAGS) $(LDFLAGS_ENC) -o $(TARGET_ENC) $(OBJS) $(OBJS_ENC) $(LIBS_ENC)
 
 encodertest: $(TARGET_ENC) $(TEST_OBJS)
-	@if [ ! -d bin ]; then mkdir bin; fi
+	@mkdir -p bin
 	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS) $(LIBS_TEST) -o $(TARGET_TEST)
 
 decoder: $(TARGET_DEC)
 $(TARGET_DEC): $(OBJS) $(OBJS_RM) $(OBJS_DEC) $(HEADERS)
-	@if [ ! -d lib ]; then mkdir lib; fi
+	@mkdir -p lib
 	$(LINKER) $(LDFLAGS) $(LDFLAGS_DEC) -o $(TARGET_DEC) $(OBJS) $(OBJS_DEC) $(LIBS_DEC)
 
 decodertest: $(TARGET_DEC) $(TEST_OBJS)
-	@if [ ! -d bin ]; then mkdir bin; fi
+	@mkdir -p bin
 	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS) $(LIBS_TEST) -o $(TARGET_TEST)
 	
 
@@ -129,6 +129,4 @@ decodertest: $(TARGET_DEC) $(TEST_OBJS)
 
 # -------------------------------------------------------------------------------------------------
 clean:
-	-rm -f $(OBJS) $(TEST_OBJS) $(HEADERS) $(TARGET) $(TARGET_TEST)
-	
-
+	-rm -f $(OBJS) $(OBJS_RTP) $(OBJS_ENC) $(OBJS_DEC) $(OBJS_RM) $(TEST_OBJS) $(HEADERS) $(TARGET) $(TARGET_TEST)
