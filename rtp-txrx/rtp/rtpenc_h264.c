@@ -20,7 +20,6 @@ struct rtp_nal_t {
     int size;
 };
 
-
 int rtpenc_h264_nals_recv;
 int rtpenc_h264_nals_sent_nofrag;
 int rtpenc_h264_nals_sent_frag;
@@ -40,8 +39,7 @@ uint8_t *rtpenc_h264_find_startcode(uint8_t *p, uint8_t *end);
 int rtpenc_h264_parse_nal_units(uint8_t *buf_in, int size, struct rtp_nal_t *nals, int *nnals);
 
 
-#ifdef DEBUG
-
+#ifdef DEBUG /* Just define debug functions if needed */
 static void rtpenc_h264_debug_print_nal_recv_info(uint8_t *header);
 static void rtpenc_h264_debug_print_nal_sent_info(uint8_t *header, int size);
 static void rtpenc_h264_debug_print_fragment_sent_info(uint8_t *header, int size);
