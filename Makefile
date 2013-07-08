@@ -102,31 +102,31 @@ $(TARGET_RTP): $(OBJS) $(OBJS_RTP) $(HEADERS)
 	@mkdir -p lib
 	$(LINKER) $(LDFLAGS_RTP) -o $(TARGET_RTP) $(OBJS) $(OBJS_RTP) $(LIBS_RTP)
 
-rtptest: $(TARGET_RTP) $(TEST_OBJS)
+rtptest: $(TARGET_RTP) $(TEST_OBJS_RTP)
 	@mkdir -p bin
-	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS) $(LIBS_TEST) -o $(TARGET_TEST)
+	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_RTP) $(LIBS_RTP_TEST) -o $(TARGET_RTP_TEST)
 
 encoder: $(TARGET_ENC)
 $(TARGET_ENC): $(OBJS) $(OBJS_RM) $(OBJS_ENC) $(HEADERS)
 	@mkdir -p lib
 	$(LINKER) $(LDFLAGS) $(LDFLAGS_ENC) -o $(TARGET_ENC) $(OBJS) $(OBJS_ENC) $(LIBS_ENC)
 
-encodertest: $(TARGET_ENC) $(TEST_OBJS)
+encodertest: $(TARGET_ENC) $(TEST_OBJS_ENC)
 	@mkdir -p bin
-	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS) $(LIBS_TEST) -o $(TARGET_TEST)
+	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_ENC) $(LIBS_ENC_TEST) -o $(TARGET_ENC_TEST)
 
 decoder: $(TARGET_DEC)
 $(TARGET_DEC): $(OBJS) $(OBJS_RM) $(OBJS_DEC) $(HEADERS)
 	@mkdir -p lib
 	$(LINKER) $(LDFLAGS) $(LDFLAGS_DEC) -o $(TARGET_DEC) $(OBJS) $(OBJS_DEC) $(LIBS_DEC)
 
-decodertest: $(TARGET_DEC) $(TEST_OBJS)
+decodertest: $(TARGET_DEC) $(TEST_OBJS_DEC)
 	@mkdir -p bin
-	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS) $(LIBS_TEST) -o $(TARGET_TEST)
+	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_DEC) $(LIBS_DEC_TEST) -o $(TARGET_DEC_TEST)
 	
 
 # -------------------------------------------------------------------------------------------------
 
 # -------------------------------------------------------------------------------------------------
 clean:
-	-rm -f $(OBJS) $(OBJS_RTP) $(OBJS_ENC) $(OBJS_DEC) $(OBJS_RM) $(TEST_OBJS) $(HEADERS) $(TARGET) $(TARGET_TEST)
+	rm -f $(OBJS) $(OBJS_RTP) $(OBJS_ENC) $(OBJS_DEC) $(OBJS_RM) $(TEST_OBJS) $(HEADERS) $(TARGET) $(TARGET_TEST)
