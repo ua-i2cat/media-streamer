@@ -8,7 +8,6 @@ LDFLAGS       = -shared -Wl,--dynamic-list-data,-soname
 LDFLAGS_RTP   =-shared -Wl,--dynamic-list-data,-soname,librtp.so
 LDFLAGS_ENC   =-shared -Wl,--dynamic-list-data,-soname,libvcompress.so
 LDFLAGS_DEC   =-shared -Wl,--dynamic-list-data,-soname,libvdecompress.so
-#LDFLAGS_UG_UG =-shared -Wl,--dynamic-list-data,-soname,librtp.so,libvcompress.so,libvdecompress.so
 LDFLAGS_TEST  = -Wl,--dynamic-list-data
 
 LIBS_RTP      += -lrt -ldl -lieee -lm
@@ -88,10 +87,6 @@ TEST_OBJS_UG_UG = tests/ug_ug.o
 TEST_OBJS     = $(TEST_OBJS_RTP) $(TEST_OBJS_ENC) $(TEST_OBJS_DEC) $(TEST_OBJS_UG_UG)
 # -------------------------------------------------------------------------------------------------
 all: $(TARGET)
-
-#$(TARGET): $(OBJS) $(HEADERS)
-#	@mkdir -p lib
-#	$(LINKER) $(LDFLAGS) -o $(TARGET) $(OBJS) $(LIBS)
 
 .c.o:
 	$(CC) $(CFLAGS) $(INC) -c $< -o $@
