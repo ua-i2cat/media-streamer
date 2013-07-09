@@ -32,15 +32,15 @@ int main(){
     tx_frame = vf_alloc(1);
     vf_get_tile(tx_frame, 0)->width=1080;
     vf_get_tile(tx_frame, 0)->height=720;
-    tx_frame->fps=10;
+    tx_frame->fps=15;
     tx_frame->color_spec=H264;
     tx_frame->interlacing=PROGRESSIVE;
 
     frame = vf_alloc(1);
-    vf_get_tile(frame, 0)->width=1080;
-    vf_get_tile(frame, 0)->height=720;
-    frame->fps=10;
-    frame->color_spec=H264;
+    vf_get_tile(frame, 0)->width=640;
+    vf_get_tile(frame, 0)->height=480;
+    frame->fps=15;
+    frame->color_spec=UYVY;
     frame->interlacing=PROGRESSIVE;
 
     double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
@@ -85,12 +85,12 @@ int main(){
     if (decompress_is_available(LIBAVCODEC_MAGIC)) {
         sd = decompress_init(LIBAVCODEC_MAGIC);
 
-        des.width = 1080;
-        des.height = 720;
+      	des.width = 640;
+        des.height = 480;
         des.color_spec  = H264;
         des.tile_count = 0;
         des.interlacing = PROGRESSIVE;
-        des.fps=5;
+        des.fps=15;
 
         decompress_reconfigure(sd, des, 16, 8, 0, vc_get_linesize(des.width, UYVY), UYVY);  //r=16,g=8,b=0
     }
