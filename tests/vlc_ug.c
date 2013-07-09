@@ -1,9 +1,10 @@
 #include "rtp/rtp.h"
 #include "rtp/rtp_callback.h"
-#include "rtp/rtpdec.h"
-#include "rtp/rtpenc.h"
+#include "rtp/rtpdec_h264.h"
+#include "rtp/rtpenc_h264.h"
 #include "pdb.h"
 #include "video.h"
+#include "rtp/rtpdec.h"
 
 #include "video_compress.h"
 #include "video_compress/libavcodec.h"
@@ -30,16 +31,16 @@ int main(){
     struct video_frame *tx_frame;
 
     tx_frame = vf_alloc(1);
-    vf_get_tile(tx_frame, 0)->width=640;
+    vf_get_tile(tx_frame, 0)->width=854;
     vf_get_tile(tx_frame, 0)->height=480;
-    tx_frame->fps=15;
+    tx_frame->fps=5;
     tx_frame->color_spec=H264;
     tx_frame->interlacing=PROGRESSIVE;
 
     frame = vf_alloc(1);
-    vf_get_tile(frame, 0)->width=640;
+    vf_get_tile(frame, 0)->width=854;
     vf_get_tile(frame, 0)->height=480;
-    frame->fps=15;
+    frame->fps=5;
     frame->color_spec=UYVY;
     frame->interlacing=PROGRESSIVE;
 
@@ -85,12 +86,12 @@ int main(){
     if (decompress_is_available(LIBAVCODEC_MAGIC)) {
         sd = decompress_init(LIBAVCODEC_MAGIC);
 
-      	des.width = 640;
+      	des.width = 854;
         des.height = 480;
         des.color_spec  = H264;
         des.tile_count = 0;
         des.interlacing = PROGRESSIVE;
-        des.fps=15;
+        des.fps=5;
 
         decompress_reconfigure(sd, des, 16, 8, 0, vc_get_linesize(des.width, UYVY), UYVY);  //r=16,g=8,b=0
     }
@@ -164,7 +165,7 @@ int main(){
             int ret;
             //printf("PACKET RECIEVED, building FRAME\n");
             while (cp != NULL ) {
-                ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame, rx_data);
+                ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data);
                 //printf("DECODE return value: %d\n", ret);
                 if (ret) {
                     gettimeofday(&curr_time, NULL);

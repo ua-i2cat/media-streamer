@@ -1,7 +1,7 @@
 CC            = gcc -std=gnu99
 CXX           = g++
 LINKER        = g++
-CFLAGS        = -g -DHAVE_CONFIG_H -g -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
+CFLAGS        = -g -DHAVE_CONFIG_H -g -DDEBUG -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
 CPPFLAGS      = -I. 
 CXXFLAGS      = -g -DHAVE_CONFIG_H -g -fPIC -Wno-multichar -Wno-deprecated -msse2
 LDFLAGS       = -shared -Wl,--dynamic-list-data,-soname
@@ -32,6 +32,9 @@ TARGET_RTP_TEST   = bin/rtptest
 TARGET_ENC_TEST   = bin/encodertest
 TARGET_DEC_TEST   = bin/decodertest
 TARGET_UG_UG_TEST = bin/ugugtest
+TARGET_VLC_VLC_TEST = bin/vlcvlctest
+TARGET_VLC_UG_TEST = bin/vlcugtest
+TARGET_UG_VLC_TEST = bin/ugvlctest
 
 DOCS 	      = COPYRIGHT README REPORTING-BUGS
 
@@ -83,6 +86,9 @@ TEST_OBJS_RTP = tests/rtp.o
 TEST_OBJS_ENC = tests/encoder.o
 TEST_OBJS_DEC = tests/decoder.o
 TEST_OBJS_UG_UG = tests/ug_ug.o
+TEST_OBJS_VLC_VLC = tests/vlc_vlc.o
+TEST_OBJS_VLC_UG = tests/vlc_ug.o
+TEST_OBJS_UG_VLC = tests/ug_vlc.o
 
 TEST_OBJS     = $(TEST_OBJS_RTP) $(TEST_OBJS_ENC) $(TEST_OBJS_DEC) $(TEST_OBJS_UG_UG)
 # -------------------------------------------------------------------------------------------------
@@ -97,7 +103,7 @@ all: $(TARGET)
 configure-messages:
 	@echo ""
 
-test: rtptest encodertest decodertest ugugtest
+test: rtptest encodertest decodertest ugugtest vlcvlctest vlcugtest ugvlctest
 
 rtp: $(TARGET_RTP)
 $(TARGET_RTP): $(OBJS) $(OBJS_RTP) $(HEADERS)
@@ -131,6 +137,17 @@ ugugtest: $(TARGET_DEC) $(TARGET_ENC) $(TARGET_RTP) $(TEST_OBJS_UG_UG)
 	@mkdir -p bin
 	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_UG_UG) $(LIBS_TEST) -o $(TARGET_UG_UG_TEST)
 
+vlcvlctest: $(TARGET_DEC) $(TARGET_ENC) $(TARGET_RTP) $(TEST_OBJS_VLC_VLC)
+	@mkdir -p bin
+	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_VLC_VLC) $(LIBS_TEST) -o $(TARGET_VLC_VLC_TEST)
+
+vlcugtest: $(TARGET_DEC) $(TARGET_ENC) $(TARGET_RTP) $(TEST_OBJS_VLC_UG)
+	@mkdir -p bin
+	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_VLC_UG) $(LIBS_TEST) -o $(TARGET_VLC_UG_TEST)
+
+ugvlctest: $(TARGET_DEC) $(TARGET_ENC) $(TARGET_RTP) $(TEST_OBJS_UG_VLC)
+	@mkdir -p bin
+	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_UG_VLC) $(LIBS_TEST) -o $(TARGET_UG_VLC_TEST)
 # -------------------------------------------------------------------------------------------------
 
 # -------------------------------------------------------------------------------------------------
