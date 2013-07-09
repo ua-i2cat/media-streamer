@@ -97,6 +97,8 @@ all: $(TARGET)
 configure-messages:
 	@echo ""
 
+test: rtptest encodertest decodertest ugugtest
+
 rtp: $(TARGET_RTP)
 $(TARGET_RTP): $(OBJS) $(OBJS_RTP) $(HEADERS)
 	@mkdir -p lib
