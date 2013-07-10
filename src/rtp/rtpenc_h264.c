@@ -41,9 +41,9 @@ int rtpenc_h264_parse_nal_units(uint8_t *buf_in, int size, struct rtp_nal_t *nal
 static void rtpenc_h264_debug_print_nal_recv_info(uint8_t *header);
 static void rtpenc_h264_debug_print_nal_sent_info(uint8_t *header, int size);
 static void rtpenc_h264_debug_print_fragment_sent_info(uint8_t *header, int size);
-static void rtpenc_h264_debug_pint_payload_bytes(uint8_t *payload, int number);
+static void rtpenc_h264_debug_print_payload_bytes(uint8_t *payload);
 
-static void rtpenc_h264_debug_pint_payload_bytes(uint8_t *payload, int number)
+static void rtpenc_h264_debug_print_payload_bytes(uint8_t *payload)
 {
 	debug_msg("NAL 1st 6 payload bytes: %x %x %x %x %x %x\n",
               (unsigned char)payload[0], (unsigned char)payload[1],
@@ -268,10 +268,12 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
         }
 
         if (!fragmentation) {
-#ifdef DEBUG
-            rtpenc_h264_debug_pint_payload_bytes(nal_payload, 6);
-#endif
-            int err = rtp_send_data_hdr(rtp_session, ts, pt, send_m, cc, &csrc,
+            #ifdef DEBUG
+            rtpenc_h264_debug_print_payload_bytes(nal_payload);
+            #endif
+            // TODO: if no fragmentation, marker bit = 0 / (?)
+            int m = 0;
+            int err = rtp_send_data_hdr(rtp_session, ts, pt, m, cc, &csrc,
                                         (char *)nal_header, nal_header_size,
                                         (char *)nal_payload, nal_payload_size, extn, extn_len,
                                         extn_type);
@@ -301,9 +303,9 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
             int remaining_payload_size = nal_payload_size;
 
             while (remaining_payload_size + 2 > nal_max_size) {
-#ifdef DEBUG
-                rtpenc_h264_debug_pint_payload_bytes(frag_payload, 6);
-#endif
+                #ifdef DEBUG
+                rtpenc_h264_debug_print_payload_bytes(frag_payload);
+                #endif
                 int err = rtp_send_data_hdr(rtp_session, ts, pt, send_m, cc, &csrc,
                                             (char *)frag_header, frag_header_size,
                                             (char *)frag_payload, frag_payload_size, extn, extn_len,
@@ -325,9 +327,9 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
             }
 
             frag_header[1] |= 1 << 6; // end
-#ifdef DEBUG
-            rtpenc_h264_debug_pint_payload_bytes(frag_payload, 6);
-#endif
+            #ifdef DEBUG
+            rtpenc_h264_debug_print_payload_bytes(frag_payload);
+            #endif
 
             int err = rtp_send_data_hdr(rtp_session, ts, pt, send_m, cc, &csrc,
                             (char *)frag_header, frag_header_size,
