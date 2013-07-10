@@ -45,10 +45,10 @@ static void rtpenc_h264_debug_pint_payload_bytes(uint8_t *payload, int number);
 
 static void rtpenc_h264_debug_pint_payload_bytes(uint8_t *payload, int number)
 {
-	int i;
-	for (i = 0; i < number; i++) {
-		debug_msg("NAL payload byte[%d] = %x\n", i, (int)payload[i]);
-	}
+	debug_msg("NAL 1st 6 payload bytes: %x %x %x %x %x %x\n",
+              (unsigned char)payload[0], (unsigned char)payload[1],
+              (unsigned char)payload[2], (unsigned char)payload[3],
+              (unsigned char)payload[4], (unsigned char)payload[5]);
 }
 
 static void rtpenc_h264_debug_print_nal_recv_info(uint8_t *header)
