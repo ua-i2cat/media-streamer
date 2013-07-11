@@ -304,6 +304,15 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
 									(char *)nal.data + startcode_size,
                                     nal.size - startcode_size, extn, extn_len,
 									extn_type);
+            char *dst = (char *) nal.data;
+            debug_msg("First six bytes: %u %u %u %u %u %u\n", dst[0], dst[1], dst[2], dst[3], dst[4], dst[5]);
+            debug_msg("Last six bytes: %u %u %u %u %u %u\n", dst[nal.size], 
+                dst[nal.size - 1], 
+                dst[nal.size - 2], 
+                dst[nal.size - 3], 
+                dst[nal.size - 4],
+                dst[nal.size - 5]);
+
             if (err < 0) {
                 error_msg("There was a problem sending the RTP packet\n");
             }
