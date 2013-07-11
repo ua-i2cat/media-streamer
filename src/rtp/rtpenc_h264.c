@@ -101,9 +101,7 @@ static void rtpenc_h264_debug_print_fragment_sent_info(uint8_t *header, int size
 
 static uint8_t *rtpenc_h264_find_startcode_internal(uint8_t *start, uint8_t *end)
 {
-    uint8_t *p = start;
-    uint8_t *pend = end;
-
+    /*
     const uint8_t *a = p + 4 - ((intptr_t)p & 3);
     for (pend -= 3; p < a && p < pend; p++) {
         if (p[0] == 0 && p[1] == 0 && p[2] == 1)
@@ -129,20 +127,28 @@ static uint8_t *rtpenc_h264_find_startcode_internal(uint8_t *start, uint8_t *end
             }
         }
     }
+    */
 
-    for (pend += 3; p < pend; p++) {
+    uint8_t *p = start;
+    uint8_t *pend = end;
+
+    for (p = start; p < pend; p++) {
         if (p[0] == 0 && p[1] == 0 && p[2] == 1) {
             return p;
         }
     }
 
-    return pend + 3;
+    return (uint8_t *)NULL;
 }
 
 uint8_t *rtpenc_h264_find_startcode(uint8_t *p, uint8_t *end) {
     uint8_t *out = rtpenc_h264_find_startcode_internal(p, end);
-    if (p < out && out < end && !out[-1]) {
-        out--;
+    if (out != NULL) {
+        if (p < out && out < end && !out[-1]) {
+            out--;
+        }
+    } else {
+        error_msg("No NAL start code found\n");
     }
     return out;
 }
@@ -155,15 +161,20 @@ int rtpenc_h264_parse_nal_units(uint8_t *buf_in, int size, struct rtp_nal_t *nal
     uint8_t *nal_end;
 
     size = 0;
-    nal_start = rtpenc_h264_find_startcode(p, end);
     *nnals = 0;
+    // TODO: control error
+    nal_start = rtpenc_h264_find_startcode(p, end);
     for (;;) {
-        while (nal_start < end && !*(nal_start++));
+        //while (nal_start < end && !*(nal_start++));
         if (nal_start == end)
             break;
 
         nal_end = rtpenc_h264_find_startcode(nal_start, end);
-        int nal_size = 4 + nal_end - nal_start;
+        if (nal_end == NULL) {
+            nal_end = end;
+        }
+        int nal_size = nal_end - nal_start;
+
         size += nal_size;
 
         nals[(*nnals)].data = nal_start;
@@ -206,7 +217,7 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
     struct rtp_nal_t nals[RTPENC_H264_MAX_NALS];
     int nnals = 0;
     rtpenc_h264_parse_nal_units(data, data_len, nals, &nnals);
-
+    
     rtpenc_h264_nals_recv += nnals;
     #ifdef DEBUG
     debug_msg("%d NAL units found in buffer\n", nnals);
@@ -227,24 +238,32 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
         int fragmentation = 0;
         int nal_max_size = mtu - 40;
         if (nal.size > nal_max_size) {
-            #ifdef DEBUG
             debug_msg("RTP packet size exceeds the MTU size\n");
-            #endif
             fragmentation = 1;
         }
 
         uint8_t *nal_header = nal.data;
-        int nal_header_size = 1;
 
-        uint8_t *nal_payload = nal.data + nal_header_size;
-        int nal_payload_size = nal.size - nal_header_size;
+        // skip startcode
+        int startcode_size = 0;
+        uint8_t *p = nal_header;
+        while ((uint8_t *)(*(p++)) == 0) {
+            startcode_size++;
+        }
+
+        int nal_header_size = 1 + startcode_size;
+
+        uint8_t *nal_payload = nal.data + nal_header_size; // nal.data + nal_header_size;
+        int nal_payload_size = nal.size - (int)(nal_header_size); //nal.size - nal_header_size;
+
+        uint8_t *fu_indicator = nal_header + startcode_size;
 
         #ifdef DEBUG
-        rtpenc_h264_debug_print_nal_recv_info(nal_header);
+        rtpenc_h264_debug_print_nal_recv_info(fu_indicator);
         #endif
 
-        const char type = (char)(*nal_header & 0x1f);
-        const char nri = (char)((*nal_header & 0x60) >> 5);
+        const char type = (char)(*fu_indicator & 0x1f);
+        const char nri = (char)((*fu_indicator & 0x60) >> 5);
 
         char info_type;
         if (type >= 1 && type <= 23) {
@@ -257,9 +276,7 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
         switch (info_type) {
         case 0:
         case 1:
-            #ifdef DEBUG
             debug_msg("Unfragmented or reconstructed NAL type\n");
-            #endif
             break;
         default:
             error_msg("Non expected NAL type %d\n", (int)info_type);
@@ -268,14 +285,11 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
         }
 
         int m = 0;
-
         if (!fragmentation) {
             
             if (i == nnals - 1) {
                 m = send_m;
-                #ifdef DEBUG
                 debug_msg("NAL with M bit\n");
-                #endif
             }
             
             #ifdef DEBUG
@@ -299,12 +313,12 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
         }
         else {
 
-            const char fu_indicator = 28 | (nri << 5); // new type, fragmented
+            const char frag_fu_indicator = 28 | (nri << 5); // new type, fragmented
 
             uint8_t frag_header[2];
             int frag_header_size = 2;
 
-            frag_header[0] = fu_indicator;
+            frag_header[0] = frag_fu_indicator;
             frag_header[1] = type | (1 << 7); // start, initial fu_header
 
             uint8_t *frag_payload = nal_payload;
