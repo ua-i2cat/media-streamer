@@ -17,12 +17,16 @@ int main(){
 
 	int ret;
 
+	int width = 854;
+	int height = 480;
+	int fps = 5;
+
 	//rx_data = (struct recieved_data *)malloc(sizeof(struct recieved_data));
 
 	frame = vf_alloc(1);
-	vf_get_tile(frame, 0)->width=854;
-	vf_get_tile(frame, 0)->height=480;
-	frame->fps=5;
+	vf_get_tile(frame, 0)->width=width;
+	vf_get_tile(frame, 0)->height=height;
+	frame->fps=fps;
 	frame->color_spec=H264;
 	frame->interlacing=PROGRESSIVE;
 
@@ -110,7 +114,7 @@ int main(){
 			int ret;
 			//printf("PACKET RECIEVED, building FRAME\n");
 			while (cp != NULL ) {
-				ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame,rx_data);
+				ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264,rx_data);
 				//printf("DECODE return value: %d\n", ret);
 				if (ret) {
 					gettimeofday(&curr_time, NULL);

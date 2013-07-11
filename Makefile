@@ -38,6 +38,7 @@ TARGET_UG_VLC_TEST = bin/ugvlctest
 TARGET_ENC_TX_TEST = bin/enctxtest
 TARGET_RX_DEC_TEST = bin/rxdectest
 TARGET_ENC_DEC_TEST = bin/encdectest
+TARGET_2IN2OUT_TEST = bin/2in2outtest
 
 DOCS 	      = COPYRIGHT README REPORTING-BUGS
 
@@ -95,6 +96,7 @@ TEST_OBJS_UG_VLC = tests/ug_vlc.o
 TEST_OBJS_ENC_TX = tests/enc_tx.o
 TEST_OBJS_RX_DEC = tests/rx_dec.o
 TEST_OBJS_ENC_DEC = tests/enc_dec.o
+TEST_OBJS_2IN2OUT = tests/2in2out.o
 
 TEST_OBJS     = $(TEST_OBJS_RTP) $(TEST_OBJS_ENC) $(TEST_OBJS_DEC) $(TEST_OBJS_UG_UG)
 # -------------------------------------------------------------------------------------------------
@@ -109,7 +111,7 @@ all: $(TARGET)
 configure-messages:
 	@echo ""
 
-test: rtptest encodertest decodertest ugugtest vlcvlctest vlcugtest ugvlctest enctxtest rxdectest encdectest
+test: rtptest encodertest decodertest ugugtest vlcvlctest vlcugtest ugvlctest enctxtest rxdectest encdectest 2in2outtest
 
 rtp: $(TARGET_RTP)
 $(TARGET_RTP): $(OBJS) $(OBJS_RTP) $(HEADERS)
@@ -166,6 +168,10 @@ rxdectest: $(TARGET_DEC) $(TARGET_ENC) $(TARGET_RTP) $(TEST_OBJS_RX_DEC)
 encdectest: $(TARGET_DEC) $(TARGET_ENC) $(TARGET_RTP) $(TEST_OBJS_ENC_DEC)
 	@mkdir -p bin
 	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_ENC_DEC) $(LIBS_TEST) -lavformat -o $(TARGET_ENC_DEC_TEST)
+	
+2in2outtest: $(TARGET_DEC) $(TARGET_ENC) $(TARGET_RTP) $(TEST_OBJS_2IN2OUT)
+	@mkdir -p bin
+	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_2IN2OUT) $(LIBS_TEST) -o $(TARGET_2IN2OUT_TEST)
 # -------------------------------------------------------------------------------------------------
 
 # -------------------------------------------------------------------------------------------------

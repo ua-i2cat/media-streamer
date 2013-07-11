@@ -189,13 +189,13 @@ int main(){
 
                     //MODUL DE CAPTURA AUDIO A FITXER PER COMPROVACIONS EN TX
                             //CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
-                            if(F_video_rx==NULL){
-                                    printf("recording rx dec frame...\n");
-                                    F_video_rx=fopen("/home/gerardcl/decodedvideo.yuv", "wb");
-                            }
-
-                            //fwrite(tx_frame->audio_data,tx_frame->audio_data_len,1,F_audio_tx_embed_BM);
-                            fwrite(frame->tiles[0].data,frame->tiles[0].data_len,1,F_video_rx);
+//                            if(F_video_rx==NULL){
+//                                    printf("recording rx dec frame...\n");
+//                                    F_video_rx=fopen("/home/gerardcl/decodedvideo.yuv", "wb");
+//                            }
+//
+//                            //fwrite(tx_frame->audio_data,tx_frame->audio_data_len,1,F_audio_tx_embed_BM);
+//                            fwrite(frame->tiles[0].data,frame->tiles[0].data_len,1,F_video_rx);
                     //FI CAPTURA
                     // TODO encode
                           /*
@@ -214,14 +214,14 @@ int main(){
                     i = (i + 1)%2;
 
                     //MODUL DE CAPTURA AUDIO A FITXER PER COMPROVACIONS EN TX
-                            //CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
-                            if(F_video_tx==NULL){
-                                    printf("recording encoded frame...\n");
-                                    F_video_tx=fopen("/home/gerardcl/encodedvideo.mp4", "wb");
-                            }
-
-                            //fwrite(tx_frame->audio_data,tx_frame->audio_data_len,1,F_audio_tx_embed_BM);
-                            fwrite(tx_frame->tiles[0].data,tx_frame->tiles[0].data_len,1,F_video_tx);
+//                            //CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
+//                            if(F_video_tx==NULL){
+//                                    printf("recording encoded frame...\n");
+//                                    F_video_tx=fopen("/home/gerardcl/encodedvideo.mp4", "wb");
+//                            }
+//
+//                            //fwrite(tx_frame->audio_data,tx_frame->audio_data_len,1,F_audio_tx_embed_BM);
+//                            fwrite(tx_frame->tiles[0].data,tx_frame->tiles[0].data_len,1,F_video_tx);
                     //FI CAPTURA
 
 //                    printf("[MAIN to SENDER] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);

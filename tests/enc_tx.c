@@ -307,12 +307,14 @@ int main(){
                     //FI CAPTURA
 
                     //printf("[MAIN to SENDER] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
-                    if(tx_frame->tiles[0].data_len>0)
+                    if(tx_frame->tiles[0].data_len>0) {
                         tx_send_base_h264(vf_get_tile(tx_frame, 0), devices[0], get_local_mediatime(), 1, tx_frame->color_spec, tx_frame->fps, tx_frame->interlacing, 0, 0);
+                        //exit = 0;
+                        if (xec > 1)
+                          exit=0;
+                        xec++;
+                    }
 
-                    //if (xec > 3)
-                    //  exit = 0;
-                    //xec++;
                     usleep(200000);
                 } else {
                     exit=0;

@@ -245,6 +245,9 @@ void rtp_recv_callback(struct rtp *session, rtp_event * e)
         case SOURCE_CREATED:
         		printf("\n[RTP CALLBACK] SOURCE CREATED\n");
                 pdb_add(participants, e->ssrc);
+
+                //TODO H264: FIRST PACKET SHOULD BE ADDED TO BUFFER TOO....
+
                 break;
         case RR_TIMEOUT:
                 break;

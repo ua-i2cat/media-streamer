@@ -186,7 +186,7 @@ int main(){
 
                     // TODO decode
                     decompress_frame(sd,(unsigned char *) out,(unsigned char *)rx_data->frame_buffer[0],rx_data->buffer_len[0],rx_data->buffer_num[0]);
-                    frame->tiles[0].data=out;//rx_data->frame_buffer[0];
+                    frame->tiles[0].data = out;//rx_data->frame_buffer[0];
                     frame->tiles[0].data_len = vc_get_linesize(des.width, UYVY)*des.height;//rx_data->buffer_len[0];
 
 					//MODUL DE CAPTURA AUDIO A FITXER PER COMPROVACIONS EN TX
