@@ -69,13 +69,15 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
 	    dst -= pckt->data_len + sizeof(start_sequence);
 	    memcpy(dst, start_sequence, sizeof(start_sequence));
 	    memcpy(dst + sizeof(start_sequence), pckt->data, pckt->data_len);
-        debug_msg("First six bytes: %u %u %u %u %u %u\n", dst[0], dst[1], dst[2], dst[3], dst[4], dst[5]);
-        debug_msg("Last six bytes: %u %u %u %u %u %u\n", dst[pckt->data_len + sizeof(start_sequence)], 
-            dst[pckt->data_len + sizeof(start_sequence) - 1], 
-            dst[pckt->data_len + sizeof(start_sequence) - 2], 
-            dst[pckt->data_len + sizeof(start_sequence) - 3], 
-            dst[pckt->data_len + sizeof(start_sequence) - 4],
-            dst[pckt->data_len + sizeof(start_sequence) - 5]);
+	    unsigned char *dst2 = (unsigned char *)dst;
+        debug_msg("\n\nFirst six bytes: %02x %02x %02x %02x %02x %02x\n", dst2[0], dst2[1], dst2[2], dst2[3], dst2[4], dst2[5]);
+        debug_msg("Last six bytes: %02x %02x %02x %02x %02x %02x\n", dst2[pckt->data_len + sizeof(start_sequence) - 6],
+            dst2[pckt->data_len + sizeof(start_sequence) - 5],
+            dst2[pckt->data_len + sizeof(start_sequence) - 4],
+            dst2[pckt->data_len + sizeof(start_sequence) - 3],
+            dst2[pckt->data_len + sizeof(start_sequence) - 2],
+            dst2[pckt->data_len + sizeof(start_sequence) - 1]);
+        debug_msg("NAL size: %d\n\n", pckt->data_len + sizeof(start_sequence));
 	  }
 	  break;
 	case 24:
