@@ -69,6 +69,13 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
 	    dst -= pckt->data_len + sizeof(start_sequence);
 	    memcpy(dst, start_sequence, sizeof(start_sequence));
 	    memcpy(dst + sizeof(start_sequence), pckt->data, pckt->data_len);
+        debug_msg("First six bytes: %u %u %u %u %u %u\n", dst[0], dst[1], dst[2], dst[3], dst[4], dst[5]);
+        debug_msg("Last six bytes: %u %u %u %u %u %u\n", dst[pckt->data_len + sizeof(start_sequence)], 
+            dst[pckt->data_len + sizeof(start_sequence) - 1], 
+            dst[pckt->data_len + sizeof(start_sequence) - 2], 
+            dst[pckt->data_len + sizeof(start_sequence) - 3], 
+            dst[pckt->data_len + sizeof(start_sequence) - 4],
+            dst[pckt->data_len + sizeof(start_sequence) - 5]);
 	  }
 	  break;
 	case 24:
