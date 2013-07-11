@@ -295,25 +295,39 @@ int main(){
                     }
                     i = (i + 1)%2;
 
-                    //MODUL DE CAPTURA AUDIO A FITXER PER COMPROVACIONS EN TX
+                    //MODUL DE CAPTURA A FITXER PER COMPROVACIONS EN TX
                             //CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
-//                            if(F_video_tx==NULL){
-//                                    printf("recording encoded frame...\n");
-//                                    F_video_tx=fopen("/home/gerardcl/encodedvideo.mp4", "wb");
-//                            }
-//
-//                            //fwrite(tx_frame->audio_data,tx_frame->audio_data_len,1,F_audio_tx_embed_BM);
-//                            fwrite(tx_frame->tiles[0].data,tx_frame->tiles[0].data_len,1,F_video_tx);
+                            if(F_video_tx==NULL){
+                                    printf("recording encoded frame...\n");
+                                    F_video_tx=fopen("encodedvideo.h264", "wb");
+                            }
+
+                            //fwrite(tx_frame->audio_data,tx_frame->audio_data_len,1,F_audio_tx_embed_BM);
+                            fwrite(tx_frame->tiles[0].data,tx_frame->tiles[0].data_len,1,F_video_tx);
                     //FI CAPTURA
+					// TODO decode
+					decompress_frame(sd, (unsigned char *) out,(unsigned char *) tx_frame->tiles[0].data,tx_frame->tiles[0].data_len, rx_data->buffer_num[0]);
+					frame->tiles[0].data = out;          //rx_data->frame_buffer[0];
+					frame->tiles[0].data_len = vc_get_linesize(des.width, UYVY)	* des.height;                  //rx_data->buffer_len[0];
+
+					//MODUL DE CAPTURA AUDIO A FITXER PER COMPROVACIONS EN TX
+					//CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
+					if (F_video_rx == NULL) {
+						printf("recording decoded frame...\n");
+						F_video_rx = fopen("decodedvideo.yuv", "wb");
+					}
+
+					fwrite(frame->tiles[0].data, frame->tiles[0].data_len, 1,F_video_rx);
+					//FI CAPTURA
 
                     //printf("[MAIN to SENDER] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
-                    if(tx_frame->tiles[0].data_len>0)
-                        tx_send_base_h264(vf_get_tile(tx_frame, 0), devices[0], get_local_mediatime(), 1, tx_frame->color_spec, tx_frame->fps, tx_frame->interlacing, 0, 0);
+//                    if(tx_frame->tiles[0].data_len>0)
+//                        tx_send_base_h264(vf_get_tile(tx_frame, 0), devices[0], get_local_mediatime(), 1, tx_frame->color_spec, tx_frame->fps, tx_frame->interlacing, 0, 0);
 
                     //if (xec > 3)
                     //  exit = 0;
                     //xec++;
-                    usleep(200000);
+                    //usleep(200000);
                 } else {
                     exit=0;
                 }
