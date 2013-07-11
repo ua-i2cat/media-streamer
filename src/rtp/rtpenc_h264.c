@@ -301,7 +301,8 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
                                         (char *)nal_payload, nal_payload_size, extn, extn_len,
                                         extn_type);*/
             int err = rtp_send_data(rtp_session, ts, pt, m, cc, &csrc,
-									(char *)nal.data, nal.size, extn, extn_len,
+									(char *)nal.data + startcode_size,
+                                    nal.size - startcode_size, extn, extn_len,
 									extn_type);
             if (err < 0) {
                 error_msg("There was a problem sending the RTP packet\n");

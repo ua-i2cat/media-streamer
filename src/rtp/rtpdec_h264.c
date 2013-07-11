@@ -64,11 +64,11 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
 	case 1: 
 	  if (pass == 0){
         debug_msg("NAL type 1\n");
-	    total_length += /*sizeof(start_sequence)*/ + pckt->data_len;
+	    total_length += sizeof(start_sequence) + pckt->data_len;
 	  } else {
-	    dst -= pckt->data_len; /*+ sizeof(start_sequence);
-	    memcpy(dst, start_sequence, sizeof(start_sequence));*/
-	    memcpy(dst /*+ sizeof(start_sequence)*/, pckt->data, pckt->data_len);
+	    dst -= pckt->data_len + sizeof(start_sequence);
+	    memcpy(dst, start_sequence, sizeof(start_sequence));
+	    memcpy(dst + sizeof(start_sequence), pckt->data, pckt->data_len);
 	  }
 	  break;
 	case 24:
