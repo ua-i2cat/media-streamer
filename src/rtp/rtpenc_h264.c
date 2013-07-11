@@ -10,7 +10,7 @@
 #include "tfrc.h"
 #include "rtp/rtpenc_h264.h"
 
-#define RTPENC_H264_MAX_NALS 1024
+#define RTPENC_H264_MAX_NALS 1024*2*2
 #define RTPENC_H264_PT 96
 
 struct rtp_nal_t {
@@ -158,7 +158,7 @@ int rtpenc_h264_parse_nal_units(uint8_t *buf_in, int size, struct rtp_nal_t *nal
     uint8_t *p = buf_in;
     uint8_t *end = p + size;
     uint8_t *nal_start;
-    uint8_t *nal_end;
+    uint8_t *nal_end=NULL;
 
     size = 0;
     *nnals = 0;
@@ -169,7 +169,7 @@ int rtpenc_h264_parse_nal_units(uint8_t *buf_in, int size, struct rtp_nal_t *nal
         if (nal_start == end)
             break;
 
-        nal_end = rtpenc_h264_find_startcode(nal_start, end);
+        nal_end = rtpenc_h264_find_startcode(nal_start + 3, end);
         if (nal_end == NULL) {
             nal_end = end;
         }
@@ -296,10 +296,13 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session,
             rtpenc_h264_debug_print_payload_bytes(nal_payload);
             #endif
             // TODO: if no fragmentation, marker bit = 0 / (?)
-            int err = rtp_send_data_hdr(rtp_session, ts, pt, m, cc, &csrc,
+            /*int err = rtp_send_data_hdr(rtp_session, ts, pt, m, cc, &csrc,
                                         (char *)nal_header, nal_header_size,
                                         (char *)nal_payload, nal_payload_size, extn, extn_len,
-                                        extn_type);
+                                        extn_type);*/
+            int err = rtp_send_data(rtp_session, ts, pt, m, cc, &csrc,
+									(char *)nal.data, nal.size, extn, extn_len,
+									extn_type);
             if (err < 0) {
                 error_msg("There was a problem sending the RTP packet\n");
             }

@@ -10,7 +10,7 @@
 #include "tfrc.h"
 #include "rtp/rtpenc.h"
 
-unsigned int mtu = 1000;
+unsigned int mtu = 1400;
 
 void tx_init(){
 	buffer_id =  lrand48() & 0x3fffff;
