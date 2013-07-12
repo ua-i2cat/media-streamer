@@ -39,7 +39,7 @@ HEADERS	      =
 				src/video.o \
 				src/video_codec.o \
 
-#OBJS_RTP 	 += src/compat/drand48.o \
+OBJS_RTP 	 += src/compat/drand48.o \
 				src/crypto/crypt_des.o \
 				src/crypto/crypt_aes.o \
 				src/crypto/crypt_aes_impl.o \
@@ -63,14 +63,14 @@ HEADERS	      =
 				src/rtp/rtpdec_h264.o \
 				src/rtp/rtpenc_h264.o \
 
-#OBJS_RM 	 += src/utils/resource_manager.o \
+OBJS_RM 	 += src/utils/resource_manager.o \
 				src/utils/worker.o \
 
-#OBJS_ENC     += src/video_compress/none.o \
+OBJS_ENC     += src/video_compress/none.o \
 				src/video_compress/libavcodec.o \
 				src/video_compress.o \
 
-#OBJS_DEC     += src/video_decompress/libavcodec.o \
+OBJS_DEC     += src/video_decompress/libavcodec.o \
 				src/video_decompress/null.o \
 				src/video_decompress.o \
 
@@ -108,13 +108,13 @@ rtp: $(TARGET_RTP)
 encoder: $(TARGET_ENC)
 decoder: $(TARGET_DEC)
 
-$(TARGET_RTP): $(OBJS) $(HEADERS)
+$(TARGET_RTP): $(OBJS_RTP) $(HEADERS)
 	$(LINKER) $(LDFLAGS_RTP) -o $(TARGET_RTP) $+ $(LIBS_RTP)
 
-$(TARGET_ENC): $(OBJS) $(HEADERS)
+$(TARGET_ENC): $(OBJS_ENC) $(HEADERS)
 	$(LINKER) $(LDFLAGS) $(LDFLAGS_ENC) -o $(TARGET_ENC) $+ $(LIBS_ENC)
 
-$(TARGET_DEC): $(OBJS) $(HEADERS)
+$(TARGET_DEC): $(OBJS_DEC) $(HEADERS)
 	$(LINKER) $(LDFLAGS) $(LDFLAGS_DEC) -o $(TARGET_DEC) $+ $(LIBS_DEC)
 
 bin/%: tests/%.o $(OBJS) $(HEADERS)
