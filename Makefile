@@ -1,14 +1,14 @@
 CC            = gcc -std=gnu99
 CXX           = g++
 LINKER        = g++
-CFLAGS        = -g -DHAVE_CONFIG_H -g -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
+CFLAGS        = -g -DHAVE_CONFIG_H -g -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2 -O2 -fdata-sections -ffunction-sections -Os
 CPPFLAGS      = -I. 
-CXXFLAGS      = -g -DHAVE_CONFIG_H -g -fPIC -Wno-multichar -Wno-deprecated -msse2
-LDFLAGS       = -shared -Wl,--dynamic-list-data,-soname
-LDFLAGS_RTP   =-shared -Wl,--dynamic-list-data,-soname,librtp.so
-LDFLAGS_ENC   =-shared -Wl,--dynamic-list-data,-soname,libvcompress.so
-LDFLAGS_DEC   =-shared -Wl,--dynamic-list-data,-soname,libvdecompress.so
-LDFLAGS_TEST  = -Wl,--dynamic-list-data
+CXXFLAGS      = -g -DHAVE_CONFIG_H -g -fPIC -Wno-multichar -Wno-deprecated -msse2 -O2
+LDFLAGS       = -shared -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname
+LDFLAGS_RTP   =-shared  -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname,librtp.so
+LDFLAGS_ENC   =-shared  -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname,libvcompress.so
+LDFLAGS_DEC   =-shared  -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname,libvdecompress.so
+LDFLAGS_TEST  = -Wl,--dynamic-list-data,--as-needed
 
 LIBS_RTP      += -lrt -ldl -lieee -lm
 LIBS_ENC      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -pthread
@@ -19,37 +19,27 @@ LIBS_RTP_TEST += $(LIBS_RTP) -L./lib -lrtp
 LIBS_ENC_TEST += $(LIBS_ENC) -L./lib -lvcompress
 LIBS_DEC_TEST += $(LIBS_DEC) -L./lib -lvdecompress
 
-LIBS_TEST     += $(LIBS) -L./lib -lrtp -lvcompress -lvdecompress
+LIBS_TEST     += $(LIBS) -L./lib -lrtp -lvcompress -lvdecompress -lavformat
 
 INC           = -I./src 
 	  
 TARGET_RTP    = lib/librtp.so
 TARGET_ENC    = lib/libvcompress.so
-TARGET_DEC    = lib/libvdecompress.so	
-TARGET        = $(TARGET_RTP) $(TARGET_ENC) $(TARGET_DEC)	
+TARGET_DEC    = lib/libvdecompress.so
+TARGETS       = $(TARGET_RTP) $(TARGET_ENC) $(TARGET_DEC)	
 
-TARGET_RTP_TEST   	= bin/rtptest
-TARGET_ENC_TEST   	= bin/encodertest
-TARGET_DEC_TEST   	= bin/decodertest
-TARGET_UG_UG_TEST 	= bin/ugugtest
-TARGET_VLC_VLC_TEST = bin/vlcvlctest
-TARGET_VLC_UG_TEST 	= bin/vlcugtest
-TARGET_UG_VLC_TEST 	= bin/ugvlctest
-TARGET_ENC_TX_TEST 	= bin/enctxtest
-TARGET_RX_DEC_TEST 	= bin/rxdectest
-TARGET_ENC_DEC_TEST = bin/encdectest
-TARGET_2IN2OUT_TEST = bin/2in2outtest
+TESTS = $(addprefix bin/, rtp encoder decoder ug_ug vlc_vlc vlc_ug ug_vlc enc_tx rx_dec enc_dec 2in2out)
 
 DOCS 	      = COPYRIGHT README REPORTING-BUGS
 
 HEADERS	      =  
 
-OBJS	      = src/debug.o \
+#OBJS	      = src/debug.o \
 				src/tile.o \
 				src/video.o \
 				src/video_codec.o \
 
-OBJS_RTP 	 += src/compat/drand48.o \
+#OBJS_RTP 	 += src/compat/drand48.o \
 				src/crypto/crypt_des.o \
 				src/crypto/crypt_aes.o \
 				src/crypto/crypt_aes_impl.o \
@@ -73,37 +63,29 @@ OBJS_RTP 	 += src/compat/drand48.o \
 				src/rtp/rtpdec_h264.o \
 				src/rtp/rtpenc_h264.o \
 
-OBJS_RM 	 += src/utils/resource_manager.o \
+#OBJS_RM 	 += src/utils/resource_manager.o \
 				src/utils/worker.o \
 
-OBJS_ENC     += src/video_compress/none.o \
+#OBJS_ENC     += src/video_compress/none.o \
 				src/video_compress/libavcodec.o \
 				src/video_compress.o \
 
-OBJS_DEC     += src/video_decompress/libavcodec.o \
+#OBJS_DEC     += src/video_decompress/libavcodec.o \
 				src/video_decompress/null.o \
 				src/video_decompress.o \
 
+OBJS_C		  = $(patsubst %.c, %.o ,	$(wildcard src/*.c) $(wildcard src/*/*.c))
+OBJS_CPP	  =	$(patsubst %.cpp, %.o,	$(wildcard src/*.cpp) $(wildcard src/*/*.cpp))
 
+OBJS_TEST     = $(patsubst %.c, %.o,	$(wildcard tests/*.c) $(wildcard tests/*/*.c))
 
-TEST_OBJS_RTP 	= tests/rtp.o
-TEST_OBJS_ENC 	= tests/encoder.o
-TEST_OBJS_DEC 	= tests/decoder.o
-TEST_OBJS_UG_UG = tests/ug_ug.o
-TEST_OBJS_VLC_VLC	= tests/vlc_vlc.o
-TEST_OBJS_VLC_UG 	= tests/vlc_ug.o
-TEST_OBJS_UG_VLC 	= tests/ug_vlc.o
-TEST_OBJS_ENC_TX 	= tests/enc_tx.o
-TEST_OBJS_RX_DEC 	= tests/rx_dec.o
-TEST_OBJS_ENC_DEC 	= tests/enc_dec.o
-TEST_OBJS_2IN2OUT 	= tests/2in2out.o
+OBJS_EXCLUDE  = src/lib_common.o
 
-TEST_OBJS     = $(TEST_OBJS_RTP) $(TEST_OBJS_ENC) $(TEST_OBJS_DEC) \
-				$(TEST_OBJS_UG_UG) $(TEST_OBJS_VLC_VLC) $(TEST_OBJS_VLC_UG) \
-				$(TEST_OBJS_UG_VLC) $(TEST_OBJS_ENC_TX) $(TEST_OBJS_RX_DEC) \
-				$(TEST_OBJS_ENC_DEC) $(TEST_OBJS_2IN2OUT)
+OBJS		  = $(filter-out $(OBJS_EXCLUDE), $(OBJS_C) $(OBJS_CPP))
+
 # -------------------------------------------------------------------------------------------------
-all: $(TARGET)
+
+all: build $(TARGETS)
 
 .c.o:
 	$(CC) $(CFLAGS) $(INC) -c $< -o $@
@@ -116,69 +98,30 @@ configure-messages:
 
 tests: test
 
-test: rtptest encodertest decodertest ugugtest vlcvlctest vlcugtest ugvlctest enctxtest rxdectest encdectest 2in2outtest
+test: build $(TESTS)
+
+build:
+	@mkdir -p lib
+	@mkdir -p bin
 
 rtp: $(TARGET_RTP)
-$(TARGET_RTP): $(OBJS) $(OBJS_RTP) $(HEADERS)
-	@mkdir -p lib
-	$(LINKER) $(LDFLAGS_RTP) -o $(TARGET_RTP) $(OBJS) $(OBJS_RTP) $(LIBS_RTP)
-
 encoder: $(TARGET_ENC)
-$(TARGET_ENC): $(OBJS) $(OBJS_RM) $(OBJS_ENC)
-	@mkdir -p lib
+decoder: $(TARGET_DEC)
+
+$(TARGET_RTP): $(OBJS) $(HEADERS)
+	$(LINKER) $(LDFLAGS_RTP) -o $(TARGET_RTP) $+ $(LIBS_RTP)
+
+$(TARGET_ENC): $(OBJS) $(HEADERS)
 	$(LINKER) $(LDFLAGS) $(LDFLAGS_ENC) -o $(TARGET_ENC) $+ $(LIBS_ENC)
 
-decoder: $(TARGET_DEC)
-$(TARGET_DEC): $(OBJS) $(OBJS_RM) $(OBJS_DEC)
-	@mkdir -p lib
+$(TARGET_DEC): $(OBJS) $(HEADERS)
 	$(LINKER) $(LDFLAGS) $(LDFLAGS_DEC) -o $(TARGET_DEC) $+ $(LIBS_DEC)
 
-rtptest: $(TARGET_RTP) $(TEST_OBJS_RTP)
-	@mkdir -p bin
-	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_RTP) $(LIBS_RTP_TEST) -o $(TARGET_RTP_TEST)
+bin/%: tests/%.o $(OBJS) $(HEADERS)
+	$(LINKER) $(LDFLAGS_TEST) $(INC) $+ -o $@ $(LIBS_TEST)
 
-encodertest: $(TARGET_ENC) $(TEST_OBJS_ENC)
-	@mkdir -p bin
-	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_ENC) $(LIBS_ENC_TEST) -o $(TARGET_ENC_TEST)
-
-decodertest: $(TARGET_DEC) $(TEST_OBJS_DEC)
-	@mkdir -p bin
-	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_DEC) $(LIBS_DEC_TEST) -o $(TARGET_DEC_TEST)
-	
-
-ugugtest: $(TARGET_DEC) $(TARGET_ENC) $(TARGET_RTP) $(TEST_OBJS_UG_UG)
-	@mkdir -p bin
-	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_UG_UG) $(LIBS_TEST) -o $(TARGET_UG_UG_TEST)
-
-vlcvlctest: $(TARGET_DEC) $(TARGET_ENC) $(TARGET_RTP) $(TEST_OBJS_VLC_VLC)
-	@mkdir -p bin
-	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_VLC_VLC) $(LIBS_TEST) -o $(TARGET_VLC_VLC_TEST)
-
-vlcugtest: $(TARGET_DEC) $(TARGET_ENC) $(TARGET_RTP) $(TEST_OBJS_VLC_UG)
-	@mkdir -p bin
-	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_VLC_UG) $(LIBS_TEST) -o $(TARGET_VLC_UG_TEST)
-
-ugvlctest: $(TARGET_DEC) $(TARGET_ENC) $(TARGET_RTP) $(TEST_OBJS_UG_VLC)
-	@mkdir -p bin
-	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_UG_VLC) $(LIBS_TEST) -o $(TARGET_UG_VLC_TEST)
-	
-enctxtest: $(TARGET_DEC) $(TARGET_ENC) $(TARGET_RTP) $(TEST_OBJS_ENC_TX)
-	@mkdir -p bin
-	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_ENC_TX) $(LIBS_TEST) -lavformat -o $(TARGET_ENC_TX_TEST)
-
-rxdectest: $(TARGET_DEC) $(TARGET_ENC) $(TARGET_RTP) $(TEST_OBJS_RX_DEC)
-	@mkdir -p bin
-	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_RX_DEC) $(LIBS_TEST) -lavformat -o $(TARGET_RX_DEC_TEST)
-
-encdectest: $(TARGET_DEC) $(TARGET_ENC) $(TARGET_RTP) $(TEST_OBJS_ENC_DEC)
-	@mkdir -p bin
-	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_ENC_DEC) $(LIBS_TEST) -lavformat -o $(TARGET_ENC_DEC_TEST)
-	
-2in2outtest: $(TARGET_DEC) $(TARGET_ENC) $(TARGET_RTP) $(TEST_OBJS_2IN2OUT)
-	@mkdir -p bin
-	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_2IN2OUT) $(LIBS_TEST) -o $(TARGET_2IN2OUT_TEST)
-# -------------------------------------------------------------------------------------------------
 
 # -------------------------------------------------------------------------------------------------
+
 clean:
-	rm -f $(OBJS) $(OBJS_RTP) $(OBJS_ENC) $(OBJS_DEC) $(OBJS_RM) $(TEST_OBJS) $(HEADERS) $(TARGET) $(TARGET_TEST)
+	rm -f $(OBJS) $(HEADERS) $(TARGETS) $(TESTS)
