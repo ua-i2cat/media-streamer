@@ -114,6 +114,8 @@ all: $(TARGET)
 configure-messages:
 	@echo ""
 
+tests: test
+
 test: rtptest encodertest decodertest ugugtest vlcvlctest vlcugtest ugvlctest enctxtest rxdectest encdectest 2in2outtest
 
 rtp: $(TARGET_RTP)
