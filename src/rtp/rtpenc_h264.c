@@ -58,7 +58,7 @@ static void rtpenc_h264_debug_print_nal_recv_info(uint8_t *header, int size)
 {
 	int type = (int)(*header & 0x1f);
 	int nri = (int)((*header & 0x60) >> 5);
-	debug_msg("NAL recv over RTP (%d bytes) | header: %d %d %d %d %d %d %d %d | NRI: %d | type: %d\n",
+	debug_msg("NAL recv | %d bytes | header: %d %d %d %d %d %d %d %d | NRI: %d | type: %d\n",
 			size,
 			((*header) & 0x80) >> 7, ((*header) & 0x40) >> 6,
 			((*header) & 0x20) >> 5, ((*header) & 0x10) >> 4,
@@ -71,7 +71,7 @@ static void rtpenc_h264_debug_print_nal_sent_info(uint8_t *header, int size)
 {
 	int type = (int)(*header & 0x1f);
 	int nri = (int)((*header & 0x60) >> 5);
-	debug_msg("NAL sent over RTP (%d bytes) | header: %d %d %d %d %d %d %d %d | NRI: %d | type: %d\n",
+	debug_msg("NAL sent | %d bytes | header: %d %d %d %d %d %d %d %d | NRI: %d | type: %d\n",
 			size,
 			((*header) & 0x80) >> 7, ((*header) & 0x40) >> 6,
 			((*header) & 0x20) >> 5, ((*header) & 0x10) >> 4,
@@ -97,7 +97,7 @@ static void rtpenc_h264_debug_print_fragment_sent_info(uint8_t *header, int size
 		frag_class = '!';
 		break;
 	}
-	debug_msg("NAL fragment (%c) sent over RTP (%d bytes)\n", frag_class, size);
+	debug_msg("NAL fragment send | %d bytes | flag %c\n", size, frag_class);
 }
 #endif /* DEBUG */
 
@@ -156,7 +156,8 @@ uint8_t *rtpenc_h264_find_startcode(uint8_t *p, uint8_t *end) {
 }
 
 int rtpenc_h264_parse_nal_units(uint8_t *buf_in, int size,
-		struct rtp_nal_t *nals, int *nnals) {
+								struct rtp_nal_t *nals, int *nnals)
+{
 	uint8_t *p = buf_in;
 	uint8_t *end = p + size;
 	uint8_t *nal_start;
@@ -167,7 +168,6 @@ int rtpenc_h264_parse_nal_units(uint8_t *buf_in, int size,
 	// TODO: control error
 	nal_start = rtpenc_h264_find_startcode(p, end);
 	for (;;) {
-		//while (nal_start < end && !*(nal_start++));
 		if (nal_start == end)
 			break;
 
@@ -347,7 +347,6 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session, uint32_t ts,
 				remaining_payload_size -= frag_payload_size;
 				frag_payload += frag_payload_size;
 
-				//frag_header[1] &= ~(1 << 7); // not end, not start
 				frag_header[1] = type;
 			}
 
