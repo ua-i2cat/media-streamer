@@ -31,16 +31,16 @@ int main(){
     struct video_frame *tx_frame;
 
     tx_frame = vf_alloc(1);
-    vf_get_tile(tx_frame, 0)->width=854;
-    vf_get_tile(tx_frame, 0)->height=480;
-    tx_frame->fps=5;
+    vf_get_tile(tx_frame, 0)->width=1280;
+    vf_get_tile(tx_frame, 0)->height=720;
+    tx_frame->fps=10;
     tx_frame->color_spec=H264;
     tx_frame->interlacing=PROGRESSIVE;
 
     frame = vf_alloc(1);
-    vf_get_tile(frame, 0)->width=854;
-    vf_get_tile(frame, 0)->height=480;
-    frame->fps=5;
+    vf_get_tile(frame, 0)->width=1280;
+    vf_get_tile(frame, 0)->height=720;
+    frame->fps=10;
     frame->color_spec=UYVY;
     frame->interlacing=PROGRESSIVE;
 
@@ -86,12 +86,12 @@ int main(){
     if (decompress_is_available(LIBAVCODEC_MAGIC)) {
         sd = decompress_init(LIBAVCODEC_MAGIC);
 
-      	des.width = 854;
-        des.height = 480;
+      	des.width = 1280;
+        des.height = 720;
         des.color_spec  = H264;
         des.tile_count = 0;
         des.interlacing = PROGRESSIVE;
-        des.fps=5;
+        des.fps=10;
 
         decompress_reconfigure(sd, des, 16, 8, 0, vc_get_linesize(des.width, UYVY), UYVY);  //r=16,g=8,b=0
     }
