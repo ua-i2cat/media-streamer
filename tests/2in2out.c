@@ -29,8 +29,6 @@ int main(){
 
     int ret;
 
-    //rx_data = (struct recieved_data *)malloc(sizeof(struct recieved_data));
-
     struct video_frame *tx_frame;
 
     tx_frame = vf_alloc(1);
@@ -164,65 +162,47 @@ int main(){
         if (!rtp_recv_poll_r(devices, &timeout, timestamp)){
             //printf("\nPACKET NOT RECIEVED\n");
             //sleep(1);
-        }// else {
-            pdb_iter_t it;
-            cp = pdb_iter_init(participants, &it);
-            int ret;
-            //printf("PACKET RECIEVED, building FRAME\n");
-            while (cp != NULL ) {
-                ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame, rx_data);
-                //printf("DECODE return value: %d\n", ret);
-                if (ret) {
-                    gettimeofday(&curr_time, NULL);
-                    //printf("\nFRAME RECIEVED (first byte = %x)\n",rx_data->frame_buffer[0][0]);
-                    /*if (rx_data == NULL) {
-                        printf("rx_data NULL after pbuf_decode");
-                    }
-                    if (frame == NULL) {
-                        printf("Frame NULL after pbuf_decode!\n");
-                        continue;
-                    }*/
-                    frame->tiles[0].data = rx_data->frame_buffer[0];
-                    frame->tiles[0].data_len = rx_data->buffer_len[0];
+        }
+        
+        pdb_iter_t it;
+        cp = pdb_iter_init(participants, &it);
+        int ret;
+        //printf("PACKET RECIEVED, building FRAME\n");
+        while (cp != NULL ) {
+            ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame, rx_data);
+            //printf("DECODE return value: %d\n", ret);
+            if (ret) {
+                gettimeofday(&curr_time, NULL);
+                //printf("\nFRAME RECIEVED (first byte = %x)\n",rx_data->frame_buffer[0][0]);
+                frame->tiles[0].data = rx_data->frame_buffer[0];
+                frame->tiles[0].data_len = rx_data->buffer_len[0];
 
-                    // TODO decode
-                    decompress_frame(sd,(unsigned char *) out,(unsigned char *)rx_data->frame_buffer[0],rx_data->buffer_len[0],rx_data->buffer_num[0]);
-                    frame->tiles[0].data=out;//rx_data->frame_buffer[0];
-                    frame->tiles[0].data_len = vc_get_linesize(des.width, UYVY)*des.height;//rx_data->buffer_len[0];
-                    // TODO encode
+                decompress_frame(sd,(unsigned char *) out,(unsigned char *)rx_data->frame_buffer[0],rx_data->buffer_len[0],rx_data->buffer_num[0]);
+                frame->tiles[0].data=out;//rx_data->frame_buffer[0];
+                frame->tiles[0].data_len = vc_get_linesize(des.width, UYVY)*des.height;//rx_data->buffer_len[0];
 
-                    /*
-                    vf_get_tile(tx_frame, 0)->width=1080;
-                    vf_get_tile(tx_frame, 0)->height=720;
-                    tx_frame->fps=10;
-                    tx_frame->color_spec=H264;
-                    tx_frame->interlacing=PROGRESSIVE;
-                    */
-                    
-                    tx_frame = compress_frame(sc, frame, i);
-                    if (tx_frame == NULL) {
-                        printf("frame NULL!!!\n");
-                        continue;
-                    }
-                    i = (i + 1)%2;
-                    
-                    printf("[MAIN to SENDER] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
-                    if(tx_frame->tiles[0].data_len>0)
-                        tx_send_base(vf_get_tile(tx_frame, 0), devices[0], get_local_mediatime(), 1, tx_frame->color_spec, tx_frame->fps, tx_frame->interlacing, 0, 0);
-                    
-                    //if (xec > 3)
-                    //  exit = 0;
-                    //xec++;
-
-                } else {
-                    //printf("FRAME not ready yet\n");
+                tx_frame = compress_frame(sc, frame, i);
+                if (tx_frame == NULL) {
+                    printf("frame NULL!!!\n");
+                    continue;
                 }
-                pbuf_remove(cp->playout_buffer, curr_time);
-                cp = pdb_iter_next(&it);
-            }
-            pdb_iter_done(&it);
+                i = (i + 1)%2;
+                
+                printf("[MAIN to SENDER] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
+                if(tx_frame->tiles[0].data_len>0)
+                    tx_send_base(vf_get_tile(tx_frame, 0), devices[0], get_local_mediatime(), 1, tx_frame->color_spec, tx_frame->fps, tx_frame->interlacing, 0, 0);
+                
+                //if (xec > 3)
+                //  exit = 0;
+                //xec++;
 
-        //}
+            } else {
+                //printf("FRAME not ready yet\n");
+            }
+            pbuf_remove(cp->playout_buffer, curr_time);
+            cp = pdb_iter_next(&it);
+        }
+        pdb_iter_done(&it);
     }
 
     compress_done(sc);
