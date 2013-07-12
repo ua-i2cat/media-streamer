@@ -9,7 +9,8 @@
 
 FILE *F_video_rx=NULL;
 
-int main(){
+int main()
+{
 	struct rtp **devices = NULL;
 	struct pdb *participants;
 	struct pdb_e *cp;
@@ -20,8 +21,6 @@ int main(){
 	int width = 854;
 	int height = 480;
 	int fps = 5;
-
-	//rx_data = (struct recieved_data *)malloc(sizeof(struct recieved_data));
 
 	frame = vf_alloc(1);
 	vf_get_tile(frame, 0)->width=width;
@@ -108,52 +107,38 @@ int main(){
 		if (!rtp_recv_poll_r(devices, &timeout, timestamp)){
 			//printf("\nPACKET NOT RECIEVED\n");
 			//sleep(1);
-		}// else {
-            pdb_iter_t it;
-			cp = pdb_iter_init(participants, &it);
-			int ret;
-			//printf("PACKET RECIEVED, building FRAME\n");
-			while (cp != NULL ) {
-				ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264,rx_data);
-				//printf("DECODE return value: %d\n", ret);
-				if (ret) {
-					gettimeofday(&curr_time, NULL);
-					//printf("\nFRAME RECIEVED (first byte = %x)\n",rx_data->frame_buffer[0][0]);
-					frame->tiles[0].data = rx_data->frame_buffer[0];
-					frame->tiles[0].data_len = rx_data->buffer_len[0];
+		}
 
-//                    //MODUL DE CAPTURA AUDIO A FITXER PER COMPROVACIONS EN TX
-//                            //CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
-//                            if(F_video_rx==NULL){
-//                                    printf("recording rx frame...\n");
-//                                    F_video_rx=fopen("rx_frame.mp4", "wb");
-//                            }
-//
-//                            fwrite(frame->tiles[0].data,frame->tiles[0].data_len,1,F_video_rx);
-//                    //FI CAPTURA
+        pdb_iter_t it;
+		cp = pdb_iter_init(participants, &it);
+		int ret;
+		//printf("PACKET RECIEVED, building FRAME\n");
+		while (cp != NULL ) {
+			ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264,rx_data);
+			//printf("DECODE return value: %d\n", ret);
+			if (ret) {
+				gettimeofday(&curr_time, NULL);
+				//printf("\nFRAME RECIEVED (first byte = %x)\n",rx_data->frame_buffer[0][0]);
+				frame->tiles[0].data = rx_data->frame_buffer[0];
+				frame->tiles[0].data_len = rx_data->buffer_len[0];
 
+				//printf("[MAIN to SENDER] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
+				if(frame->tiles[0].data_len>0)
+					tx_send_base_h264(vf_get_tile(frame, 0), devices[0], get_local_mediatime(), 1, frame->color_spec, frame->fps, frame->interlacing, 0, 0);
 
-					//printf("[MAIN to SENDER] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
-					if(frame->tiles[0].data_len>0)
-						tx_send_base_h264(vf_get_tile(frame, 0), devices[0], get_local_mediatime(), 1, frame->color_spec, frame->fps, frame->interlacing, 0, 0);
+				//if (xec > 3)
+				//	exit = 0;
+				//xec++;
 
-					//if (xec > 3)
-					//	exit = 0;
-					//xec++;
-
-				} else {
-					//printf("FRAME not ready yet\n");
-				}
-				pbuf_remove(cp->playout_buffer, curr_time);
-				cp = pdb_iter_next(&it);
+			} else {
+				//printf("FRAME not ready yet\n");
 			}
-			pdb_iter_done(&it);
-
-		//}
+			pbuf_remove(cp->playout_buffer, curr_time);
+			cp = pdb_iter_next(&it);
+		}
+		pdb_iter_done(&it);
 	}
 
 	rtp_done(devices[index]);
 	printf("RTP DONE\n");
-
-
 }
