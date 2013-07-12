@@ -1,5 +1,0 @@
-Installation instructions
-  $ ./autogen.sh
-  $ make
-  And optionally:
-  $ make install
