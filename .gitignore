@@ -1,12 +1,13 @@
 lib
 bin
 *.o
-*~
-*.swp
 
 *.mp4
 *.yuv
 *.h264
+
+*~
+*.swp
 
 .cproject
 .project
