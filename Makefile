@@ -98,7 +98,10 @@ TEST_OBJS_RX_DEC 	= tests/rx_dec.o
 TEST_OBJS_ENC_DEC 	= tests/enc_dec.o
 TEST_OBJS_2IN2OUT 	= tests/2in2out.o
 
-TEST_OBJS     = $(TEST_OBJS_RTP) $(TEST_OBJS_ENC) $(TEST_OBJS_DEC) $(TEST_OBJS_UG_UG)
+TEST_OBJS     = $(TEST_OBJS_RTP) $(TEST_OBJS_ENC) $(TEST_OBJS_DEC) \
+				$(TEST_OBJS_UG_UG) $(TEST_OBJS_VLC_VLC) $(TEST_OBJS_VLC_UG) \
+				$(TEST_OBJS_UG_VLC) $(TEST_OBJS_ENC_TX) $(TEST_OBJS_RX_DEC) \
+				$(TEST_OBJS_ENC_DEC) $(TEST_OBJS_2IN2OUT)
 # -------------------------------------------------------------------------------------------------
 all: $(TARGET)
 
