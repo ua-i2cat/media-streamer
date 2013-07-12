@@ -41,8 +41,6 @@ uint8_t *rtpenc_h264_find_startcode(uint8_t *p, uint8_t *end);
 int rtpenc_h264_parse_nal_units(uint8_t *buf_in, int size,
 		struct rtp_nal_t *nals, int *nnals);
 
-#ifdef DEBUG /* Just define debug functions if needed */
-
 static void rtpenc_h264_debug_print_nal_recv_info(uint8_t *header, int size);
 static void rtpenc_h264_debug_print_nal_sent_info(uint8_t *header, int size);
 static void rtpenc_h264_debug_print_fragment_sent_info(uint8_t *header, int size);
@@ -50,14 +48,19 @@ static void rtpenc_h264_debug_print_payload_bytes(uint8_t *payload);
 
 static void rtpenc_h264_debug_print_payload_bytes(uint8_t *payload)
 {
+	#ifdef DEBUG
 	debug_msg("NAL 1st 6 payload bytes: %x %x %x %x %x %x\n",
 			(unsigned char)payload[0], (unsigned char)payload[1],
 			(unsigned char)payload[2], (unsigned char)payload[3],
 			(unsigned char)payload[4], (unsigned char)payload[5]);
+	#else
+	UNUSED(payload);
+	#endif
 }
 
 static void rtpenc_h264_debug_print_nal_recv_info(uint8_t *header, int size)
 {
+	#ifdef DEBUG
 	int type = (int)(*header & 0x1f);
 	int nri = (int)((*header & 0x60) >> 5);
 	debug_msg("NAL recv | %d bytes | header: %d %d %d %d %d %d %d %d | NRI: %d | type: %d\n",
@@ -67,10 +70,15 @@ static void rtpenc_h264_debug_print_nal_recv_info(uint8_t *header, int size)
 			((*header) & 0x08) >> 3, ((*header) & 0x04) >> 2,
 			((*header) & 0x02) >> 1, ((*header) & 0x01),
 			type, nri);
+	#else
+	UNUSED(header);
+	UNUSED(size);
+	#endif
 }
 
 static void rtpenc_h264_debug_print_nal_sent_info(uint8_t *header, int size)
 {
+	#ifdef DEBUG
 	int type = (int)(*header & 0x1f);
 	int nri = (int)((*header & 0x60) >> 5);
 	debug_msg("NAL sent | %d bytes | header: %d %d %d %d %d %d %d %d | NRI: %d | type: %d\n",
@@ -80,10 +88,15 @@ static void rtpenc_h264_debug_print_nal_sent_info(uint8_t *header, int size)
 			((*header) & 0x08) >> 3, ((*header) & 0x04) >> 2,
 			((*header) & 0x02) >> 1, ((*header) & 0x01),
 			type, nri);
+	#else
+	UNUSED(header);
+	UNUSED(size);
+	#endif
 }
 
 static void rtpenc_h264_debug_print_fragment_sent_info(uint8_t *header, int size)
 {
+	#ifdef DEBUG
 	char frag_class;
 	switch((header[1] & 0xE0) >> 5) {
 		case 0:
@@ -100,41 +113,15 @@ static void rtpenc_h264_debug_print_fragment_sent_info(uint8_t *header, int size
 			break;
 	}
 	debug_msg("NAL fragment send | %d bytes | flag %c\n", size, frag_class);
+	#else
+	UNUSED(header);
+	UNUSED(size);
+	#endif
 }
-
-#endif /* DEBUG */
 
 static uint8_t *rtpenc_h264_find_startcode_internal(uint8_t *start,
 		uint8_t *end)
 {
-	/*
-	 const uint8_t *a = p + 4 - ((intptr_t)p & 3);
-	 for (pend -= 3; p < a && p < pend; p++) {
-	 if (p[0] == 0 && p[1] == 0 && p[2] == 1)
-	 return p;
-	 }
-
-	 for (pend -= 3; p < pend; p += 4) {
-	 uint32_t x = *(const uint32_t*)p;
-	 //if ((x - 0x01000100) & (~x) & 0x80008000) // little endian
-	 //if ((x - 0x00010001) & (~x) & 0x00800080) // big endian
-	 if ((x - 0x01010101) & (~x) & 0x80808080) { // generic
-	 if (p[1] == 0) {
-	 if (p[0] == 0 && p[2] == 1)
-	 return p;
-	 if (p[2] == 0 && p[3] == 1)
-	 return p+1;
-	 }
-	 if (p[3] == 0) {
-	 if (p[2] == 0 && p[4] == 1)
-	 return p+2;
-	 if (p[4] == 0 && p[5] == 1)
-	 return p+3;
-	 }
-	 }
-	 }
-	 */
-
 	uint8_t *p = start;
 	uint8_t *pend = end;
 
