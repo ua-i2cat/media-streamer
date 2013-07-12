@@ -142,7 +142,7 @@ uint8_t *rtpenc_h264_find_startcode(uint8_t *p, uint8_t *end)
 			out--;
 		}
 	} else {
-		error_msg("No NAL start code found\n");
+		debug_msg("No NAL start code found\n"); // It's not an error per se.
 	}
 	return out;
 }
