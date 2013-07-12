@@ -28,8 +28,6 @@ int main(){
 
     int ret;
 
-    //rx_data = (struct recieved_data *)malloc(sizeof(struct recieved_data));
-
     struct video_frame *tx_frame;
 
     tx_frame = vf_alloc(1);
@@ -161,86 +159,54 @@ int main(){
         if (!rtp_recv_poll_r(devices, &timeout, timestamp)){
             //printf("\nPACKET NOT RECIEVED\n");
             //sleep(1);
-        }// else {
-            pdb_iter_t it;
-            cp = pdb_iter_init(participants, &it);
-            int ret;
-            //printf("PACKET RECIEVED, building FRAME\n");
-            while (cp != NULL ) {
-                ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data);
-                //printf("DECODE return value: %d\n", ret);
-                if (ret) {
-                    gettimeofday(&curr_time, NULL);
-                    //printf("\nFRAME RECIEVED (first byte = %x)\n",rx_data->frame_buffer[0][0]);
-                    /*if (rx_data == NULL) {
-                        printf("rx_data NULL after pbuf_decode");
-                    }
-                    if (frame == NULL) {
-                        printf("Frame NULL after pbuf_decode!\n");
-                        continue;
-                    }*/
-                    frame->tiles[0].data = rx_data->frame_buffer[0];
-                    frame->tiles[0].data_len = rx_data->buffer_len[0];
+        }
+        pdb_iter_t it;
+        cp = pdb_iter_init(participants, &it);
+        int ret;
+        //printf("PACKET RECIEVED, building FRAME\n");
+        while (cp != NULL ) {
+            ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data);
+            //printf("DECODE return value: %d\n", ret);
+            if (ret) {
+                gettimeofday(&curr_time, NULL);
+                //printf("\nFRAME RECIEVED (first byte = %x)\n",rx_data->frame_buffer[0][0]);
+                frame->tiles[0].data = rx_data->frame_buffer[0];
+                frame->tiles[0].data_len = rx_data->buffer_len[0];
 
-                    // TODO decode
-                    decompress_frame(sd,(unsigned char *) out,(unsigned char *)rx_data->frame_buffer[0],rx_data->buffer_len[0],rx_data->buffer_num[0]);
-                    frame->tiles[0].data=out;//rx_data->frame_buffer[0];
-                    frame->tiles[0].data_len = vc_get_linesize(des.width, UYVY)*des.height;//rx_data->buffer_len[0];
+                // TODO decode
+                decompress_frame(sd,(unsigned char *) out,(unsigned char *)rx_data->frame_buffer[0],rx_data->buffer_len[0],rx_data->buffer_num[0]);
+                frame->tiles[0].data=out;//rx_data->frame_buffer[0];
+                frame->tiles[0].data_len = vc_get_linesize(des.width, UYVY)*des.height;//rx_data->buffer_len[0];
 
-                    //MODUL DE CAPTURA AUDIO A FITXER PER COMPROVACIONS EN TX
-                            //CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
-//                            if(F_video_rx==NULL){
-//                                    printf("recording rx dec frame...\n");
-//                                    F_video_rx=fopen("/home/gerardcl/decodedvideo.yuv", "wb");
-//                            }
-//
-//                            //fwrite(tx_frame->audio_data,tx_frame->audio_data_len,1,F_audio_tx_embed_BM);
-//                            fwrite(frame->tiles[0].data,frame->tiles[0].data_len,1,F_video_rx);
-                    //FI CAPTURA
-                    // TODO encode
-                          /*
-                    vf_get_tile(tx_frame, 0)->width=1080;
-                    vf_get_tile(tx_frame, 0)->height=720;
-                    tx_frame->fps=10;
-                    tx_frame->color_spec=H264;
-                    tx_frame->interlacing=PROGRESSIVE;
-                    */
-                    
-                    tx_frame = compress_frame(sc, frame, i);
-                    if (tx_frame == NULL) {
-                        printf("frame NULL!!!\n");
-                        continue;
-                    }
-                    i = (i + 1)%2;
-
-                    //MODUL DE CAPTURA AUDIO A FITXER PER COMPROVACIONS EN TX
-//                            //CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
-//                            if(F_video_tx==NULL){
-//                                    printf("recording encoded frame...\n");
-//                                    F_video_tx=fopen("/home/gerardcl/encodedvideo.mp4", "wb");
-//                            }
-//
-//                            //fwrite(tx_frame->audio_data,tx_frame->audio_data_len,1,F_audio_tx_embed_BM);
-//                            fwrite(tx_frame->tiles[0].data,tx_frame->tiles[0].data_len,1,F_video_tx);
-                    //FI CAPTURA
-
-//                    printf("[MAIN to SENDER] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
-//                    if(tx_frame->tiles[0].data_len>0)
-                        tx_send_base_h264(vf_get_tile(tx_frame, 0), devices[0], get_local_mediatime(), 1, tx_frame->color_spec, tx_frame->fps, tx_frame->interlacing, 0, 0);
-
-                    //if (xec > 3)
-                    //  exit = 0;
-                    //xec++;
-
-                } else {
-                    //printf("FRAME not ready yet\n");
+                /*
+                vf_get_tile(tx_frame, 0)->width=1080;
+                vf_get_tile(tx_frame, 0)->height=720;
+                tx_frame->fps=10;
+                tx_frame->color_spec=H264;
+                tx_frame->interlacing=PROGRESSIVE;
+                */
+                
+                tx_frame = compress_frame(sc, frame, i);
+                if (tx_frame == NULL) {
+                    printf("frame NULL!!!\n");
+                    continue;
                 }
-                pbuf_remove(cp->playout_buffer, curr_time);
-                cp = pdb_iter_next(&it);
-            }
-            pdb_iter_done(&it);
 
-        //}
+                i = (i + 1)%2;
+
+                // printf("[MAIN to SENDER] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
+                tx_send_base_h264(vf_get_tile(tx_frame, 0), devices[0], get_local_mediatime(), 1, tx_frame->color_spec, tx_frame->fps, tx_frame->interlacing, 0, 0);
+
+                //if (xec > 3)
+                //  exit = 0;
+                //xec++;
+            } else {
+                //printf("FRAME not ready yet\n");
+            }
+            pbuf_remove(cp->playout_buffer, curr_time);
+            cp = pdb_iter_next(&it);
+        }
+        pdb_iter_done(&it);
     }
 
     compress_done(sc);
