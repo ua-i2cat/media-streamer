@@ -23,7 +23,8 @@ int rtpenc_h264_nals_sent_nofrag;
 int rtpenc_h264_nals_sent_frag;
 int rtpenc_h264_nals_sent;
 
-void rtpenc_h264_stats_print() {
+void rtpenc_h264_stats_print()
+{
 	printf("[RTPENC][STATS] Total recv NALs: %d\n", rtpenc_h264_nals_recv);
 	printf("[RTPENC][STATS] Unfragmented sent NALs: %d\n",
 			rtpenc_h264_nals_sent_nofrag);
@@ -41,6 +42,7 @@ int rtpenc_h264_parse_nal_units(uint8_t *buf_in, int size,
 		struct rtp_nal_t *nals, int *nnals);
 
 #ifdef DEBUG /* Just define debug functions if needed */
+
 static void rtpenc_h264_debug_print_nal_recv_info(uint8_t *header, int size);
 static void rtpenc_h264_debug_print_nal_sent_info(uint8_t *header, int size);
 static void rtpenc_h264_debug_print_fragment_sent_info(uint8_t *header, int size);
@@ -85,24 +87,26 @@ static void rtpenc_h264_debug_print_fragment_sent_info(uint8_t *header, int size
 	char frag_class;
 	switch((header[1] & 0xE0) >> 5) {
 		case 0:
-		frag_class = '0';
-		break;
+			frag_class = '0';
+			break;
 		case 2:
-		frag_class = 'E';
-		break;
+			frag_class = 'E';
+			break;
 		case 4:
-		frag_class = 'S';
-		break;
+			frag_class = 'S';
+			break;
 		default:
-		frag_class = '!';
-		break;
+			frag_class = '!';
+			break;
 	}
 	debug_msg("NAL fragment send | %d bytes | flag %c\n", size, frag_class);
 }
+
 #endif /* DEBUG */
 
 static uint8_t *rtpenc_h264_find_startcode_internal(uint8_t *start,
-		uint8_t *end) {
+		uint8_t *end)
+{
 	/*
 	 const uint8_t *a = p + 4 - ((intptr_t)p & 3);
 	 for (pend -= 3; p < a && p < pend; p++) {
@@ -143,7 +147,8 @@ static uint8_t *rtpenc_h264_find_startcode_internal(uint8_t *start,
 	return (uint8_t *) NULL;
 }
 
-uint8_t *rtpenc_h264_find_startcode(uint8_t *p, uint8_t *end) {
+uint8_t *rtpenc_h264_find_startcode(uint8_t *p, uint8_t *end)
+{
 	uint8_t *out = rtpenc_h264_find_startcode_internal(p, end);
 	if (out != NULL) {
 		if (p < out && out < end && !out[-1]) {
@@ -168,8 +173,9 @@ int rtpenc_h264_parse_nal_units(uint8_t *buf_in, int size,
 	// TODO: control error
 	nal_start = rtpenc_h264_find_startcode(p, end);
 	for (;;) {
-		if (nal_start == end)
+		if (nal_start == end) {
 			break;
+		}
 
 		nal_end = rtpenc_h264_find_startcode(nal_start + 3, end);
 		if (nal_end == NULL) {
@@ -188,7 +194,8 @@ int rtpenc_h264_parse_nal_units(uint8_t *buf_in, int size,
 	return size;
 }
 
-void tx_init_h264() {
+void tx_init_h264()
+{
 	buffer_id = lrand48() & 0x3fffff;
 	bitrate = 6618;
 	packet_rate = 1000 * mtu * 8 / bitrate;
@@ -202,7 +209,8 @@ void tx_init_h264() {
 void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session, uint32_t ts,
 		int send_m, codec_t color_spec, double input_fps,
 		enum interlacing_t interlacing, unsigned int substream,
-		int fragment_offset) {
+		int fragment_offset)
+{
 
 	UNUSED(color_spec);
 	UNUSED(input_fps);
@@ -290,12 +298,8 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session, uint32_t ts,
 						(char *)nal_header, nal_header_size,
 			 			(char *)nal_payload, nal_payload_size, extn, extn_len,
 						extn_type);
-			/*int err = rtp_send_data(rtp_session, ts, pt, m, cc, &csrc,
-					(char *)(nal.data + startcode_size),
-					nal.size - startcode_size, extn, extn_len,
-					extn_type);*/
-			//char *dst = (char *)(nal.data + startcode_size);
-			unsigned char *dst = (unsigned char *)(nal.data); // + startcode_size);
+
+			unsigned char *dst = (unsigned char *)(nal.data);
 			unsigned char *end = (unsigned char *)(nal.data + nal.size);
 			debug_msg("\n\nFirst six bytes: %02x %02x %02x %02x %02x %02x\n", dst[0], dst[1], dst[2], dst[3], dst[4], dst[5]);
 			debug_msg("Last six bytes: %02x %02x %02x %02x %02x %02x\n", end[-6],
