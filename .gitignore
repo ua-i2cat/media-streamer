@@ -1,0 +1,13 @@
+lib
+bin
+*.o
+
+*.mp4
+*.yuv
+*.h264
+
+*~
+*.swp
+
+.cproject
+.project
