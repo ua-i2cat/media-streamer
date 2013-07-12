@@ -41,7 +41,7 @@ int rtpenc_h264_parse_nal_units(uint8_t *buf_in, int size,
 		struct rtp_nal_t *nals, int *nnals);
 
 #ifdef DEBUG /* Just define debug functions if needed */
-static void rtpenc_h264_debug_print_nal_recv_info(uint8_t *header);
+static void rtpenc_h264_debug_print_nal_recv_info(uint8_t *header, int size);
 static void rtpenc_h264_debug_print_nal_sent_info(uint8_t *header, int size);
 static void rtpenc_h264_debug_print_fragment_sent_info(uint8_t *header, int size);
 static void rtpenc_h264_debug_print_payload_bytes(uint8_t *payload);
@@ -54,31 +54,30 @@ static void rtpenc_h264_debug_print_payload_bytes(uint8_t *payload)
 			(unsigned char)payload[4], (unsigned char)payload[5]);
 }
 
-static void rtpenc_h264_debug_print_nal_recv_info(uint8_t *header)
+static void rtpenc_h264_debug_print_nal_recv_info(uint8_t *header, int size)
 {
-	debug_msg("NAL recv header: %d %d %d %d %d %d %d %d\n",
+	int type = (int)(*header & 0x1f);
+	int nri = (int)((*header & 0x60) >> 5);
+	debug_msg("NAL recv over RTP (%d bytes) | header: %d %d %d %d %d %d %d %d | NRI: %d | type: %d\n",
+			size,
 			((*header) & 0x80) >> 7, ((*header) & 0x40) >> 6,
 			((*header) & 0x20) >> 5, ((*header) & 0x10) >> 4,
 			((*header) & 0x08) >> 3, ((*header) & 0x04) >> 2,
-			((*header) & 0x02) >> 1, ((*header) & 0x01));
-	int type = (int)(*header & 0x1f);
-	int nri = (int)((*header & 0x60) >> 5);
-	debug_msg("NAL recv type: %d\n", type);
-	debug_msg("NAL recv NRI: %d\n", nri);
+			((*header) & 0x02) >> 1, ((*header) & 0x01),
+			type, nri);
 }
 
 static void rtpenc_h264_debug_print_nal_sent_info(uint8_t *header, int size)
 {
-	debug_msg("NAL sent over RTP (%d bytes)\n", size);
-	debug_msg("NAL sent header: %d %d %d %d %d %d %d %d\n",
+	int type = (int)(*header & 0x1f);
+	int nri = (int)((*header & 0x60) >> 5);
+	debug_msg("NAL sent over RTP (%d bytes) | header: %d %d %d %d %d %d %d %d | NRI: %d | type: %d\n",
+			size,
 			((*header) & 0x80) >> 7, ((*header) & 0x40) >> 6,
 			((*header) & 0x20) >> 5, ((*header) & 0x10) >> 4,
 			((*header) & 0x08) >> 3, ((*header) & 0x04) >> 2,
-			((*header) & 0x02) >> 1, ((*header) & 0x01));
-	int type = (int)(*header & 0x1f);
-	int nri = (int)((*header & 0x60) >> 5);
-	debug_msg("NAL sent type: %d\n", type);
-	debug_msg("NAL sent NRI: %d\n", nri);
+			((*header) & 0x02) >> 1, ((*header) & 0x01),
+			type, nri);
 }
 
 static void rtpenc_h264_debug_print_fragment_sent_info(uint8_t *header, int size)
@@ -219,9 +218,7 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session, uint32_t ts,
 	rtpenc_h264_parse_nal_units(data, data_len, nals, &nnals);
 
 	rtpenc_h264_nals_recv += nnals;
-#ifdef DEBUG
 	debug_msg("%d NAL units found in buffer\n", nnals);
-#endif
 
 	char pt = RTPENC_H264_PT;
 	int cc = 0;
@@ -247,24 +244,21 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session, uint32_t ts,
 		// skip startcode
 		int startcode_size = 0;
 		uint8_t *p = nal_header;
-		while ((uint8_t *) (*(p++)) == 0) {
+		while ((*(p++)) == (uint8_t)0) {
 			startcode_size++;
 		}
 		startcode_size++;
 
-		int nal_header_size = 1 + startcode_size;
+		nal_header += startcode_size;
+		int nal_header_size = 1;
 
-		uint8_t *nal_payload = nal.data + nal_header_size; // nal.data + nal_header_size;
-		int nal_payload_size = nal.size - (int) (nal_header_size); //nal.size - nal_header_size;
+		uint8_t *nal_payload = nal.data + nal_header_size + startcode_size; // nal.data + nal_header_size;
+		int nal_payload_size = nal.size - (int)(nal_header_size + startcode_size); //nal.size - nal_header_size;
 
-		uint8_t *fu_indicator = nal_header + startcode_size;
+		rtpenc_h264_debug_print_nal_recv_info(nal_header, nal_header_size + nal_payload_size);
 
-#ifdef DEBUG
-		rtpenc_h264_debug_print_nal_recv_info(fu_indicator);
-#endif
-
-		const char type = (char) (*fu_indicator & 0x1f);
-		const char nri = (char) ((*fu_indicator & 0x60) >> 5);
+		const char type = (char) (*nal_header & 0x1f);
+		const char nri = (char) ((*nal_header & 0x60) >> 5);
 
 		char info_type;
 		if (type >= 1 && type <= 23) {
@@ -278,7 +272,7 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session, uint32_t ts,
 		case 1:
 			debug_msg("Unfragmented or reconstructed NAL type\n");
 			break;
-			default:
+		default:
 			error_msg("Non expected NAL type %d\n", (int)info_type);
 			return; // TODO maybe just warn and don't fail?
 			break;
@@ -292,107 +286,92 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session, uint32_t ts,
 				debug_msg("NAL with M bit\n");
 			}
 
-#ifdef DEBUG
-						rtpenc_h264_debug_print_payload_bytes(nal_payload);
-#endif
-						// TODO: if no fragmentation, marker bit = 0 / (?)
-						/*int err = rtp_send_data_hdr(rtp_session, ts, pt, m, cc, &csrc,
-						 (char *)nal_header, nal_header_size,
-						 (char *)nal_payload, nal_payload_size, extn, extn_len,
-						 extn_type);*/
-						int err = rtp_send_data(rtp_session, ts, pt, m, cc, &csrc,
-								(char *)(nal.data + startcode_size),
-								nal.size - startcode_size, extn, extn_len,
-								extn_type);
-						//char *dst = (char *)(nal.data + startcode_size);
-						unsigned char *dst = (unsigned char *)(nal.data); // + startcode_size);
-						unsigned char *end = (unsigned char *)(nal.data + nal.size);
-						debug_msg("\n\nFirst six bytes: %02x %02x %02x %02x %02x %02x\n", dst[0], dst[1], dst[2], dst[3], dst[4], dst[5]);
-						debug_msg("Last six bytes: %02x %02x %02x %02x %02x %02x\n", end[-6],
-								end[-5],
-								end[-4],
-								end[-3],
-								end[-2],
-								end[-1]);
-						debug_msg("NAL size: %d\n\n", nal.size); // - startcode_size);
+			int err = rtp_send_data_hdr(rtp_session, ts, pt, m, cc, &csrc,
+						(char *)nal_header, nal_header_size,
+			 			(char *)nal_payload, nal_payload_size, extn, extn_len,
+						extn_type);
+			/*int err = rtp_send_data(rtp_session, ts, pt, m, cc, &csrc,
+					(char *)(nal.data + startcode_size),
+					nal.size - startcode_size, extn, extn_len,
+					extn_type);*/
+			//char *dst = (char *)(nal.data + startcode_size);
+			unsigned char *dst = (unsigned char *)(nal.data); // + startcode_size);
+			unsigned char *end = (unsigned char *)(nal.data + nal.size);
+			debug_msg("\n\nFirst six bytes: %02x %02x %02x %02x %02x %02x\n", dst[0], dst[1], dst[2], dst[3], dst[4], dst[5]);
+			debug_msg("Last six bytes: %02x %02x %02x %02x %02x %02x\n", end[-6],
+					end[-5],
+					end[-4],
+					end[-3],
+					end[-2],
+					end[-1]);
+			debug_msg("NAL size: %d\n\n", nal.size); // - startcode_size);
 
-						if (err < 0) {
-							error_msg("There was a problem sending the RTP packet\n");
-						}
-						else {
-							rtpenc_h264_nals_sent_nofrag++;
-							rtpenc_h264_nals_sent++;
-#ifdef DEBUG
-						rtpenc_h264_debug_print_nal_sent_info(nal_header, nal_payload_size + nal_header_size);
-#endif
-					}
-				}
-				else {
-
-					const char frag_fu_indicator = 28 | (nri << 5); // new type, fragmented
-
-					uint8_t frag_header[2];
-					int frag_header_size = 2;
-
-					frag_header[0] = frag_fu_indicator;
-					frag_header[1] = type | (1 << 7);// start, initial fu_header
-
-					uint8_t *frag_payload = nal_payload;
-					int frag_payload_size = nal_max_size - frag_header_size;
-
-					int remaining_payload_size = nal_payload_size;
-
-					while (remaining_payload_size + 2 > nal_max_size) {
-
-#ifdef DEBUG
-						rtpenc_h264_debug_print_payload_bytes(frag_payload);
-#endif
-						int err = rtp_send_data_hdr(rtp_session, ts, pt, m, cc, &csrc,
-								(char *)frag_header, frag_header_size,
-								(char *)frag_payload, frag_payload_size, extn, extn_len,
-								extn_type);
-						if (err < 0) {
-							error_msg("There was a problem sending the RTP packet\n");
-						}
-						else {
-							rtpenc_h264_nals_sent++;
-#ifdef DEBUG
-						rtpenc_h264_debug_print_fragment_sent_info(frag_header, frag_payload_size + frag_header_size);
-#endif
-					}
-
-					remaining_payload_size -= frag_payload_size;
-					frag_payload += frag_payload_size;
-
-					frag_header[1] &= ~(1 << 7); // not end, not start
-				}
-
-				if (i == nnals - 1) {
-					m = send_m;
-#ifdef DEBUG
-						debug_msg("NAL fragment (E) with M bit\n");
-#endif
-					}
-
-					frag_header[1] |= 1 << 6; // end
-#ifdef DEBUG
-						rtpenc_h264_debug_print_payload_bytes(frag_payload);
-#endif
-
-						int err = rtp_send_data_hdr(rtp_session, ts, pt, m, cc, &csrc,
-								(char *)frag_header, frag_header_size,
-								(char *)frag_payload, remaining_payload_size, extn, extn_len,
-								extn_type);
-						if (err < 0) {
-							error_msg("There was a problem sending the RTP packet\n");
-						}
-						else {
-							rtpenc_h264_nals_sent_frag++; // Each fragmented NAL has one E (end) NAL fragment
-							rtpenc_h264_nals_sent++;
-#ifdef DEBUG
-						rtpenc_h264_debug_print_fragment_sent_info(frag_header, remaining_payload_size + frag_header_size);
-#endif
-					}
-				}
+			if (err < 0) {
+				error_msg("There was a problem sending the RTP packet\n");
+			}
+			else {
+				rtpenc_h264_nals_sent_nofrag++;
+				rtpenc_h264_nals_sent++;
+				rtpenc_h264_debug_print_nal_sent_info(nal_header, nal_payload_size + nal_header_size);
 			}
 		}
+		else {
+
+			uint8_t frag_header[2];
+			int frag_header_size = 2;
+
+			frag_header[0] = 28 | (nri << 5); // fu_indicator, new type, same nri
+			frag_header[1] = type | (1 << 7);// start, initial fu_header
+
+			uint8_t *frag_payload = nal_payload;
+			int frag_payload_size = nal_max_size - frag_header_size;
+
+			int remaining_payload_size = nal_payload_size;
+
+			while (remaining_payload_size + 2 > nal_max_size) {
+
+				rtpenc_h264_debug_print_payload_bytes(frag_payload);
+
+				int err = rtp_send_data_hdr(rtp_session, ts, pt, m, cc, &csrc,
+							(char *)frag_header, frag_header_size,
+							(char *)frag_payload, frag_payload_size, extn, extn_len,
+							extn_type);
+				if (err < 0) {
+					error_msg("There was a problem sending the RTP packet\n");
+				}
+				else {
+					rtpenc_h264_nals_sent++;
+					rtpenc_h264_debug_print_fragment_sent_info(frag_header, frag_payload_size + frag_header_size);
+				}
+
+				remaining_payload_size -= frag_payload_size;
+				frag_payload += frag_payload_size;
+
+				//frag_header[1] &= ~(1 << 7); // not end, not start
+				frag_header[1] = type;
+			}
+
+			if (i == nnals - 1) {
+				m = send_m;
+				debug_msg("NAL fragment (E) with M bit\n");
+			}
+
+			frag_header[1] = type | (1 << 6); // end
+
+			rtpenc_h264_debug_print_payload_bytes(frag_payload);
+
+			int err = rtp_send_data_hdr(rtp_session, ts, pt, m, cc, &csrc,
+					(char *)frag_header, frag_header_size,
+					(char *)frag_payload, remaining_payload_size, extn, extn_len,
+					extn_type);
+			if (err < 0) {
+				error_msg("There was a problem sending the RTP packet\n");
+			}
+			else {
+				rtpenc_h264_nals_sent_frag++; // Each fragmented NAL has one E (end) NAL fragment
+				rtpenc_h264_nals_sent++;
+				rtpenc_h264_debug_print_fragment_sent_info(frag_header, remaining_payload_size + frag_header_size);
+			}
+		}
+	}
+}
