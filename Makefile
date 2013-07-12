@@ -28,15 +28,15 @@ TARGET_ENC    = lib/libvcompress.so
 TARGET_DEC    = lib/libvdecompress.so	
 TARGET        = $(TARGET_RTP) $(TARGET_ENC) $(TARGET_DEC)	
 
-TARGET_RTP_TEST   = bin/rtptest
-TARGET_ENC_TEST   = bin/encodertest
-TARGET_DEC_TEST   = bin/decodertest
-TARGET_UG_UG_TEST = bin/ugugtest
+TARGET_RTP_TEST   	= bin/rtptest
+TARGET_ENC_TEST   	= bin/encodertest
+TARGET_DEC_TEST   	= bin/decodertest
+TARGET_UG_UG_TEST 	= bin/ugugtest
 TARGET_VLC_VLC_TEST = bin/vlcvlctest
-TARGET_VLC_UG_TEST = bin/vlcugtest
-TARGET_UG_VLC_TEST = bin/ugvlctest
-TARGET_ENC_TX_TEST = bin/enctxtest
-TARGET_RX_DEC_TEST = bin/rxdectest
+TARGET_VLC_UG_TEST 	= bin/vlcugtest
+TARGET_UG_VLC_TEST 	= bin/ugvlctest
+TARGET_ENC_TX_TEST 	= bin/enctxtest
+TARGET_RX_DEC_TEST 	= bin/rxdectest
 TARGET_ENC_DEC_TEST = bin/encdectest
 TARGET_2IN2OUT_TEST = bin/2in2outtest
 
@@ -45,58 +45,58 @@ DOCS 	      = COPYRIGHT README REPORTING-BUGS
 HEADERS	      =  
 
 OBJS	      = src/debug.o \
-		src/tile.o \
-		src/video.o \
-		src/video_codec.o \
+				src/tile.o \
+				src/video.o \
+				src/video_codec.o \
 
-OBJS_RTP        += src/compat/drand48.o \
-		src/crypto/crypt_des.o \
-		src/crypto/crypt_aes.o \
-		src/crypto/crypt_aes_impl.o \
-		src/crypto/md5.o \
-		src/compat/gettimeofday.o \
-		src/crypto/random.o \
-		src/tv.o \
-		src/perf.o \
-		src/tfrc.o \
-		src/ntp.o \
-		src/pdb.o \
-		src/compat/inet_pton.o \
-		src/compat/inet_ntop.o \
-		src/compat/vsnprintf.o \
-		src/rtp/pbuf.o \
-		src/rtp/rtp_callback.o \
-		src/rtp/net_udp.o \
-		src/rtp/rtp.o \
-		src/rtp/rtpdec.o \
-		src/rtp/rtpenc.o \
-		src/rtp/rtpdec_h264.o \
-		src/rtp/rtpenc_h264.o \
+OBJS_RTP 	 += src/compat/drand48.o \
+				src/crypto/crypt_des.o \
+				src/crypto/crypt_aes.o \
+				src/crypto/crypt_aes_impl.o \
+				src/crypto/md5.o \
+				src/compat/gettimeofday.o \
+				src/crypto/random.o \
+				src/tv.o \
+				src/perf.o \
+				src/tfrc.o \
+				src/ntp.o \
+				src/pdb.o \
+				src/compat/inet_pton.o \
+				src/compat/inet_ntop.o \
+				src/compat/vsnprintf.o \
+				src/rtp/pbuf.o \
+				src/rtp/rtp_callback.o \
+				src/rtp/net_udp.o \
+				src/rtp/rtp.o \
+				src/rtp/rtpdec.o \
+				src/rtp/rtpenc.o \
+				src/rtp/rtpdec_h264.o \
+				src/rtp/rtpenc_h264.o \
 
-OBJS_RM         +=src/utils/resource_manager.o \
-		src/utils/worker.o \
+OBJS_RM 	 += src/utils/resource_manager.o \
+				src/utils/worker.o \
 
-OBJS_ENC        += src/video_compress/none.o \
-		src/video_compress/libavcodec.o \
-		src/video_compress.o \
+OBJS_ENC     += src/video_compress/none.o \
+				src/video_compress/libavcodec.o \
+				src/video_compress.o \
 
-OBJS_DEC        += src/video_decompress/libavcodec.o \
-		src/video_decompress/null.o \
-		src/video_decompress.o \
+OBJS_DEC     += src/video_decompress/libavcodec.o \
+				src/video_decompress/null.o \
+				src/video_decompress.o \
 
 
 
-TEST_OBJS_RTP = tests/rtp.o
-TEST_OBJS_ENC = tests/encoder.o
-TEST_OBJS_DEC = tests/decoder.o
+TEST_OBJS_RTP 	= tests/rtp.o
+TEST_OBJS_ENC 	= tests/encoder.o
+TEST_OBJS_DEC 	= tests/decoder.o
 TEST_OBJS_UG_UG = tests/ug_ug.o
-TEST_OBJS_VLC_VLC = tests/vlc_vlc.o
-TEST_OBJS_VLC_UG = tests/vlc_ug.o
-TEST_OBJS_UG_VLC = tests/ug_vlc.o
-TEST_OBJS_ENC_TX = tests/enc_tx.o
-TEST_OBJS_RX_DEC = tests/rx_dec.o
-TEST_OBJS_ENC_DEC = tests/enc_dec.o
-TEST_OBJS_2IN2OUT = tests/2in2out.o
+TEST_OBJS_VLC_VLC	= tests/vlc_vlc.o
+TEST_OBJS_VLC_UG 	= tests/vlc_ug.o
+TEST_OBJS_UG_VLC 	= tests/ug_vlc.o
+TEST_OBJS_ENC_TX 	= tests/enc_tx.o
+TEST_OBJS_RX_DEC 	= tests/rx_dec.o
+TEST_OBJS_ENC_DEC 	= tests/enc_dec.o
+TEST_OBJS_2IN2OUT 	= tests/2in2out.o
 
 TEST_OBJS     = $(TEST_OBJS_RTP) $(TEST_OBJS_ENC) $(TEST_OBJS_DEC) $(TEST_OBJS_UG_UG)
 # -------------------------------------------------------------------------------------------------
@@ -118,23 +118,23 @@ $(TARGET_RTP): $(OBJS) $(OBJS_RTP) $(HEADERS)
 	@mkdir -p lib
 	$(LINKER) $(LDFLAGS_RTP) -o $(TARGET_RTP) $(OBJS) $(OBJS_RTP) $(LIBS_RTP)
 
-rtptest: $(TARGET_RTP) $(TEST_OBJS_RTP)
-	@mkdir -p bin
-	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_RTP) $(LIBS_RTP_TEST) -o $(TARGET_RTP_TEST)
-
 encoder: $(TARGET_ENC)
 $(TARGET_ENC): $(OBJS) $(OBJS_RM) $(OBJS_ENC) $(HEADERS)
 	@mkdir -p lib
 	$(LINKER) $(LDFLAGS) $(LDFLAGS_ENC) -o $(TARGET_ENC) $(OBJS) $(OBJS_RM) $(OBJS_ENC) $(LIBS_ENC)
 
-encodertest: $(TARGET_ENC) $(TEST_OBJS_ENC)
-	@mkdir -p bin
-	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_ENC) $(LIBS_ENC_TEST) -o $(TARGET_ENC_TEST)
-
 decoder: $(TARGET_DEC)
 $(TARGET_DEC): $(OBJS) $(OBJS_RM) $(OBJS_DEC) $(HEADERS)
 	@mkdir -p lib
 	$(LINKER) $(LDFLAGS) $(LDFLAGS_DEC) -o $(TARGET_DEC) $(OBJS) $(OBJS_RM) $(OBJS_DEC) $(LIBS_DEC)
+
+rtptest: $(TARGET_RTP) $(TEST_OBJS_RTP)
+	@mkdir -p bin
+	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_RTP) $(LIBS_RTP_TEST) -o $(TARGET_RTP_TEST)
+
+encodertest: $(TARGET_ENC) $(TEST_OBJS_ENC)
+	@mkdir -p bin
+	$(LINKER) $(LDFLAGS_TEST) $(INC) $(TEST_OBJS_ENC) $(LIBS_ENC_TEST) -o $(TARGET_ENC_TEST)
 
 decodertest: $(TARGET_DEC) $(TEST_OBJS_DEC)
 	@mkdir -p bin
