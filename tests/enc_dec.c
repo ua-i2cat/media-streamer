@@ -125,8 +125,6 @@ int main(){
 
     int ret;
 
-    //rx_data = (struct recieved_data *)malloc(sizeof(struct recieved_data));
-
     struct video_frame *tx_frame;
 
     int width = 1920;
@@ -270,73 +268,69 @@ int main(){
         if (!rtp_recv_poll_r(devices, &timeout, timestamp)){
             //printf("\nPACKET NOT RECIEVED\n");
             //sleep(1);
-        }// else {
-            pdb_iter_t it;
-            cp = pdb_iter_init(participants, &it);
-            int ret;
-            //printf("PACKET RECIEVED, building FRAME\n");
-            while (cp != NULL ) {
-                //ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame, rx_data);
-                //printf("DECODE return value: %d\n", ret);
-                ret = read_frame(pFormatCtx1,videostream1,&pCodecCtx1,b1);
+        }
+        pdb_iter_t it;
+        cp = pdb_iter_init(participants, &it);
+        int ret;
+        //printf("PACKET RECIEVED, building FRAME\n");
+        while (cp != NULL ) {
+            //ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame, rx_data);
+            //printf("DECODE return value: %d\n", ret);
+            ret = read_frame(pFormatCtx1,videostream1,&pCodecCtx1,b1);
 
-            	if (ret==0) {
-                    gettimeofday(&curr_time, NULL);
-                    //printf("\nFRAME RECIEVED (first byte = %x)\n",rx_data->frame_buffer[0][0]);
+        	if (ret==0) {
 
-                    frame->tiles[0].data = (char *)b1;
-                    frame->tiles[0].data_len = vc_get_linesize(width, UYVY)*heigth;
+                gettimeofday(&curr_time, NULL);
+                //printf("\nFRAME RECIEVED (first byte = %x)\n",rx_data->frame_buffer[0][0]);
 
-                    
-                    tx_frame = compress_frame(sc, frame, i);
-                    if (tx_frame == NULL) {
-                        printf("frame NULL!!!\n");
-                        continue;
-                    }
-                    i = (i + 1)%2;
+                frame->tiles[0].data = (char *)b1;
+                frame->tiles[0].data_len = vc_get_linesize(width, UYVY)*heigth;
 
-                    //MODUL DE CAPTURA A FITXER PER COMPROVACIONS EN TX
-                            //CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
-                            if(F_video_tx==NULL){
-                                    printf("recording encoded frame...\n");
-                                    F_video_tx=fopen("encodedvideo.h264", "wb");
-                            }
+                
+                tx_frame = compress_frame(sc, frame, i);
 
-                            //fwrite(tx_frame->audio_data,tx_frame->audio_data_len,1,F_audio_tx_embed_BM);
-                            fwrite(tx_frame->tiles[0].data,tx_frame->tiles[0].data_len,1,F_video_tx);
-                    //FI CAPTURA
-					// TODO decode
-					decompress_frame(sd, (unsigned char *) out,(unsigned char *) tx_frame->tiles[0].data,tx_frame->tiles[0].data_len, rx_data->buffer_num[0]);
-					frame->tiles[0].data = out;          //rx_data->frame_buffer[0];
-					frame->tiles[0].data_len = vc_get_linesize(des.width, UYVY)	* des.height;                  //rx_data->buffer_len[0];
-
-					//MODUL DE CAPTURA AUDIO A FITXER PER COMPROVACIONS EN TX
-					//CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
-					if (F_video_rx == NULL) {
-						printf("recording decoded frame...\n");
-						F_video_rx = fopen("decodedvideo.yuv", "wb");
-					}
-
-					fwrite(frame->tiles[0].data, frame->tiles[0].data_len, 1,F_video_rx);
-					//FI CAPTURA
-
-                    //printf("[MAIN to SENDER] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
-//                    if(tx_frame->tiles[0].data_len>0)
-//                        tx_send_base_h264(vf_get_tile(tx_frame, 0), devices[0], get_local_mediatime(), 1, tx_frame->color_spec, tx_frame->fps, tx_frame->interlacing, 0, 0);
-
-                    //if (xec > 3)
-                    //  exit = 0;
-                    //xec++;
-                    //usleep(200000);
-                } else {
-                    exit=0;
+                if (tx_frame == NULL) {
+                    printf("frame NULL!!!\n");
+                    continue;
                 }
-                pbuf_remove(cp->playout_buffer, curr_time);
-                cp = pdb_iter_next(&it);
-            }
-            pdb_iter_done(&it);
+                i = (i + 1)%2;
 
-        //}
+                //MODUL DE CAPTURA A FITXER PER COMPROVACIONS EN TX
+                        //CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
+                        if(F_video_tx==NULL){
+                                printf("recording encoded frame...\n");
+                                F_video_tx=fopen("encodedvideo.h264", "wb");
+                        }
+
+                        //fwrite(tx_frame->audio_data,tx_frame->audio_data_len,1,F_audio_tx_embed_BM);
+                        fwrite(tx_frame->tiles[0].data,tx_frame->tiles[0].data_len,1,F_video_tx);
+                //FI CAPTURA
+
+				decompress_frame(sd, (unsigned char *) out,(unsigned char *) tx_frame->tiles[0].data,tx_frame->tiles[0].data_len, rx_data->buffer_num[0]);
+				frame->tiles[0].data = out;          //rx_data->frame_buffer[0];
+				frame->tiles[0].data_len = vc_get_linesize(des.width, UYVY)	* des.height;                  //rx_data->buffer_len[0];
+
+				//MODUL DE CAPTURA AUDIO A FITXER PER COMPROVACIONS EN TX
+				//CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
+				if (F_video_rx == NULL) {
+					printf("recording decoded frame...\n");
+					F_video_rx = fopen("decodedvideo.yuv", "wb");
+				}
+
+				fwrite(frame->tiles[0].data, frame->tiles[0].data_len, 1,F_video_rx);
+				//FI CAPTURA
+
+                //if (xec > 3)
+                //  exit = 0;
+                //xec++;
+                //usleep(200000);
+            } else {
+                exit=0;
+            }
+            pbuf_remove(cp->playout_buffer, curr_time);
+            cp = pdb_iter_next(&it);
+        }
+        pdb_iter_done(&it);
     }
 
     compress_done(sc);
