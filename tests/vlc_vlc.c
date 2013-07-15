@@ -20,7 +20,8 @@ FILE *F_video_rx=NULL;
 FILE *F_video_tx=NULL;
 
 
-int main(){
+int main()
+{
     struct rtp **devices = NULL;
     struct pdb *participants;
     struct pdb_e *cp;
@@ -33,14 +34,14 @@ int main(){
     tx_frame = vf_alloc(1);
     vf_get_tile(tx_frame, 0)->width=854;
     vf_get_tile(tx_frame, 0)->height=480;
-    tx_frame->fps=5;
+    tx_frame->fps=10;
     tx_frame->color_spec=H264;
     tx_frame->interlacing=PROGRESSIVE;
 
     frame = vf_alloc(1);
     vf_get_tile(frame, 0)->width=854;
     vf_get_tile(frame, 0)->height=480;
-    frame->fps=5;
+    frame->fps=10;
     frame->color_spec=UYVY;
     frame->interlacing=PROGRESSIVE;
 
@@ -91,7 +92,7 @@ int main(){
         des.color_spec  = H264;
         des.tile_count = 0;
         des.interlacing = PROGRESSIVE;
-        des.fps=5;
+        des.fps=10;
 
         decompress_reconfigure(sd, des, 16, 8, 0, vc_get_linesize(des.width, UYVY), UYVY);  //r=16,g=8,b=0
     }
