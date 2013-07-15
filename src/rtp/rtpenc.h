@@ -12,7 +12,7 @@ unsigned int buffer_id;
 int bitrate;
 long packet_rate;
 
-void tx_init();
+void tx_init(void);
 
 void tx_send_base(struct tile *tile, struct rtp *rtp_session,
                 uint32_t ts, int send_m,
