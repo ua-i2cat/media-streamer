@@ -9,6 +9,7 @@
 #include "rtp/rtp_callback.h"
 #include "tfrc.h"
 #include "rtp/rtpenc.h"
+#include "video_codec.h"
 
 unsigned int mtu = 1400;
 
