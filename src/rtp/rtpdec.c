@@ -17,14 +17,14 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
         //struct video_frame *frame = decoder->frame;
 
         int ret = TRUE;
-        uint32_t offset;
+        //uint32_t offset;
         int len;
         rtp_packet *pckt = NULL;
-        unsigned char *source;
+        //unsigned char *source;
         char *data;
         uint32_t data_pos;
-        int prints=0;
-        struct tile *tile = NULL;
+        //int prints=0;
+        //struct tile *tile = NULL;
         uint32_t tmp;
         uint32_t substream;
 
@@ -201,7 +201,7 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
 
 cleanup:
         ;
-        unsigned int frame_size = 0;
+        //unsigned int frame_size = 0;
 
         /*for(i = 0; i < (int) (sizeof(pckt_list) / sizeof(struct linked_list *)); ++i) {
 
