@@ -77,11 +77,11 @@ OBJS_DEC     += src/video_decompress/libavcodec.o \
 OBJS_C		  = $(patsubst %.c, %.o ,	$(wildcard src/*.c) $(wildcard src/*/*.c))
 OBJS_CPP	  =	$(patsubst %.cpp, %.o,	$(wildcard src/*.cpp) $(wildcard src/*/*.cpp))
 
-OBJS_TEST     = $(patsubst %.c, %.o,	$(wildcard tests/*.c) $(wildcard tests/*/*.c))
-
 OBJS_EXCLUDE  = src/lib_common.o
 
 OBJS		  = $(filter-out $(OBJS_EXCLUDE), $(OBJS_C) $(OBJS_CPP))
+
+OBJS_TEST     = $(patsubst %.c, %.o,	$(wildcard tests/*.c) $(wildcard tests/*/*.c))
 
 # -------------------------------------------------------------------------------------------------
 
