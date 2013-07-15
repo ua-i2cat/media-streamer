@@ -25,9 +25,12 @@
 FILE *F_video_rx=NULL;
 FILE *F_video_tx=NULL;
 
+int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pCodecCtx, int *videostream);
+int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCodecCtx, uint8_t *buff);
 
 
-int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pCodecCtx, int *videostream){
+int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pCodecCtx, int *videostream)
+{
 
 	AVDictionary *rawdict = NULL, *optionsDict = NULL;
 	AVCodec *pCodec = NULL;
@@ -35,7 +38,7 @@ int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pC
 
 	// Define YUV input video features
 	pFormatCtx->iformat = av_find_input_format("rawvideo");
-	int i;
+	unsigned int i;
 
 	av_dict_set(&rawdict, "video_size", "1920x1080", 0);
 	av_dict_set(&rawdict, "pixel_format", "uyvy422", 0);
@@ -81,7 +84,8 @@ int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pC
 
 }
 
-int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCodecCtx, uint8_t *buff){
+int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCodecCtx, uint8_t *buff)
+{
 	AVPacket packet;
 	AVFrame* pFrame;
 	int frameFinished, ret;
