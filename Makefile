@@ -1,7 +1,7 @@
 CC            = gcc -std=gnu99
 CXX           = g++
 LINKER        = g++
-CFLAGS        = -g -DHAVE_CONFIG_H -g -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2 -O2 -fdata-sections -ffunction-sections -Os
+CFLAGS        = -g -DHAVE_CONFIG_H -g -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2 -O2 -fdata-sections -ffunction-sections -Os # -Wno-cast-align
 CPPFLAGS      = -I. 
 CXXFLAGS      = -g -DHAVE_CONFIG_H -g -fPIC -Wno-multichar -Wno-deprecated -msse2 -O2
 LDFLAGS       = -lm -shared -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname
