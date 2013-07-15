@@ -7,6 +7,7 @@
 #include "rtp/rtp.h"
 #include "rtp/rtp_callback.h"
 #include "rtp/pbuf.h"
+#include "rtp/rtpdec.h"
 #include "rtp/rtpdec_h264.h"
 
 static const uint8_t start_sequence[] = { 0, 0, 0, 1 };
