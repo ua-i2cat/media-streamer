@@ -6,7 +6,6 @@
 
 #include "rtp/rtp.h"
 #include "rtp/rtp_callback.h"
-#include "rtp/rtpdec.h"
 #include "rtp/rtpdec_h264.h"
 #include "rtp/rtpenc_h264.h"
 #include "pdb.h"

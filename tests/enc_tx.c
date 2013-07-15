@@ -10,7 +10,6 @@
 #include "rtp/rtpenc_h264.h"
 #include "pdb.h"
 #include "video.h"
-#include "rtp/rtpdec.h"
 
 #include "video_compress.h"
 #include "video_compress/libavcodec.h"

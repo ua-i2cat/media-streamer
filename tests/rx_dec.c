@@ -9,8 +9,6 @@
 #include "video_decompress/libavcodec.h"
 #include "rtp/rtpenc_h264.h"
 #include "rtp/rtpdec_h264.h"
-#include "rtp/rtpenc.h"
-#include "rtp/rtpdec.h"
 
 #include "utils/resource_manager.h"
 #include "utils/worker.h"
