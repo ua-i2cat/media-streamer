@@ -124,4 +124,4 @@ bin/%: tests/%.o $(OBJS) $(HEADERS)
 # -------------------------------------------------------------------------------------------------
 
 clean:
-	rm -f $(OBJS) $(HEADERS) $(TARGETS) $(TESTS)
+	rm -f $(OBJS) $(OBJS_TEST) $(HEADERS) $(TARGETS) $(TESTS)
