@@ -6,11 +6,12 @@
 
 #include "rtp/rtp.h"
 #include "rtp/rtp_callback.h"
+#include "rtp/rtpdec.h"
 #include "rtp/rtpdec_h264.h"
 #include "rtp/rtpenc_h264.h"
 #include "pdb.h"
 #include "video.h"
-#include "rtp/rtpdec.h"
+#include "tv.h"
 
 #include "video_compress.h"
 #include "video_compress/libavcodec.h"
@@ -117,13 +118,13 @@ int main(){
     AVCodecContext  pCodecCtx1;
     int             videostream1;
     uint8_t 		*b1=NULL;
-    const char* pathUGDEC = "/home/gerardcl/workspace/git-repos/ug-modules/decodedUGvideo.yuv";
-    const char* pathFFMPEGDEC = "/home/gerardcl/workspace/git-repos/ug-modules/decodedFFMPEGvideo.yuv";
-    const char* pathOriginal1DEC = "/home/gerardcl/workspace/git-repos/ug-modules/tulips_uyvy422_prog_packed_qcif.yuv";
+    //const char* pathUGDEC = "/home/gerardcl/workspace/git-repos/ug-modules/decodedUGvideo.yuv";
+    //const char* pathFFMPEGDEC = "/home/gerardcl/workspace/git-repos/ug-modules/decodedFFMPEGvideo.yuv";
+    //const char* pathOriginal1DEC = "/home/gerardcl/workspace/git-repos/ug-modules/tulips_uyvy422_prog_packed_qcif.yuv";
     const char* pathSintelDEC = "/home/gerardcl/workspace/git-repos/ug-modules/sintel.yuv";
 
 
-    int ret;
+    //int ret;
 
     struct video_frame *tx_frame;
 
@@ -148,7 +149,7 @@ int main(){
 
     double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
     int ttl = 255;
-    char *saveptr = NULL;
+    //char *saveptr = NULL;
     char *addr="127.0.0.1";
     char *mcast_if= NULL;
     struct timeval curr_time;
@@ -158,7 +159,7 @@ int main(){
     gettimeofday(&start_time, NULL);
 
     int required_connections;
-    uint32_t ts;
+    //uint32_t ts;
     int recv_port = 6004;
     int send_port = 5004;
     int index=0;
@@ -245,7 +246,7 @@ int main(){
 
     tx_init();
 
-    int xec=0;
+    //int xec=0;
 
     int i = 0;
 
@@ -254,7 +255,7 @@ int main(){
     load_video(pathSintelDEC, pFormatCtx1, &pCodecCtx1, &videostream1);
     b1=(uint8_t *)av_malloc(avpicture_get_size(pCodecCtx1.pix_fmt, pCodecCtx1.width, pCodecCtx1.height)*sizeof(uint8_t));
 
-    int count=0;
+    //int count=0;
 
     while(exit){
         gettimeofday(&curr_time, NULL);
