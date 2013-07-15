@@ -5,6 +5,8 @@
 #include "rtp/rtpenc_h264.h"
 #include "pdb.h"
 #include "video.h"
+#include "tv.h"
+
 #define INITIAL_VIDEO_RECV_BUFFER_SIZE  ((4*1920*1080)*110/100) //command line net.core setup: sysctl -w net.core.rmem_max=9123840
 
 FILE *F_video_rx=NULL;
@@ -16,7 +18,7 @@ int main()
 	struct pdb_e *cp;
 	struct video_frame *frame;
 
-	int ret;
+	// int ret;
 
 	int width = 854;
 	int height = 480;
@@ -31,7 +33,7 @@ int main()
 
 	double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
 	int ttl = 255;
-	char *saveptr = NULL;
+	// char *saveptr = NULL;
 	char *addr="127.0.0.1";
 	char *mcast_if= NULL;
 	struct timeval curr_time;
@@ -39,9 +41,9 @@ int main()
 	struct timeval prev_time;
 	struct timeval start_time;
 	gettimeofday(&start_time, NULL);
-
+	
 	int required_connections;
-	uint32_t ts;
+	// uint32_t ts;
 	int recv_port = 5004;
 	int send_port = 7004;
 	int index=0;
@@ -93,7 +95,7 @@ int main()
 
 	tx_init_h264();
 
-	int xec=0;
+	// int xec=0;
 
 	while(exit){
 		gettimeofday(&curr_time, NULL);

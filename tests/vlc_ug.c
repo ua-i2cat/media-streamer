@@ -4,6 +4,7 @@
 #include "rtp/rtpenc_h264.h"
 #include "pdb.h"
 #include "video.h"
+#include "tv.h"
 
 #include "video_compress.h"
 #include "video_compress/libavcodec.h"
@@ -23,7 +24,7 @@ int main(){
     struct pdb_e *cp;
     struct video_frame *frame;
 
-    int ret;
+    // int ret;
 
     //rx_data = (struct recieved_data *)malloc(sizeof(struct recieved_data));
 
@@ -45,7 +46,7 @@ int main(){
 
     double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
     int ttl = 255;
-    char *saveptr = NULL;
+    // char *saveptr = NULL;
     char *addr="127.0.0.1";
     char *mcast_if= NULL;
     struct timeval curr_time;
@@ -55,7 +56,7 @@ int main(){
     gettimeofday(&start_time, NULL);
 
     int required_connections;
-    uint32_t ts;
+    // uint32_t ts;
     int recv_port = 5004;
     int send_port = 7004;
     int index=0;
@@ -142,7 +143,7 @@ int main(){
 
     tx_init();
 
-    int xec=0;
+    // int xec=0;
 
     int i = 0;
 

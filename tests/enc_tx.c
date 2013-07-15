@@ -10,6 +10,7 @@
 #include "rtp/rtpenc_h264.h"
 #include "pdb.h"
 #include "video.h"
+#include "tv.h"
 
 #include "video_compress.h"
 #include "video_compress/libavcodec.h"
@@ -25,8 +26,11 @@ FILE *F_video_rx=NULL;
 FILE *F_video_tx=NULL;
 
 
+int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pCodecCtx, int *videostream);
+int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCodecCtx, uint8_t *buff);
 
-int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pCodecCtx, int *videostream){
+int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pCodecCtx, int *videostream)
+{
 
 	AVDictionary *rawdict = NULL, *optionsDict = NULL;
 	AVCodec *pCodec = NULL;
@@ -34,7 +38,7 @@ int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pC
 
 	// Define YUV input video features
 	pFormatCtx->iformat = av_find_input_format("rawvideo");
-	int i;
+	unsigned int i;
 
 	av_dict_set(&rawdict, "video_size", "1920x1080", 0);
 	av_dict_set(&rawdict, "pixel_format", "uyvy422", 0);
@@ -80,7 +84,8 @@ int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pC
 
 }
 
-int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCodecCtx, uint8_t *buff){
+int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCodecCtx, uint8_t *buff)
+{
 	AVPacket packet;
 	AVFrame* pFrame;
 	int frameFinished, ret;
@@ -116,12 +121,12 @@ int main(){
     AVCodecContext  pCodecCtx1;
     int             videostream1;
     uint8_t 		*b1=NULL;
-    const char* pathUGDEC = "/home/gerardcl/workspace/git-repos/ug-modules/decodedUGvideo.yuv";
-    const char* pathFFMPEGDEC = "/home/gerardcl/workspace/git-repos/ug-modules/decodedFFMPEGvideo.yuv";
-    const char* pathOriginal1DEC = "/home/gerardcl/workspace/git-repos/ug-modules/tulips_uyvy422_prog_packed_qcif.yuv";
+    // const char* pathUGDEC = "/home/gerardcl/workspace/git-repos/ug-modules/decodedUGvideo.yuv";
+    // const char* pathFFMPEGDEC = "/home/gerardcl/workspace/git-repos/ug-modules/decodedFFMPEGvideo.yuv";
+    // const char* pathOriginal1DEC = "/home/gerardcl/workspace/git-repos/ug-modules/tulips_uyvy422_prog_packed_qcif.yuv";
     const char* pathSintelDEC = "/home/gerardcl/workspace/git-repos/ug-modules/sintel.yuv";
 
-    int ret;
+    // int ret;
 
     struct video_frame *tx_frame;
 
@@ -146,7 +151,7 @@ int main(){
 
     double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
     int ttl = 255;
-    char *saveptr = NULL;
+    // char *saveptr = NULL;
     char *addr="127.0.0.1";
     char *mcast_if= NULL;
     struct timeval curr_time;
@@ -156,7 +161,7 @@ int main(){
     gettimeofday(&start_time, NULL);
 
     int required_connections;
-    uint32_t ts;
+    // uint32_t ts;
     int recv_port = 6004;
     int send_port = 5004;
     int index=0;
@@ -195,7 +200,7 @@ int main(){
 
         decompress_reconfigure(sd, des, 16, 8, 0, vc_get_linesize(width, UYVY), UYVY);  //r=16,g=8,b=0
     }
-    char * out =  malloc(1920*1080*5);
+    // char * out =  malloc(1920*1080*5);
     printf("Decoder initialized ;^)\n");
 
     /* Init compress */
@@ -238,7 +243,7 @@ int main(){
         printf("[PDB ADD] returned result = %d for ssrc = %x\n",ret,rtp_my_ssrc(devices[index]));
     }
 
-    struct recieved_data *rx_data = calloc(1, sizeof(struct recieved_data));
+    // struct recieved_data *rx_data = calloc(1, sizeof(struct recieved_data));
 
     tx_init();
 
@@ -251,7 +256,7 @@ int main(){
     load_video(pathSintelDEC, pFormatCtx1, &pCodecCtx1, &videostream1);
     b1=(uint8_t *)av_malloc(avpicture_get_size(pCodecCtx1.pix_fmt, pCodecCtx1.width, pCodecCtx1.height)*sizeof(uint8_t));
 
-    int count=0;
+    // int count=0;
 
     while(exit){
         gettimeofday(&curr_time, NULL);
