@@ -7,7 +7,7 @@
 #include "rtp/rtp.h"
 #include "rtp/rtp_callback.h"
 #include "rtp/pbuf.h"
-#include "rtp/rtpdec.h"
+#include "rtp/rtpdec_h264.h"
 
 static const uint8_t start_sequence[] = { 0, 0, 0, 1 };
 
@@ -38,7 +38,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
     if (pass > 0){
       cdata = orig;   
       buffers->buffer_len[substream] = total_length;
-      buffers->frame_buffer[substream] = (uint8_t*) malloc(total_length);
+      buffers->frame_buffer[substream] = (char *) malloc(total_length);
       dst = buffers->frame_buffer[substream] + total_length;
     }
     
@@ -131,9 +131,9 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
 	  src_len--;
 	  
 	  if (src_len > 1) {
-            uint8_t fu_header         	= *src;
+        uint8_t fu_header         	= *src;
 	    uint8_t start_bit         	= fu_header >> 7;
-	    uint8_t end_bit 		= (fu_header & 0x40) >> 6;
+	    //uint8_t end_bit 		= (fu_header & 0x40) >> 6;
 	    uint8_t nal_type          	= fu_header & 0x1f;
 	    uint8_t reconstructed_nal;
 
