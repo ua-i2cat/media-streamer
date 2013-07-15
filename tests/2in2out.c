@@ -2,8 +2,10 @@
 #include "rtp/rtp_callback.h"
 #include "rtp/rtpdec.h"
 #include "rtp/rtpenc.h"
+#include "rtp/pbuf.h"
 #include "pdb.h"
 #include "video.h"
+#include "tv.h"
 
 #include "video_compress.h"
 #include "video_compress/libavcodec.h"
@@ -27,7 +29,7 @@ int main(){
     int ndev = required_connections;
     int dev_id=0;
 
-    int ret;
+    //int ret;
 
     struct video_frame *tx_frame;
 
@@ -47,7 +49,7 @@ int main(){
 
     double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
     int ttl = 255;
-    char *saveptr = NULL;
+    //char *saveptr = NULL;
     char *addr="127.0.0.1";
     char *mcast_if= NULL;
     struct timeval curr_time;
@@ -57,7 +59,7 @@ int main(){
     gettimeofday(&start_time, NULL);
 
 
-    uint32_t ts;
+    //uint32_t ts;
     int recv_port = 5004;
     int send_port = 7004;
 
@@ -145,7 +147,7 @@ int main(){
 
     tx_init();
 
-    int xec=0;
+    //int xec=0;
 
     int i = 0;
 
@@ -169,7 +171,7 @@ int main(){
         int ret;
         //printf("PACKET RECIEVED, building FRAME\n");
         while (cp != NULL ) {
-            ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame, rx_data);
+            ret = pbuf_decode(cp->playout_buffer, curr_time, (decode_frame_t *)decode_frame, rx_data);
             //printf("DECODE return value: %d\n", ret);
             if (ret) {
                 gettimeofday(&curr_time, NULL);
