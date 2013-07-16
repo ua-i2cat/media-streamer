@@ -1,14 +1,14 @@
 CC            = gcc -std=gnu99
 CXX           = g++
 LINKER        = g++
-CFLAGS        = -g -DHAVE_CONFIG_H -g -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2 -O2 -fdata-sections -ffunction-sections -Os # -Wno-cast-align
+CFLAGS        = -g -lm -DHAVE_CONFIG_H -g -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
 CPPFLAGS      = -I. 
-CXXFLAGS      = -g -DHAVE_CONFIG_H -g -fPIC -Wno-multichar -Wno-deprecated -msse2 -O2
-LDFLAGS       = -lm -shared -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname
-LDFLAGS_RTP   = -lm -shared  -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname,librtp.so
-LDFLAGS_ENC   = -lm -shared  -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname,libvcompress.so
-LDFLAGS_DEC   = -lm -shared  -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname,libvdecompress.so
-LDFLAGS_TEST  = -lm -Wl,--dynamic-list-data,--as-needed
+CXXFLAGS      = -g -lm -DHAVE_CONFIG_H -g -fPIC -Wno-multichar -Wno-deprecated -msse2
+LDFLAGS       = -shared -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname
+LDFLAGS_RTP   =-shared  -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname,librtp.so
+LDFLAGS_ENC   =-shared  -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname,libvcompress.so
+LDFLAGS_DEC   =-shared  -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname,libvdecompress.so
+LDFLAGS_TEST  = -Wl,--dynamic-list-data,--as-needed
 
 LIBS_RTP      += -lrt -ldl -lieee -lm
 LIBS_ENC      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -pthread
@@ -77,11 +77,11 @@ OBJS_DEC     += src/video_decompress/libavcodec.o \
 OBJS_C		  = $(patsubst %.c, %.o ,	$(wildcard src/*.c) $(wildcard src/*/*.c))
 OBJS_CPP	  =	$(patsubst %.cpp, %.o,	$(wildcard src/*.cpp) $(wildcard src/*/*.cpp))
 
+OBJS_TEST     = $(patsubst %.c, %.o,	$(wildcard tests/*.c) $(wildcard tests/*/*.c))
+
 OBJS_EXCLUDE  = src/lib_common.o
 
 OBJS		  = $(filter-out $(OBJS_EXCLUDE), $(OBJS_C) $(OBJS_CPP))
-
-OBJS_TEST     = $(patsubst %.c, %.o,	$(wildcard tests/*.c) $(wildcard tests/*/*.c))
 
 # -------------------------------------------------------------------------------------------------
 
@@ -98,7 +98,7 @@ configure-messages:
 
 tests: test
 
-test: build $(TARGETS) $(TESTS)
+test: build $(TESTS)
 
 build:
 	@mkdir -p lib
@@ -124,4 +124,4 @@ bin/%: tests/%.o $(OBJS) $(HEADERS)
 # -------------------------------------------------------------------------------------------------
 
 clean:
-	rm -f $(OBJS) $(OBJS_TEST) $(HEADERS) $(TARGETS) $(TESTS)
+	rm -f $(OBJS) $(HEADERS) $(TARGETS) $(TESTS)

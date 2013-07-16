@@ -18,6 +18,10 @@
 
 FILE *F_video_rx=NULL;
 
+int width = 1280;
+int height = 720;
+double fps = 15;
+
 int main()
 {
     struct rtp **devices = NULL;
@@ -30,16 +34,16 @@ int main()
     struct video_frame *tx_frame;
 
     tx_frame = vf_alloc(1);
-    vf_get_tile(tx_frame, 0)->width=640;
-    vf_get_tile(tx_frame, 0)->height=480;
-    tx_frame->fps=15;
+    vf_get_tile(tx_frame, 0)->width=width;
+    vf_get_tile(tx_frame, 0)->height=height;
+    tx_frame->fps=fps;
     tx_frame->color_spec=H264;
     tx_frame->interlacing=PROGRESSIVE;
 
     frame = vf_alloc(1);
-    vf_get_tile(frame, 0)->width=640;
-    vf_get_tile(frame, 0)->height=480;
-    frame->fps=15;
+    vf_get_tile(frame, 0)->width=width;
+    vf_get_tile(frame, 0)->height=height;
+    frame->fps=fps;
     frame->color_spec=UYVY;
     frame->interlacing=PROGRESSIVE;
 
@@ -85,12 +89,12 @@ int main()
     if (decompress_is_available(LIBAVCODEC_MAGIC)) {
         sd = decompress_init(LIBAVCODEC_MAGIC);
 
-      	des.width = 640;
-        des.height = 480;
+      	des.width = width;
+        des.height = height;
         des.color_spec  = H264;
         des.tile_count = 0;
         des.interlacing = PROGRESSIVE;
-        des.fps=15;
+        des.fps=fps;
 
         decompress_reconfigure(sd, des, 16, 8, 0, vc_get_linesize(des.width, UYVY), UYVY);  //r=16,g=8,b=0
     }
@@ -186,7 +190,7 @@ int main()
                 }
                 i = (i + 1)%2;
                 
-                printf("[MAIN to SENDER] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
+                //printf("[MAIN to SENDER] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
                 if(tx_frame->tiles[0].data_len>0)
                     tx_send_base(vf_get_tile(tx_frame, 0), devices[0], get_local_mediatime(), 1, tx_frame->color_spec, tx_frame->fps, tx_frame->interlacing, 0, 0);
                 

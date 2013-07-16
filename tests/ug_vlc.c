@@ -18,6 +18,10 @@
 
 FILE *F_video_rx=NULL;
 
+int width = 1280;
+int height = 720;
+double fps = 15;
+
 int main(){
     struct rtp **devices = NULL;
     struct pdb *participants;
@@ -29,16 +33,16 @@ int main(){
     struct video_frame *tx_frame;
 
     tx_frame = vf_alloc(1);
-    vf_get_tile(tx_frame, 0)->width=1280;
-    vf_get_tile(tx_frame, 0)->height=720;
-    tx_frame->fps=10;
+    vf_get_tile(tx_frame, 0)->width=width;
+    vf_get_tile(tx_frame, 0)->height=height;
+    tx_frame->fps=fps;
     tx_frame->color_spec=H264;
     tx_frame->interlacing=PROGRESSIVE;
 
     frame = vf_alloc(1);
-    vf_get_tile(frame, 0)->width=1280;
-    vf_get_tile(frame, 0)->height=720;
-    frame->fps=10;
+    vf_get_tile(frame, 0)->width=width;
+    vf_get_tile(frame, 0)->height=height;
+    frame->fps=fps;
     frame->color_spec=UYVY;
     frame->interlacing=PROGRESSIVE;
 
@@ -84,12 +88,12 @@ int main(){
     if (decompress_is_available(LIBAVCODEC_MAGIC)) {
         sd = decompress_init(LIBAVCODEC_MAGIC);
 
-      	des.width = 1280;
-        des.height = 720;
+      	des.width = width;
+        des.height = height;
         des.color_spec  = H264;
         des.tile_count = 0;
         des.interlacing = PROGRESSIVE;
-        des.fps=10;
+        des.fps=fps;
 
         decompress_reconfigure(sd, des, 16, 8, 0, vc_get_linesize(des.width, UYVY), UYVY);  //r=16,g=8,b=0
     }
