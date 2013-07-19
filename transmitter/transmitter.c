@@ -5,6 +5,7 @@
 #include "debug.h"
 #include "tv.h"
 #include <stdlib.h>
+#include <unistd.h>
 
 void *transmitter_encoder_routine(void *arg);
 void *transmitter_rtpenc_routine(void *arg);
@@ -16,25 +17,34 @@ int RUN = 1;
 
 void *transmitter_encoder_routine(void *arg)
 {
-    debug_msg(" entering transmitter encoder routine");
+    //while(1); // TODO
+    debug_msg(" transmitter encoder routine START\n");
     struct participant_data *participant = (struct participant_data *)arg;
 
-    participant->encoder->sc = (struct compress_state *) calloc(
-        2, sizeof(struct compress_state *));
+    debug_msg(" transmitter encoder routine A\n");
+    participant->encoder->sc = (struct compress_state *) calloc(2, sizeof(struct compress_state *));
 
+    debug_msg(" transmitter encoder routine B\n");
     compress_init("libavcodec:codec=H.264", &participant->encoder->sc);
 
-
+    debug_msg(" transmitter encoder routine: entering loop\n");
     while (1) {
+        sem_wait(&participant->encoder->input_sem);
+
         int i = participant->encoder->index;
-        struct video_frame frame;
-        frame.tiles[0].data = participant->frame;
-        frame.tiles[0].data_len = participant->frame_length;
+        debug_msg(" transmitter encoder loop 1\n");
+        struct video_frame *frame = vf_alloc(1);
+        frame->tiles[0].data = participant->frame;
+        frame->tiles[0].data_len = participant->frame_length;
+        debug_msg(" transmitter encoder loop 2\n");
 
         struct video_frame *tx_frame;
-        tx_frame = compress_frame(participant->encoder->sc, &frame, i);
-
+        tx_frame = compress_frame(participant->encoder->sc, frame, i);
+        debug_msg(" transmitter encoder loop 3\n");
+        
         participant->encoder->frame = tx_frame;
+
+        debug_msg(" transmitter encoder loop 4\n");
 
         sem_post(&participant->encoder->output_sem);    
         
@@ -48,6 +58,8 @@ void *transmitter_encoder_routine(void *arg)
 
 void *transmitter_rtpenc_routine(void *arg)
 {
+    //while(1); // TODO
+    debug_msg(" transmitter rtpenc routine START\n");
     struct participant_data *participant = (struct participant_data *)arg;
     struct rtp_session *session = participant->session;
 
@@ -78,56 +90,72 @@ void *transmitter_rtpenc_routine(void *arg)
 
 int transmitter_init_threads(struct participant_data *participant)
 {
+    debug_msg(" initializing the pair of threads for a participant\n");
+    participant->encoder = malloc(sizeof(struct encoder_th));
     struct encoder_th *encoder = participant->encoder;
-    encoder = malloc(sizeof(struct encoder_th));
     if (encoder == NULL) {
+        error_msg(" unsuccessful malloc\n");
         return -1;
     }
     struct rtpenc_th *rtpenc = encoder->rtpenc;
     rtpenc = malloc(sizeof(struct rtpenc_th));
     if (rtpenc == NULL) {
+        error_msg(" unsuccessful malloc\n");
         return -1;
     }
 
-    sem_init(&encoder->input_sem, 1, 0);
-    sem_init(&encoder->output_sem, 1, 0);
+    debug_msg("initializing semaphores\n");
+    sem_init(&encoder->input_sem, 1, -1);
+    sem_init(&encoder->output_sem, 1, -1);
 
+    debug_msg("initializing the pair of threads\n");
     int ret = 0;
     ret = pthread_create(&encoder->thread, NULL,
                 transmitter_encoder_routine, participant);
     if (ret < 0) {
         // TODO
     }
-    ret = pthread_create(rtpenc->thread, NULL,
+    debug_msg("pthread_create encoder OK!\n");
+    ret = pthread_create(&rtpenc->thread, NULL,
                 transmitter_rtpenc_routine, participant);
     if (ret < 0) {
         // TODO
     }
+    debug_msg("pthread_create rtpenc OK!\n");
+
+    debug_msg(" threads (for a participant) initialized\n");
     return 0;
 }
 
 void *transmitter_master_routine(void *arg)
 {
+    debug_msg("transmitter master routine START\n");
     struct participant_list *list = (struct participant_list *)arg;
 
     struct participant_data *participant = list->first;
     while (participant != NULL) {
+        debug_msg("participant found, initializing its threads...\n");
         transmitter_init_threads(participant);
+        debug_msg("participant threads initialized\n");
         participant = participant->next;
     }
 
+    debug_msg("entering the master loop\n");
     while (RUN) {
+        debug_msg("master loop - A\n");
         struct participant_data *ptc = list->first;
+        debug_msg("master loop - B\n");
         while (ptc != NULL) {
             if (ptc->encoder != NULL) { // -> has a pair of threads
-                if (ptc->next) { // -> has new data
+                if (*(ptc->new)) { // -> has new data
                     // notify!
-                    ptc->next = 0;
+                    *(ptc->new) = 0;
                     sem_post(&ptc->encoder->input_sem);
                 }
             }
             ptc = ptc->next;
         }
+        debug_msg("master loop - C\n");
     }
 
     int ret = 0;
@@ -145,9 +173,10 @@ void *transmitter_master_routine(void *arg)
 int start_out_manager(struct participant_list *list, uint32_t port)
 {
     UNUSED(port);
+    debug_msg("creating the master thread...\n");
     int ret = pthread_create(&MASTER_THREAD, NULL, transmitter_master_routine, list);
     if (ret < 0) {
-        debug_msg(" could not initiate the transmitter master thread");
+        debug_msg("could not initiate the transmitter master thread\n");
     }
     return ret;
 }
@@ -163,6 +192,63 @@ int main(int argc, char **argv)
 {
     UNUSED(argc);
     UNUSED(argv);
+
+    int new_first = 0;
+    int new_last = 0;
+
+    struct rtp_session session_first = {
+        .addr = "127.0.0.1",
+        .port = 7004
+    };
+
+    struct rtp_session session_last = {
+        .addr = "127.0.0.1",
+        .port = 8004
+    };
+
+    struct participant_data first = {
+        .new = &new_first,
+        .ssrc = 0,
+        .frame = NULL,
+        .frame_length = 0,
+        .next = NULL,
+        .previous = NULL,
+        .width = 480,
+        .height = 854,
+        .codec = H264,
+        .session = &session_first,
+        .encoder = NULL
+    };
+
+    struct participant_data last = {
+        .new = &new_last,
+        .ssrc = 0,
+        .frame = (char *)NULL,
+        .frame_length = 0,
+        .next = NULL,
+        .previous = NULL,
+        .width = 480,
+        .height = 854,
+        .codec = H264,
+        .session = &session_last,
+        .encoder = NULL  
+    };
+
+    first.next = &last;
+    last.previous = &first;
+
+    struct participant_list list = {
+        .count = 2,
+        .first = &first,
+        .last = &last
+    };
+
+
+    start_out_manager(&list, 8000);
+
+    //sleep(3);
+
+    //stop_out_manager();
 
     while(1);
 

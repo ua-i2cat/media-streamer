@@ -14,8 +14,8 @@ struct rtp_session {
 };
 
 struct participant_data {
-    pthread_mutex_t         *lock;
-    pthread_mutex_t         *new;
+    pthread_mutex_t         lock;
+    int                     *new;
     uint32_t                ssrc;
     char                    *frame;
     int                     frame_length;
@@ -49,7 +49,7 @@ struct rtpenc_th {
 };
 
 struct participant_list {
-    pthread_mutex_t         *lock;
+    pthread_mutex_t         lock;
     int                     count;
     struct participant_data *first;
     struct participant_data *last;
