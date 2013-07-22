@@ -23,10 +23,8 @@ void *transmitter_encoder_routine(void *arg)
     debug_msg(" transmitter encoder routine START\n");
     struct participant_data *participant = (struct participant_data *)arg;
 
-    debug_msg(" transmitter encoder routine A\n");
     participant->encoder->sc = (struct compress_state *) calloc(2, sizeof(struct compress_state *));
 
-    debug_msg(" transmitter encoder routine B\n");
     compress_init("libavcodec:codec=H.264", &participant->encoder->sc);
 
     debug_msg(" transmitter encoder routine: entering loop\n");
@@ -34,24 +32,30 @@ void *transmitter_encoder_routine(void *arg)
         sem_wait(&participant->encoder->input_sem);
 
         int i = participant->encoder->index;
-        debug_msg(" transmitter encoder loop 1\n");
         struct video_frame *frame = vf_alloc(1);
+        int height = 144;
+        int width = 176;
+        vf_get_tile(frame, 0)->width=width;
+        vf_get_tile(frame, 0)->height=height;
+        vf_get_tile(frame, 0)->linesize=vc_get_linesize(width, UYVY);
+        frame->fps=2;
+        frame->color_spec=UYVY;
+        frame->interlacing=PROGRESSIVE;
+        
         frame->tiles[0].data = participant->frame;
         frame->tiles[0].data_len = participant->frame_length;
-        debug_msg(" transmitter encoder loop 2\n");
 
         struct video_frame *tx_frame;
+        debug_msg("compressing new frame...\n");
         tx_frame = compress_frame(participant->encoder->sc, frame, i);
-        debug_msg(" transmitter encoder loop 3\n");
+        debug_msg("new frame compressed!\n");
         
         participant->encoder->frame = tx_frame;
 
-        debug_msg(" transmitter encoder loop 4\n");
-
-        sem_post(&participant->encoder->output_sem);    
-        
         i = (i + 1)%2;
         participant->encoder->index = i;
+        
+        sem_post(&participant->encoder->output_sem);    
     }
 
     int ret = 0;
@@ -80,10 +84,11 @@ void *transmitter_rtpenc_routine(void *arg)
 
     while (1) {
         sem_wait(&participant->encoder->output_sem);
-        tx_send_base_h264(vf_get_tile(participant->encoder->frame, 0),
+        tx_send_base(vf_get_tile(participant->encoder->frame, 0),
                           rtp, get_local_mediatime(), 1, participant->codec,
                           participant->encoder->frame->fps,
                           participant->encoder->frame->interlacing, 0, 0);
+        debug_msg(" new frame sent!\n");
     }   
 
     int ret = 0;
@@ -107,8 +112,8 @@ int transmitter_init_threads(struct participant_data *participant)
     }
 
     debug_msg("initializing semaphores\n");
-    sem_init(&encoder->input_sem, 1, -1);
-    sem_init(&encoder->output_sem, 1, -1);
+    sem_init(&encoder->input_sem, 1, 0);
+    sem_init(&encoder->output_sem, 1, 0);
 
     debug_msg("initializing the pair of threads\n");
     int ret = 0;
@@ -144,20 +149,22 @@ void *transmitter_master_routine(void *arg)
 
     debug_msg("entering the master loop\n");
     while (RUN) {
-        debug_msg("master loop - A\n");
+        //debug_msg("master loop - A\n");
         struct participant_data *ptc = list->first;
-        debug_msg("master loop - B\n");
+        //debug_msg("master loop - B\n");
         while (ptc != NULL) {
             if (ptc->encoder != NULL) { // -> has a pair of threads
                 if (*(ptc->new)) { // -> has new data
                     // notify!
+                    pthread_mutex_lock(&ptc->lock);
                     *(ptc->new) = 0;
                     sem_post(&ptc->encoder->input_sem);
+                    pthread_mutex_unlock(&ptc->lock);
                 }
             }
             ptc = ptc->next;
         }
-        debug_msg("master loop - C\n");
+        //debug_msg("master loop - C\n");
     }
 
     int ret = 0;
@@ -208,7 +215,7 @@ int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pC
     pFormatCtx->iformat = av_find_input_format("rawvideo");
     unsigned int i;
 
-    av_dict_set(&rawdict, "video_size", "1920x1080", 0);
+    av_dict_set(&rawdict, "video_size", "176x144", 0);
     av_dict_set(&rawdict, "pixel_format", "uyvy422", 0);
 
     // Open video file
@@ -278,11 +285,6 @@ int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCo
 }
 
 
-
-
-
-
-
 int main(int argc, char **argv)
 {
     UNUSED(argc);
@@ -293,12 +295,12 @@ int main(int argc, char **argv)
 
     struct rtp_session session_first = {
         .addr = "127.0.0.1",
-        .port = 7004
+        .port = 5004
     };
 
     struct rtp_session session_last = {
         .addr = "127.0.0.1",
-        .port = 8004
+        .port = 6004
     };
 
     struct participant_data first = {
@@ -308,8 +310,8 @@ int main(int argc, char **argv)
         .frame_length = 0,
         .next = NULL,
         .previous = NULL,
-        .width = 480,
-        .height = 854,
+        .width = 176,
+        .height = 144,
         .codec = H264,
         .session = &session_first,
         .encoder = NULL
@@ -322,15 +324,15 @@ int main(int argc, char **argv)
         .frame_length = 0,
         .next = NULL,
         .previous = NULL,
-        .width = 480,
-        .height = 854,
+        .width = 176,
+        .height = 144,
         .codec = H264,
         .session = &session_last,
         .encoder = NULL  
     };
 
-    first.next = &last;
-    last.previous = &first;
+    //first.next = &last;
+    //last.previous = &first;
 
     struct participant_list list = {
         .count = 2,
@@ -360,15 +362,19 @@ int main(int argc, char **argv)
         int ret = read_frame(pformat_ctx, video_stream, &codec_ctx, b1);
 
         if (ret == 0) {
+            debug_msg(" new frame read!\n");
             pthread_mutex_lock(&list.lock);
             struct participant_data *participant = list.first;
             while (participant != NULL) {
+                pthread_mutex_lock(&participant->lock);
                 participant->frame = (char *)b1;
                 participant->frame_length = vc_get_linesize(width, UYVY)*height;
                 *(participant->new) = 1;
+                pthread_mutex_unlock(&participant->lock);
                 participant = participant->next;
             }
             pthread_mutex_unlock(&list.lock);
+            usleep(500000);
         }
     }
     stop_out_manager();
