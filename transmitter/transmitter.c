@@ -28,7 +28,7 @@ void *transmitter_encoder_routine(void *arg)
     compress_init("libavcodec:codec=H.264", &participant->encoder->sc);
 
     debug_msg(" transmitter encoder routine: entering loop\n");
-    while (1) {
+    while (RUN) {
         sem_wait(&participant->encoder->input_sem);
 
         int i = participant->encoder->index;
@@ -82,9 +82,9 @@ void *transmitter_rtpenc_routine(void *arg)
                                    rtcp_bw, 0, rtp_recv_callback,
                                    (void *)participants, 0);
 
-    while (1) {
+    while (RUN) {
         sem_wait(&participant->encoder->output_sem);
-        tx_send_base(vf_get_tile(participant->encoder->frame, 0),
+        tx_send_base_h264(vf_get_tile(participant->encoder->frame, 0),
                           rtp, get_local_mediatime(), 1, participant->codec,
                           participant->encoder->frame->fps,
                           participant->encoder->frame->interlacing, 0, 0);
@@ -374,10 +374,14 @@ int main(int argc, char **argv)
                 participant = participant->next;
             }
             pthread_mutex_unlock(&list.lock);
-            usleep(500000);
+            usleep(200000);
+        } else {
+            break;
         }
     }
+    debug_msg(" deallocating resources and terminating threads\n");
     stop_out_manager();
+    debug_msg(" done!\n");
 
     return 0;
 }
