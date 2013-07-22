@@ -69,7 +69,7 @@ static void rtpenc_h264_debug_print_nal_recv_info(uint8_t *header, int size)
 			((*header) & 0x20) >> 5, ((*header) & 0x10) >> 4,
 			((*header) & 0x08) >> 3, ((*header) & 0x04) >> 2,
 			((*header) & 0x02) >> 1, ((*header) & 0x01),
-			type, nri);
+			nri, type);
 	#else
 	UNUSED(header);
 	UNUSED(size);
