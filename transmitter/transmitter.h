@@ -45,7 +45,7 @@ struct decoder_th {
 };
 
 struct rtpenc_th {
-    pthread_t   *thread;
+    pthread_t   thread;
 };
 
 struct participant_list {
