@@ -26,9 +26,9 @@ INC           = -I./src -I$(HOME)/ffmpeg_build/include
 TARGET_RTP    = lib/librtp.so
 TARGET_ENC    = lib/libvcompress.so
 TARGET_DEC    = lib/libvdecompress.so
-TARGETS       = $(TARGET_RTP) $(TARGET_ENC) $(TARGET_DEC)	
+TARGETS       = $(TARGET_RTP) $(TARGET_ENC) $(TARGET_DEC)
 
-TESTS = $(addprefix bin/, rtp encoder decoder ug_ug vlc_vlc vlc_ug ug_vlc enc_tx rx_dec enc_dec 2in2out)
+TESTS = $(addprefix bin/, rtp encoder decoder ug_ug vlc_vlc vlc_ug ug_vlc enc_tx rx_dec enc_dec 2in2out transmitter receiver)
 
 TRANSMITTER = $(addprefix bin/, transmitter)
 
@@ -122,6 +122,12 @@ $(TARGET_ENC): $(OBJS_ENC) $(HEADERS)
 $(TARGET_DEC): $(OBJS_DEC) $(HEADERS)
 	$(LINKER) $(LDFLAGS) $(LDFLAGS_DEC) -o $(TARGET_DEC) $+ $(LIBS_DEC)
 
+bin/receiver: $(addprefix transmitter/, receiver.o) $(OBJS)
+	$(LINKER) $(LDFLAGS_TEST) $(INC) -pthread $+ -o $@ $(LIBS_TEST)	
+
+bin/transmitter: $(addprefix transmitter/, transmitter.o) $(OBJS)
+	$(LINKER) $(LDFLAGS_TEST) $(INC) -pthread $+ -o $@ $(LIBS_TEST)
+
 bin/%: tests/%.o $(OBJS) $(HEADERS)
 	$(LINKER) $(LDFLAGS_TEST) $(INC) $+ -o $@ $(LIBS_TEST)
 	
@@ -130,6 +136,7 @@ bin/%: reciever/%.o $(OBJS_RECIEVER) $(OBJS)
 	
 $(TRANSMITTER): $(OBJS_TRANSMITTER) $(OBJS)
 	$(LINKER) $(LDFLAGS_TEST) $(INC) $+ -o $@ $(LIBS_TEST)
+
 
 # -------------------------------------------------------------------------------------------------
 
