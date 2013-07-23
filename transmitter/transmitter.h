@@ -37,6 +37,8 @@ struct encoder_th {
     struct compress_state   *sc;
     int                     index;
     struct video_frame      *frame;
+    char                    *input_frame;
+    int                     input_frame_length;
     sem_t                   input_sem;
     sem_t                   output_sem;
 };

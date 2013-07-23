@@ -24,6 +24,8 @@ void *transmitter_encoder_routine(void *arg)
     struct participant_data *participant = (struct participant_data *)arg;
 
     participant->encoder->sc = (struct compress_state *) calloc(2, sizeof(struct compress_state *));
+    participant->encoder->input_frame_length = vc_get_linesize(participant->width, UYVY)*participant->height;
+    participant->encoder->input_frame = malloc(participant->encoder->input_frame_length);
 
     compress_init("libavcodec:codec=H.264", &participant->encoder->sc);
 
@@ -33,6 +35,10 @@ void *transmitter_encoder_routine(void *arg)
         if (!RUN) {
             break;
         }
+        pthread_mutex_lock(&participant->lock);
+        memcpy(participant->encoder->input_frame, participant->frame, participant->encoder->input_frame_length);
+        participant->encoder->input_frame_length = participant->frame_length;
+        pthread_mutex_unlock(&participant->lock);
 
         int i = participant->encoder->index;
         struct video_frame *frame = vf_alloc(1);
@@ -41,12 +47,12 @@ void *transmitter_encoder_routine(void *arg)
         vf_get_tile(frame, 0)->width=width;
         vf_get_tile(frame, 0)->height=height;
         vf_get_tile(frame, 0)->linesize=vc_get_linesize(width, UYVY);
-        frame->fps=25;
+        frame->fps=5;
         frame->color_spec=UYVY;
         frame->interlacing=PROGRESSIVE;
         
-        frame->tiles[0].data = participant->frame;
-        frame->tiles[0].data_len = participant->frame_length;
+        frame->tiles[0].data = participant->encoder->input_frame;
+        frame->tiles[0].data_len = participant->encoder->input_frame_length;
 
         struct video_frame *tx_frame;
         debug_msg("compressing new frame...\n");
@@ -393,7 +399,7 @@ int main(int argc, char **argv)
                 participant = participant->next;
             }
             pthread_mutex_unlock(&list.lock);
-            usleep(40000);
+            usleep(200000);
         } else {
             break;
         }
