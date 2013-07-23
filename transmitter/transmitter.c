@@ -30,6 +30,9 @@ void *transmitter_encoder_routine(void *arg)
     debug_msg(" transmitter encoder routine: entering loop\n");
     while (RUN) {
         sem_wait(&participant->encoder->input_sem);
+        if (!RUN) {
+            break;
+        }
 
         int i = participant->encoder->index;
         struct video_frame *frame = vf_alloc(1);
@@ -58,7 +61,9 @@ void *transmitter_encoder_routine(void *arg)
         sem_post(&participant->encoder->output_sem);    
     }
 
+    debug_msg(" encoder routine END\n");
     int ret = 0;
+    //pthread_join(participant->encoder->rtpenc->thread, NULL);
     pthread_exit((void *)&ret);
 }
 
@@ -84,6 +89,10 @@ void *transmitter_rtpenc_routine(void *arg)
 
     while (RUN) {
         sem_wait(&participant->encoder->output_sem);
+        if (!RUN) {
+            debug_msg(" rtpenc_routine break detected after sem_wat!\n");
+            break;
+        }
         tx_send_base_h264(vf_get_tile(participant->encoder->frame, 0),
                           rtp, get_local_mediatime(), 1, participant->codec,
                           participant->encoder->frame->fps,
@@ -91,8 +100,9 @@ void *transmitter_rtpenc_routine(void *arg)
         debug_msg(" new frame sent!\n");
     }   
 
+    debug_msg(" rtpenc routine END\n");
     int ret = 0;
-    pthread_exit((void *)&ret);
+    pthread_exit(NULL);
 }
 
 int transmitter_init_threads(struct participant_data *participant)
@@ -104,8 +114,8 @@ int transmitter_init_threads(struct participant_data *participant)
         error_msg(" unsuccessful malloc\n");
         return -1;
     }
+    encoder->rtpenc = malloc(sizeof(struct rtpenc_th));
     struct rtpenc_th *rtpenc = encoder->rtpenc;
-    rtpenc = malloc(sizeof(struct rtpenc_th));
     if (rtpenc == NULL) {
         error_msg(" unsuccessful malloc\n");
         return -1;
@@ -167,10 +177,18 @@ void *transmitter_master_routine(void *arg)
         //debug_msg("master loop - C\n");
     }
 
+    debug_msg(" terminating pairs of threads\n");
     int ret = 0;
+    void *end;
     participant = list->first;
     while (participant != NULL) {
-        ret |= pthread_join(participant->encoder->thread, NULL);
+        sem_post(&participant->encoder->input_sem);
+        sem_post(&participant->encoder->output_sem);
+        if (participant->encoder->rtpenc->thread == NULL) {
+            printf("AAAAAAAAH!!!\n");
+        }
+        ret += pthread_join(participant->encoder->rtpenc->thread, &end);
+        ret += pthread_join(participant->encoder->thread, &end);
         participant = participant->next;
     }
     if (ret != 0) {
@@ -193,7 +211,8 @@ int start_out_manager(struct participant_list *list, uint32_t port)
 int stop_out_manager()
 {
     RUN = 0;
-    int ret = pthread_join(MASTER_THREAD, NULL);
+    void *end;
+    int ret = pthread_join(MASTER_THREAD, &end);
     return ret;
 }
 
@@ -331,8 +350,8 @@ int main(int argc, char **argv)
         .encoder = NULL  
     };
 
-    //first.next = &last;
-    //last.previous = &first;
+    first.next = &last;
+    last.previous = &first;
 
     struct participant_list list = {
         .count = 2,
