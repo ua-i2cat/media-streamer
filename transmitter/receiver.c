@@ -16,9 +16,9 @@
 
 #define INITIAL_VIDEO_RECV_BUFFER_SIZE  ((4*1920*1080)*110/100) //command line net.core setup: sysctl -w net.core.rmem_max=9123840
 
-int WIDTH = 176;
-int HEIGHT = 144;
-int FPS = 5;
+int WIDTH = 854;
+int HEIGHT = 480;
+int FPS = 25;
 int LOCAL_PORT = 5004;
 char *OUTPUT_PATH;
 

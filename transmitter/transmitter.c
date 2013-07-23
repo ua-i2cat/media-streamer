@@ -36,12 +36,12 @@ void *transmitter_encoder_routine(void *arg)
 
         int i = participant->encoder->index;
         struct video_frame *frame = vf_alloc(1);
-        int height = 144;
-        int width = 176;
+        int width = 854;
+        int height = 480;
         vf_get_tile(frame, 0)->width=width;
         vf_get_tile(frame, 0)->height=height;
         vf_get_tile(frame, 0)->linesize=vc_get_linesize(width, UYVY);
-        frame->fps=2;
+        frame->fps=25;
         frame->color_spec=UYVY;
         frame->interlacing=PROGRESSIVE;
         
@@ -234,7 +234,7 @@ int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pC
     pFormatCtx->iformat = av_find_input_format("rawvideo");
     unsigned int i;
 
-    av_dict_set(&rawdict, "video_size", "176x144", 0);
+    av_dict_set(&rawdict, "video_size", "854x480", 0);
     av_dict_set(&rawdict, "pixel_format", "uyvy422", 0);
 
     // Open video file
@@ -329,8 +329,8 @@ int main(int argc, char **argv)
         .frame_length = 0,
         .next = NULL,
         .previous = NULL,
-        .width = 176,
-        .height = 144,
+        .width = 854,
+        .height = 480,
         .codec = H264,
         .session = &session_first,
         .encoder = NULL
@@ -343,8 +343,8 @@ int main(int argc, char **argv)
         .frame_length = 0,
         .next = NULL,
         .previous = NULL,
-        .width = 176,
-        .height = 144,
+        .width = 854,
+        .height = 480,
         .codec = H264,
         .session = &session_last,
         .encoder = NULL  
@@ -367,10 +367,10 @@ int main(int argc, char **argv)
     int video_stream = -1;
     av_register_all();
 
-    char *yuv_path = "/home/ignacio/Development/samples/tulips.qcif.yuv";
+    char *yuv_path = "/home/ignacio/Development/samples/sintel.yuv";
 
-    int height = 144;
-    int width = 176;
+    int width = 854;
+    int height = 480;
 
     load_video(yuv_path, pformat_ctx, &codec_ctx, &video_stream);
 
@@ -393,7 +393,7 @@ int main(int argc, char **argv)
                 participant = participant->next;
             }
             pthread_mutex_unlock(&list.lock);
-            usleep(200000);
+            usleep(40000);
         } else {
             break;
         }
