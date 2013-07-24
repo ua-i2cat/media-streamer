@@ -23,7 +23,7 @@ void *transmitter_encoder_routine(void *arg)
     debug_msg(" transmitter encoder routine START\n");
     struct participant_data *participant = (struct participant_data *)arg;
 
-    participant->encoder->sc = (struct compress_state *) calloc(2, sizeof(struct compress_state *));
+    //participant->encoder->sc; // = (struct compress_state *) calloc(1, sizeof(struct compress_state *));
     participant->encoder->input_frame_length = vc_get_linesize(participant->width, UYVY)*participant->height;
     participant->encoder->input_frame = malloc(participant->encoder->input_frame_length);
 
@@ -71,7 +71,6 @@ void *transmitter_encoder_routine(void *arg)
     int ret = 0;
     //pthread_join(participant->encoder->rtpenc->thread, NULL);
     compress_done(participant->encoder->sc);
-    free(participant->encoder->sc);
     free(participant->encoder->input_frame);
     pthread_exit((void *)&ret);
 }
