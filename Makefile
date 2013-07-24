@@ -3,7 +3,7 @@ CXX           = g++
 LINKER        = g++
 CFLAGS        = -g -DHAVE_CONFIG_H -g -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2 -O2 -fdata-sections -ffunction-sections -Os # -Wno-cast-align
 CPPFLAGS      = -I. 
-CXXFLAGS      = -g -DHAVE_CONFIG_H -g -fPIC -Wno-multichar -Wno-deprecated -msse2 -O2
+CXXFLAGS      = -g -DHAVE_CONFIG_H -g -fPIC -Wno-multichar -Wno-deprecated -msse2
 LDFLAGS       = -lm -shared -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname
 LDFLAGS_RTP   = -lm -shared  -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname,librtp.so
 LDFLAGS_ENC   = -lm -shared  -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname,libvcompress.so
@@ -11,9 +11,9 @@ LDFLAGS_DEC   = -lm -shared  -Wl,--dynamic-list-data,--as-needed,-gc-sections,-s
 LDFLAGS_TEST  = -lm -Wl,--dynamic-list-data,--as-needed
 
 LIBS_RTP      += -lrt -ldl -lieee -lm
-LIBS_ENC      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -pthread
-LIBS_DEC      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -pthread
-LIBS	      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -pthread
+LIBS_ENC      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm
+LIBS_DEC      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm
+LIBS	      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm
 	 	
 LIBS_RTP_TEST += $(LIBS_RTP) -L./lib -lrtp
 LIBS_ENC_TEST += $(LIBS_ENC) -L./lib -lvcompress
@@ -21,7 +21,7 @@ LIBS_DEC_TEST += $(LIBS_DEC) -L./lib -lvdecompress
 
 LIBS_TEST     += $(LIBS) -L./lib -lrtp -lvcompress -lvdecompress -lavformat
 
-INC           = -I./src 
+INC           = -I./src -I$(HOME)/ffmpeg_build/include
 	  
 TARGET_RTP    = lib/librtp.so
 TARGET_ENC    = lib/libvcompress.so
@@ -30,14 +30,9 @@ TARGETS       = $(TARGET_RTP) $(TARGET_ENC) $(TARGET_DEC)
 
 TESTS = $(addprefix bin/, rtp encoder decoder ug_ug vlc_vlc vlc_ug ug_vlc enc_tx rx_dec enc_dec 2in2out)
 
+RECIEVER = $(addprefix bin/, test)
+
 DOCS 	      = COPYRIGHT README REPORTING-BUGS
-
-HEADERS	      =  
-
-#OBJS	      = src/debug.o \
-				src/tile.o \
-				src/video.o \
-				src/video_codec.o \
 
 OBJS_RTP 	 += src/compat/drand48.o \
 				src/crypto/crypt_des.o \
@@ -83,6 +78,8 @@ OBJS		  = $(filter-out $(OBJS_EXCLUDE), $(OBJS_C) $(OBJS_CPP))
 
 OBJS_TEST     = $(patsubst %.c, %.o,	$(wildcard tests/*.c) $(wildcard tests/*/*.c))
 
+OBJS_RECIEVER = $(patsubst %.c, %.o, $(wildcard reciever/*.c))
+
 # -------------------------------------------------------------------------------------------------
 
 all: build $(TARGETS)
@@ -99,6 +96,8 @@ configure-messages:
 tests: test
 
 test: build $(TARGETS) $(TESTS)
+
+reciever: build $(TARGETS) $(OBJS_RECIEVER) $(RECIEVER)
 
 build:
 	@mkdir -p lib
@@ -119,9 +118,12 @@ $(TARGET_DEC): $(OBJS_DEC) $(HEADERS)
 
 bin/%: tests/%.o $(OBJS) $(HEADERS)
 	$(LINKER) $(LDFLAGS_TEST) $(INC) $+ -o $@ $(LIBS_TEST)
+	
+bin/%: reciever/%.o 
+	$(LINKER) $(LDFLAGS_TEST) $(INC) reciever/participants.o reciever/reciever.o reciever/test.o -o $@ $(LIBS_TEST)
 
 
 # -------------------------------------------------------------------------------------------------
 
 clean:
-	rm -f $(OBJS) $(OBJS_TEST) $(HEADERS) $(TARGETS) $(TESTS)
+	rm -f $(OBJS) $(OBJS_TEST) $(HEADERS) $(TARGETS) $(TESTS) reciever/participants.o reciever/reciever.o reciever/test.o
