@@ -70,6 +70,8 @@ void *transmitter_encoder_routine(void *arg)
     debug_msg(" encoder routine END\n");
     int ret = 0;
     //pthread_join(participant->encoder->rtpenc->thread, NULL);
+    free(participant->encoder->sc);
+    free(participant->encoder->input_frame);
     pthread_exit((void *)&ret);
 }
 
@@ -195,6 +197,10 @@ void *transmitter_master_routine(void *arg)
         }
         ret += pthread_join(participant->encoder->rtpenc->thread, &end);
         ret += pthread_join(participant->encoder->thread, &end);
+
+        free(participant->encoder->rtpenc);
+        free(participant->encoder);
+
         participant = participant->next;
     }
     if (ret != 0) {
@@ -312,8 +318,10 @@ int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCo
 
 int main(int argc, char **argv)
 {
-    UNUSED(argc);
-    UNUSED(argv);
+    int stop_at = 0;
+    if (argc == 2) {
+        stop_at = atoi(argv[1]);
+    }
 
     int new_first = 0;
     int new_last = 0;
@@ -383,10 +391,16 @@ int main(int argc, char **argv)
     uint8_t *b1 = (uint8_t *)av_malloc(avpicture_get_size(codec_ctx.pix_fmt,
                         codec_ctx.width, codec_ctx.height)*sizeof(uint8_t));
 
+    int counter = 0;
     while(1) {
         int ret = read_frame(pformat_ctx, video_stream, &codec_ctx, b1);
 
+        if (stop_at > 0 && counter == stop_at) {
+            break;
+        }
+
         if (ret == 0) {
+            counter++;
             debug_msg(" new frame read!\n");
             pthread_mutex_lock(&list.lock);
             struct participant_data *participant = list.first;
@@ -399,7 +413,7 @@ int main(int argc, char **argv)
                 participant = participant->next;
             }
             pthread_mutex_unlock(&list.lock);
-            usleep(200000);
+            usleep(40000);
         } else {
             break;
         }
