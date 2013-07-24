@@ -19,11 +19,9 @@ int RUN = 1;
 
 void *transmitter_encoder_routine(void *arg)
 {
-    //while(1); // TODO
     debug_msg(" transmitter encoder routine START\n");
     struct participant_data *participant = (struct participant_data *)arg;
 
-    //participant->encoder->sc; // = (struct compress_state *) calloc(1, sizeof(struct compress_state *));
     participant->encoder->input_frame_length = vc_get_linesize(participant->width, UYVY)*participant->height;
     participant->encoder->input_frame = malloc(participant->encoder->input_frame_length);
 
@@ -94,6 +92,7 @@ void *transmitter_rtpenc_routine(void *arg)
                                    recv_port, session->port, ttl,
                                    rtcp_bw, 0, rtp_recv_callback,
                                    (void *)participants, 0);
+    rtp_set_my_ssrc(rtp, 10000);
 
     while (RUN) {
         sem_wait(&participant->encoder->output_sem);
@@ -108,6 +107,8 @@ void *transmitter_rtpenc_routine(void *arg)
         debug_msg(" new frame sent!\n");
     }   
 
+    //rtp_send_bye(rtp);
+    //rtp_done(rtp);
     debug_msg(" rtpenc routine END\n");
     int ret = 0;
     pthread_exit(NULL);
@@ -311,6 +312,8 @@ int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCo
         }
     }
 
+    av_free(pFrame);
+
     return ret;
 }
 
@@ -419,6 +422,8 @@ int main(int argc, char **argv)
     }
     debug_msg(" deallocating resources and terminating threads\n");
     stop_out_manager();
+    av_free(pformat_ctx);
+    av_free(b1);
     debug_msg(" done!\n");
 
     return 0;
