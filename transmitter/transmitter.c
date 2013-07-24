@@ -42,12 +42,12 @@ void *transmitter_encoder_routine(void *arg)
 
         int i = participant->encoder->index;
         struct video_frame *frame = vf_alloc(1);
-        int width = 854;
-        int height = 480;
+        int width = participant->width;
+        int height = participant->height;
         vf_get_tile(frame, 0)->width=width;
         vf_get_tile(frame, 0)->height=height;
         vf_get_tile(frame, 0)->linesize=vc_get_linesize(width, UYVY);
-        frame->fps=5;
+        frame->fps=5; // TODO!
         frame->color_spec=UYVY;
         frame->interlacing=PROGRESSIVE;
         
@@ -70,6 +70,7 @@ void *transmitter_encoder_routine(void *arg)
     debug_msg(" encoder routine END\n");
     int ret = 0;
     //pthread_join(participant->encoder->rtpenc->thread, NULL);
+    compress_done(participant->encoder->sc);
     free(participant->encoder->sc);
     free(participant->encoder->input_frame);
     pthread_exit((void *)&ret);
@@ -223,8 +224,7 @@ int start_out_manager(struct participant_list *list, uint32_t port)
 int stop_out_manager()
 {
     RUN = 0;
-    void *end;
-    int ret = pthread_join(MASTER_THREAD, &end);
+    int ret = pthread_join(MASTER_THREAD, NULL);
     return ret;
 }
 
