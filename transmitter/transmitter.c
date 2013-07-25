@@ -108,13 +108,10 @@ void *transmitter_rtpenc_routine(void *arg)
         rtp_update(rtp, curr_time);
         //rtp_send_ctrl(rtp, timestamp, 0, curr_time);
 
-        //pdb_iter_t it;
-        //struct pdb_e *cp = pdb_iter_init(participants, &it);
         // TODO
 
         sem_wait(&participant->encoder->output_sem);
         if (!RUN) {
-            debug_msg(" rtpenc_routine break detected after sem_wat!\n");
             break;
         }
         tx_send_base_h264(vf_get_tile(participant->encoder->frame, 0),
@@ -127,7 +124,6 @@ void *transmitter_rtpenc_routine(void *arg)
     //rtp_send_bye(rtp);
     //rtp_done(rtp);
     debug_msg(" rtpenc routine END\n");
-    //int ret = 0;
     pthread_exit(NULL);
 }
 
@@ -185,13 +181,10 @@ void *transmitter_master_routine(void *arg)
 
     debug_msg("entering the master loop\n");
     while (RUN) {
-        //debug_msg("master loop - A\n");
         struct participant_data *ptc = list->first;
-        //debug_msg("master loop - B\n");
         while (ptc != NULL) {
             if (ptc->encoder != NULL) { // -> has a pair of threads
                 if (*(ptc->new)) { // -> has new data
-                    // notify!
                     pthread_mutex_lock(&ptc->lock);
                     *(ptc->new) = 0;
                     sem_post(&ptc->encoder->input_sem);
@@ -200,7 +193,6 @@ void *transmitter_master_routine(void *arg)
             }
             ptc = ptc->next;
         }
-        //debug_msg("master loop - C\n");
     }
 
     debug_msg(" terminating pairs of threads\n");
@@ -210,9 +202,7 @@ void *transmitter_master_routine(void *arg)
     while (participant != NULL) {
         sem_post(&participant->encoder->input_sem);
         sem_post(&participant->encoder->output_sem);
-        if (participant->encoder->rtpenc->thread == NULL) {
-            printf("AAAAAAAAH!!!\n");
-        }
+        
         ret += pthread_join(participant->encoder->rtpenc->thread, &end);
         ret += pthread_join(participant->encoder->thread, &end);
 
@@ -233,7 +223,7 @@ int start_out_manager(struct participant_list *list, uint32_t port)
     debug_msg("creating the master thread...\n");
     int ret = pthread_create(&MASTER_THREAD, NULL, transmitter_master_routine, list);
     if (ret < 0) {
-        debug_msg("could not initiate the transmitter master thread\n");
+        error_msg("could not initiate the transmitter master thread\n");
     }
     return ret;
 }
