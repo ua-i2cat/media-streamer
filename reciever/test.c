@@ -1,32 +1,45 @@
-#include "rtp/rtp.h"
-#include "rtp/rtp_callback.h"
-#include "rtp/rtpdec.h"
-#include "rtp/rtpenc.h"
-#include "pdb.h"
-#include "video.h"
-#include "tv.h"
-
 #include "participants.h"
 #include "reciever.h"
 
-#include "video_decompress.h"
-#include "video_decompress/libavcodec.h"
-
-#define INITIAL_VIDEO_RECV_BUFFER_SIZE  ((4*1920*1080)*110/100) //command line net.core setup: sysctl -w net.core.rmem_max=9123840
-
 int main(){
   participant_list_t *list;
+  reciever_t *reciever;
   
   list = init_participant_list();
   
-  add_participant(list, 1080, 720, H264, NULL, 0, INPUT);
-  add_participant(list, 1080, 720, H264, NULL, 0, INPUT);
-  add_participant(list, 1080, 720, H264, NULL, 0, INPUT);
+  add_participant(list, 1, 1920, 1080, H264, NULL, 0, INPUT);
+  add_participant(list, 2, 1920, 1080, H264, NULL, 0, INPUT);
+  add_participant(list, 3, 1920, 1080, H264, NULL, 0, INPUT);
+  add_participant(list, 4, 1920, 1080, H264, NULL, 0, INPUT);
+  add_participant(list, 5, 1920, 1080, H264, NULL, 0, INPUT);
+
+  reciever = init_reciever(list, 5004);
   
-  pthread_t input_th;
+  if (start_reciever(reciever)) {
   
-  pthread_create(&input_th, NULL, &start_input, (void *) list);
+    sleep(10);
   
+    pthread_rwlock_wrlock(&list->lock);
+    if (remove_participant(list,3))
+      printf("PARTICIPANT REMOVED\n\n");
+    pthread_rwlock_unlock(&list->lock);
+    
+    
+    
+    printf("List count: %d\n\n", list->count);
+    
+    pthread_rwlock_wrlock(&list->lock);
+    if (remove_participant(list,2))
+      printf("PARTICIPANT REMOVED\n\n");
+    pthread_rwlock_unlock(&list->lock);
+    
+    
+    printf("List count: %d\n\n", list->count);
   
-  pthread_join(input_th, NULL);
+    sleep(3);
+  
+    stop_reciever(reciever);
+  
+    pthread_join(reciever->th_id, NULL);
+  }
 }

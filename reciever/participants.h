@@ -2,7 +2,7 @@
 
 typedef struct participant_data participant_data_t;
 
-typedef enum ptype {INPUT, OUTPUT} ptype_t;
+typedef enum {INPUT, OUTPUT} ptype_t;
 
 struct participant_data {
 	pthread_mutex_t    	lock;
@@ -50,6 +50,15 @@ typedef struct rtp_session {
 
 participant_list_t *init_participant_list();
 
+decoder_thread_t *init_decoder_thread(participant_data_t *src);
+
+// Returns true or false
+int add_participant(participant_list_t *list, int id, int width, int height, codec_t codec, char *dst, uint32_t port, ptype_t type);
+
+participant_data_t *get_participant_id(participant_list_t *list, uint32_t id);
+
 participant_data_t *get_participant_ssrc(participant_list_t *list, uint32_t ssrc);
 
-int add_participant(participant_list_t *list, int width, int height, codec_t codec, char *dst, uint32_t port, ptype_t type);
+int remove_participant(participant_list_t *list, uint32_t id);
+
+void destroy_participant_list(participant_list_t *list);
