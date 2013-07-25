@@ -9,7 +9,6 @@
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 
-// TODO
 #define INITIAL_VIDEO_RECV_BUFFER_SIZE  ((4*1920*1080)*110/100) //command line net.core setup: sysctl -w net.core.rmem_max=9123840
 
 void *transmitter_encoder_routine(void *arg);
@@ -22,7 +21,6 @@ int RUN = 1;
 
 void *transmitter_encoder_routine(void *arg)
 {
-    debug_msg(" transmitter encoder routine START\n");
     struct participant_data *participant = (struct participant_data *)arg;
 
     participant->encoder->input_frame_length = vc_get_linesize(participant->width, UYVY)*participant->height;
@@ -30,40 +28,37 @@ void *transmitter_encoder_routine(void *arg)
 
     compress_init("libavcodec:codec=H.264", &participant->encoder->sc);
 
-    debug_msg(" transmitter encoder routine: entering loop\n");
+    struct video_frame *frame = vf_alloc(1);
+    int width = participant->width;
+    int height = participant->height;
+    vf_get_tile(frame, 0)->width=width;
+    vf_get_tile(frame, 0)->height=height;
+    vf_get_tile(frame, 0)->linesize=vc_get_linesize(width, UYVY);
+    frame->fps=5; // TODO!
+    frame->color_spec=UYVY;
+    frame->interlacing=PROGRESSIVE;
+    
     while (RUN) {
         sem_wait(&participant->encoder->input_sem);
         if (!RUN) {
             break;
         }
+
         pthread_mutex_lock(&participant->lock);
         memcpy(participant->encoder->input_frame, participant->frame, participant->encoder->input_frame_length);
         participant->encoder->input_frame_length = participant->frame_length;
         pthread_mutex_unlock(&participant->lock);
 
-        int i = participant->encoder->index;
-        struct video_frame *frame = vf_alloc(1);
-        int width = participant->width;
-        int height = participant->height;
-        vf_get_tile(frame, 0)->width=width;
-        vf_get_tile(frame, 0)->height=height;
-        vf_get_tile(frame, 0)->linesize=vc_get_linesize(width, UYVY);
-        frame->fps=5; // TODO!
-        frame->color_spec=UYVY;
-        frame->interlacing=PROGRESSIVE;
         
         frame->tiles[0].data = participant->encoder->input_frame;
         frame->tiles[0].data_len = participant->encoder->input_frame_length;
 
         struct video_frame *tx_frame;
-        debug_msg("compressing new frame...\n");
+        int i = participant->encoder->index;
         tx_frame = compress_frame(participant->encoder->sc, frame, i);
-        debug_msg("new frame compressed!\n");
-        
-        participant->encoder->frame = tx_frame;
-
         i = (i + 1)%2;
         participant->encoder->index = i;
+        participant->encoder->frame = tx_frame;
         
         sem_post(&participant->encoder->output_sem);    
     }
@@ -82,7 +77,7 @@ void *transmitter_rtpenc_routine(void *arg)
     struct rtp_session *session = participant->session;
 
     // TODO initialization
-    struct pdb *participants = pdb_init();
+    //struct pdb *participants = pdb_init();
     char *mcast_if = NULL;
     double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
     int ttl = 255;
@@ -92,14 +87,14 @@ void *transmitter_rtpenc_routine(void *arg)
     struct rtp *rtp  = rtp_init_if(session->addr, mcast_if,
                                    recv_port, session->port, ttl,
                                    rtcp_bw, 0, rtp_recv_callback,
-                                   (void *)participants, 0);
+                                   (void *)NULL, 0);
     //rtp_set_my_ssrc(rtp, 10000);
     // TODO
     rtp_set_option(rtp, RTP_OPT_WEAK_VALIDATION, 1);
     rtp_set_sdes(rtp, rtp_my_ssrc(rtp), RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING));
-    rtp_set_recv_buf(rtp, INITIAL_VIDEO_RECV_BUFFER_SIZE);
+    //rtp_set_recv_buf(rtp, INITIAL_VIDEO_RECV_BUFFER_SIZE);
     rtp_set_send_buf(rtp, 1024 * 56);
-    pdb_add(participants, rtp_my_ssrc(rtp));
+    //pdb_add(participants, rtp_my_ssrc(rtp));
 
     struct timeval curr_time;
     struct timeval start_time;
@@ -111,10 +106,10 @@ void *transmitter_rtpenc_routine(void *arg)
         gettimeofday(&curr_time, NULL);
         timestamp = tv_diff(curr_time, start_time) * 90000;
         rtp_update(rtp, curr_time);
-        rtp_send_ctrl(rtp, timestamp, 0, curr_time);
+        //rtp_send_ctrl(rtp, timestamp, 0, curr_time);
 
-        pdb_iter_t it;
-        struct pdb_e *cp = pdb_iter_init(participants, &it);
+        //pdb_iter_t it;
+        //struct pdb_e *cp = pdb_iter_init(participants, &it);
         // TODO
 
         sem_wait(&participant->encoder->output_sem);
@@ -129,10 +124,10 @@ void *transmitter_rtpenc_routine(void *arg)
         debug_msg(" new frame sent!\n");
     }   
 
-    rtp_send_bye(rtp);
+    //rtp_send_bye(rtp);
     //rtp_done(rtp);
     debug_msg(" rtpenc routine END\n");
-    int ret = 0;
+    //int ret = 0;
     pthread_exit(NULL);
 }
 
