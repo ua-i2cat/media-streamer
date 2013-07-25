@@ -7,11 +7,11 @@ int main(){
   
   list = init_participant_list();
   
-  add_participant(list, 1, 1920, 1080, H264, NULL, 0, INPUT);
-  add_participant(list, 2, 1920, 1080, H264, NULL, 0, INPUT);
-  add_participant(list, 3, 1920, 1080, H264, NULL, 0, INPUT);
-  add_participant(list, 4, 1920, 1080, H264, NULL, 0, INPUT);
-  add_participant(list, 5, 1920, 1080, H264, NULL, 0, INPUT);
+  add_participant(list, 1, 1280, 720, H264, NULL, 0, INPUT);
+  add_participant(list, 2, 1280, 720, H264, NULL, 0, INPUT);
+  add_participant(list, 3, 1280, 720, H264, NULL, 0, INPUT);
+  add_participant(list, 4, 1280, 720, H264, NULL, 0, INPUT);
+  add_participant(list, 5, 1280, 720, H264, NULL, 0, INPUT);
 
   reciever = init_reciever(list, 5004);
   
@@ -38,7 +38,7 @@ int main(){
   
     sleep(3);
   
-    stop_reciever(reciever);
+    //stop_reciever(reciever);
   
     pthread_join(reciever->th_id, NULL);
   }

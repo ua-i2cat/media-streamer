@@ -186,15 +186,15 @@ int remove_participant(participant_list_t *list, uint32_t id){
     participant->proc.decoder->run = FALSE;
     pthread_cond_signal(&participant->proc.decoder->notify_frame);
     pthread_mutex_unlock(&participant->lock);
-    if (pthread_rwlock_trywrlock(&list->lock) != 0)
-      lock = TRUE;
-    pthread_rwlock_unlock(&list->lock);
+    //if (pthread_rwlock_trywrlock(&list->lock) != 0)
+    //  lock = TRUE;
+    //pthread_rwlock_unlock(&list->lock);
     
     pthread_join(participant->proc.decoder->th_id, NULL); //TODO: timeout to force thread kill //TODO unlock 
     
-    if (lock){
-      pthread_rwlock_wrlock(&list->lock);
-    }
+    //if (lock){
+    //  pthread_rwlock_wrlock(&list->lock);
+    //}
     pthread_mutex_lock(&participant->lock);
  
   } else if (participant->type == OUTPUT /*&& participant->proc.encoder->run == TRUE*/){
