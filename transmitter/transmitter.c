@@ -2,14 +2,13 @@
 #include "rtp/rtpenc_h264.h"
 #include "pdb.h"
 #include "video_codec.h"
+#include "video_compress.h"
 #include "debug.h"
 #include "tv.h"
 #include <stdlib.h>
 #include <unistd.h>
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
-
-#define INITIAL_VIDEO_RECV_BUFFER_SIZE  ((4*1920*1080)*110/100) //command line net.core setup: sysctl -w net.core.rmem_max=9123840
 
 void *transmitter_encoder_routine(void *arg);
 void *transmitter_rtpenc_routine(void *arg);
@@ -24,7 +23,7 @@ void *transmitter_encoder_routine(void *arg)
     struct participant_data *participant = (struct participant_data *)arg;
 
     participant->encoder->input_frame_length = vc_get_linesize(participant->width, UYVY)*participant->height;
-    participant->encoder->input_frame = malloc(participant->encoder->input_frame_length);
+    participant->encoder->input_frame = malloc(participant->encoder->input_frame_length); // TODO error handling
 
     compress_init("libavcodec:codec=H.264", &participant->encoder->sc);
 
@@ -77,96 +76,65 @@ void *transmitter_rtpenc_routine(void *arg)
     struct rtp_session *session = participant->session;
 
     // TODO initialization
-    //struct pdb *participants = pdb_init();
     char *mcast_if = NULL;
     double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
     int ttl = 255;
     int recv_port = 2004;
-    void *rtp_recv_callback = NULL;
 
     struct rtp *rtp  = rtp_init_if(session->addr, mcast_if,
                                    recv_port, session->port, ttl,
-                                   rtcp_bw, 0, rtp_recv_callback,
+                                   rtcp_bw, 0, (void *)NULL,
                                    (void *)NULL, 0);
-    //rtp_set_my_ssrc(rtp, 10000);
-    // TODO
+    
     rtp_set_option(rtp, RTP_OPT_WEAK_VALIDATION, 1);
     rtp_set_sdes(rtp, rtp_my_ssrc(rtp), RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING));
-    //rtp_set_recv_buf(rtp, INITIAL_VIDEO_RECV_BUFFER_SIZE);
-    rtp_set_send_buf(rtp, 1024 * 56);
-    //pdb_add(participants, rtp_my_ssrc(rtp));
-
-    struct timeval curr_time;
-    struct timeval start_time;
-    gettimeofday(&start_time, NULL);
-    uint32_t timestamp;
 
     while (RUN) {
-
-        gettimeofday(&curr_time, NULL);
-        timestamp = tv_diff(curr_time, start_time) * 90000;
-        rtp_update(rtp, curr_time);
-        //rtp_send_ctrl(rtp, timestamp, 0, curr_time);
-
-        //pdb_iter_t it;
-        //struct pdb_e *cp = pdb_iter_init(participants, &it);
-        // TODO
-
         sem_wait(&participant->encoder->output_sem);
         if (!RUN) {
-            debug_msg(" rtpenc_routine break detected after sem_wat!\n");
             break;
         }
         tx_send_base_h264(vf_get_tile(participant->encoder->frame, 0),
                           rtp, get_local_mediatime(), 1, participant->codec,
                           participant->encoder->frame->fps,
                           participant->encoder->frame->interlacing, 0, 0);
-        debug_msg(" new frame sent!\n");
     }   
 
-    //rtp_send_bye(rtp);
+    // TODO
     //rtp_done(rtp);
-    debug_msg(" rtpenc routine END\n");
-    //int ret = 0;
     pthread_exit(NULL);
 }
 
 int transmitter_init_threads(struct participant_data *participant)
 {
-    debug_msg(" initializing the pair of threads for a participant\n");
-    participant->encoder = malloc(sizeof(struct encoder_th));
-    struct encoder_th *encoder = participant->encoder;
+    participant->encoder = malloc(sizeof(struct encoder_thread));
+    struct encoder_thread *encoder = participant->encoder;
     if (encoder == NULL) {
         error_msg(" unsuccessful malloc\n");
         return -1;
     }
-    encoder->rtpenc = malloc(sizeof(struct rtpenc_th));
-    struct rtpenc_th *rtpenc = encoder->rtpenc;
+    encoder->rtpenc = malloc(sizeof(struct rtpenc_thread));
+    struct rtpenc_thread *rtpenc = encoder->rtpenc;
     if (rtpenc == NULL) {
         error_msg(" unsuccessful malloc\n");
         return -1;
     }
 
-    debug_msg("initializing semaphores\n");
     sem_init(&encoder->input_sem, 1, 0);
     sem_init(&encoder->output_sem, 1, 0);
 
-    debug_msg("initializing the pair of threads\n");
     int ret = 0;
     ret = pthread_create(&encoder->thread, NULL,
                 transmitter_encoder_routine, participant);
     if (ret < 0) {
         // TODO
     }
-    debug_msg("pthread_create encoder OK!\n");
     ret = pthread_create(&rtpenc->thread, NULL,
                 transmitter_rtpenc_routine, participant);
     if (ret < 0) {
         // TODO
     }
-    debug_msg("pthread_create rtpenc OK!\n");
 
-    debug_msg(" threads (for a participant) initialized\n");
     return 0;
 }
 
@@ -185,22 +153,18 @@ void *transmitter_master_routine(void *arg)
 
     debug_msg("entering the master loop\n");
     while (RUN) {
-        //debug_msg("master loop - A\n");
         struct participant_data *ptc = list->first;
-        //debug_msg("master loop - B\n");
         while (ptc != NULL) {
             if (ptc->encoder != NULL) { // -> has a pair of threads
-                if (*(ptc->new)) { // -> has new data
-                    // notify!
+                if (ptc->new) { // -> has new data
                     pthread_mutex_lock(&ptc->lock);
-                    *(ptc->new) = 0;
+                    ptc->new = 0;
                     sem_post(&ptc->encoder->input_sem);
                     pthread_mutex_unlock(&ptc->lock);
                 }
             }
             ptc = ptc->next;
         }
-        //debug_msg("master loop - C\n");
     }
 
     debug_msg(" terminating pairs of threads\n");
@@ -210,9 +174,7 @@ void *transmitter_master_routine(void *arg)
     while (participant != NULL) {
         sem_post(&participant->encoder->input_sem);
         sem_post(&participant->encoder->output_sem);
-        if (participant->encoder->rtpenc->thread == NULL) {
-            printf("AAAAAAAAH!!!\n");
-        }
+        
         ret += pthread_join(participant->encoder->rtpenc->thread, &end);
         ret += pthread_join(participant->encoder->thread, &end);
 
@@ -220,6 +182,8 @@ void *transmitter_master_routine(void *arg)
         free(participant->encoder);
 
         participant = participant->next;
+
+        // TODO semaphore destruction
     }
     if (ret != 0) {
         ret = -1;
@@ -233,7 +197,7 @@ int start_out_manager(struct participant_list *list, uint32_t port)
     debug_msg("creating the master thread...\n");
     int ret = pthread_create(&MASTER_THREAD, NULL, transmitter_master_routine, list);
     if (ret < 0) {
-        debug_msg("could not initiate the transmitter master thread\n");
+        error_msg("could not initiate the transmitter master thread\n");
     }
     return ret;
 }
@@ -349,9 +313,6 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    int new_first = 0;
-    int new_last = 0;
-
     struct rtp_session session_first = {
         .addr = "127.0.0.1",
         .port = 5004
@@ -363,7 +324,7 @@ int main(int argc, char **argv)
     };
 
     struct participant_data first = {
-        .new = &new_first,
+        .new = 0,
         .ssrc = 0,
         .frame = NULL,
         .frame_length = 0,
@@ -377,7 +338,7 @@ int main(int argc, char **argv)
     };
 
     struct participant_data last = {
-        .new = &new_last,
+        .new = 0,
         .ssrc = 0,
         .frame = (char *)NULL,
         .frame_length = 0,
@@ -426,17 +387,17 @@ int main(int argc, char **argv)
         if (ret == 0) {
             counter++;
             debug_msg(" new frame read!\n");
-            pthread_mutex_lock(&list.lock);
+            pthread_rwlock_wrlock(&list.lock);
             struct participant_data *participant = list.first;
             while (participant != NULL) {
                 pthread_mutex_lock(&participant->lock);
                 participant->frame = (char *)b1;
                 participant->frame_length = vc_get_linesize(width, UYVY)*height;
-                *(participant->new) = 1;
+                participant->new = 1;
                 pthread_mutex_unlock(&participant->lock);
                 participant = participant->next;
             }
-            pthread_mutex_unlock(&list.lock);
+            pthread_rwlock_unlock(&list.lock);
             usleep(40000);
         } else {
             break;
