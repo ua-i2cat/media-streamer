@@ -9,6 +9,9 @@
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 
+// TODO
+#define INITIAL_VIDEO_RECV_BUFFER_SIZE  ((4*1920*1080)*110/100) //command line net.core setup: sysctl -w net.core.rmem_max=9123840
+
 void *transmitter_encoder_routine(void *arg);
 void *transmitter_rtpenc_routine(void *arg);
 int transmitter_init_threads(struct participant_data *participant);
@@ -67,7 +70,6 @@ void *transmitter_encoder_routine(void *arg)
 
     debug_msg(" encoder routine END\n");
     int ret = 0;
-    //pthread_join(participant->encoder->rtpenc->thread, NULL);
     compress_done(participant->encoder->sc);
     free(participant->encoder->input_frame);
     pthread_exit((void *)&ret);
@@ -75,7 +77,6 @@ void *transmitter_encoder_routine(void *arg)
 
 void *transmitter_rtpenc_routine(void *arg)
 {
-    //while(1); // TODO
     debug_msg(" transmitter rtpenc routine START\n");
     struct participant_data *participant = (struct participant_data *)arg;
     struct rtp_session *session = participant->session;
@@ -92,9 +93,30 @@ void *transmitter_rtpenc_routine(void *arg)
                                    recv_port, session->port, ttl,
                                    rtcp_bw, 0, rtp_recv_callback,
                                    (void *)participants, 0);
-    rtp_set_my_ssrc(rtp, 10000);
+    //rtp_set_my_ssrc(rtp, 10000);
+    // TODO
+    rtp_set_option(rtp, RTP_OPT_WEAK_VALIDATION, 1);
+    rtp_set_sdes(rtp, rtp_my_ssrc(rtp), RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING));
+    rtp_set_recv_buf(rtp, INITIAL_VIDEO_RECV_BUFFER_SIZE);
+    rtp_set_send_buf(rtp, 1024 * 56);
+    pdb_add(participants, rtp_my_ssrc(rtp));
+
+    struct timeval curr_time;
+    struct timeval start_time;
+    gettimeofday(&start_time, NULL);
+    uint32_t timestamp;
 
     while (RUN) {
+
+        gettimeofday(&curr_time, NULL);
+        timestamp = tv_diff(curr_time, start_time) * 90000;
+        rtp_update(rtp, curr_time);
+        rtp_send_ctrl(rtp, timestamp, 0, curr_time);
+
+        pdb_iter_t it;
+        struct pdb_e *cp = pdb_iter_init(participants, &it);
+        // TODO
+
         sem_wait(&participant->encoder->output_sem);
         if (!RUN) {
             debug_msg(" rtpenc_routine break detected after sem_wat!\n");
@@ -107,7 +129,7 @@ void *transmitter_rtpenc_routine(void *arg)
         debug_msg(" new frame sent!\n");
     }   
 
-    //rtp_send_bye(rtp);
+    rtp_send_bye(rtp);
     //rtp_done(rtp);
     debug_msg(" rtpenc routine END\n");
     int ret = 0;
