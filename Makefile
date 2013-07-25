@@ -30,6 +30,8 @@ TARGETS       = $(TARGET_RTP) $(TARGET_ENC) $(TARGET_DEC)
 
 TESTS = $(addprefix bin/, rtp encoder decoder ug_ug vlc_vlc vlc_ug ug_vlc enc_tx rx_dec enc_dec 2in2out)
 
+TRANSMITTER = $(addprefix bin/, transmitter)
+
 RECIEVER = $(addprefix bin/, test)
 
 DOCS 	      = COPYRIGHT README REPORTING-BUGS
@@ -80,6 +82,8 @@ OBJS_TEST     = $(patsubst %.c, %.o,	$(wildcard tests/*.c) $(wildcard tests/*/*.
 
 OBJS_RECIEVER = reciever/participants.o reciever/reciever.o
 
+OBJS_TRANSMITTER = transmitter/transmitter.o
+
 # -------------------------------------------------------------------------------------------------
 
 all: build $(TARGETS)
@@ -94,6 +98,8 @@ configure-messages:
 	@echo ""
 
 tests: test
+
+transmitter: build $(TARGETS) $(OBJS_TRANSMITTER) $(TRANSMITTER)
 
 reciever: build $(TARGETS) $(OBJS_RECIEVER) $(RECIEVER)
 
@@ -122,8 +128,10 @@ bin/%: tests/%.o $(OBJS) $(HEADERS)
 bin/%: reciever/%.o $(OBJS_RECIEVER) $(OBJS)
 	$(LINKER) $(LDFLAGS_TEST) $(INC) $+ -o $@ $(LIBS_TEST)
 	
+$(TRANSMITTER): $(OBJS_TRANSMITTER) $(OBJS)
+	$(LINKER) $(LDFLAGS_TEST) $(INC) $+ -o $@ $(LIBS_TEST)
 
 # -------------------------------------------------------------------------------------------------
 
 clean:
-	rm -f $(OBJS) $(OBJS_TEST) $(HEADERS) $(TARGETS) $(TESTS) $(OBJS_RECIEVER)
+	rm -f $(OBJS) $(OBJS_TEST) $(HEADERS) $(TARGETS) $(TESTS) $(OBJS_RECIEVER) $(OBJS_TRANSMITTER)
