@@ -16,12 +16,32 @@
 
 #define INITIAL_VIDEO_RECV_BUFFER_SIZE  ((4*1920*1080)*110/100) //command line net.core setup: sysctl -w net.core.rmem_max=9123840
 
-int width = 1920;
-int height = 1080;
+int PORT = 5004;
+
+char *OUTPUT_PATH = "rx_frame.yuv";
+
+int WIDTH = 1920;
+int HEIGHT = 1080;
 
 FILE *F_video_rx=NULL;
 
-int main(){
+int main(int argc, char **argv)
+{
+    if (argc == 3) {
+        PORT = atoi(argv[1]);
+        OUTPUT_PATH = argv[2];
+    } else if (argc == 5) {
+        PORT = atoi(argv[1]);
+        OUTPUT_PATH = argv[2];
+        WIDTH = atoi(argv[3]);
+        HEIGHT = atoi(argv[4]);
+    } else if (argc == 1) {
+        // nothing
+    } else {
+        printf("usage: %s [<input port> <output path> [<width> <height>]]\n", argv[0]);
+        printf("default: 5004/rx_frame.yuv/1920/1080\n");
+        return -1;
+    }
     struct rtp **devices = NULL;
     struct pdb *participants;
     struct pdb_e *cp;
@@ -32,15 +52,15 @@ int main(){
     struct video_frame *tx_frame;
 
     tx_frame = vf_alloc(1);
-    vf_get_tile(tx_frame, 0)->width=width;
-    vf_get_tile(tx_frame, 0)->height=height;
+    vf_get_tile(tx_frame, 0)->width=WIDTH;
+    vf_get_tile(tx_frame, 0)->height=HEIGHT;
     tx_frame->fps=5;
     tx_frame->color_spec=H264;
     tx_frame->interlacing=PROGRESSIVE;
 
     frame = vf_alloc(1);
-    vf_get_tile(frame, 0)->width=width;
-    vf_get_tile(frame, 0)->height=height;
+    vf_get_tile(frame, 0)->width=WIDTH;
+    vf_get_tile(frame, 0)->height=HEIGHT;
     frame->fps=5;
     frame->color_spec=UYVY;
     frame->interlacing=PROGRESSIVE;
@@ -58,7 +78,7 @@ int main(){
 
     int required_connections;
     // uint32_t ts;
-    int recv_port = 5004;
+    int recv_port = PORT;
     int send_port = 6004;
     int index=0;
     int exit = 1;
@@ -87,8 +107,8 @@ int main(){
     if (decompress_is_available(LIBAVCODEC_MAGIC)) {
         sd = decompress_init(LIBAVCODEC_MAGIC);
 
-      	des.width = width;
-        des.height = height;
+      	des.width = WIDTH;
+        des.height = HEIGHT;
         des.color_spec  = H264;
         des.tile_count = 0;
         des.interlacing = PROGRESSIVE;
@@ -182,7 +202,7 @@ int main(){
 				//CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
 				if (F_video_rx == NULL) {
 					printf("recording rx frame...\n");
-					F_video_rx = fopen("rx_frame.yuv", "wb");
+					F_video_rx = fopen(OUTPUT_PATH, "wb");
 				}
 
 				fwrite(frame->tiles[0].data, frame->tiles[0].data_len, 1,F_video_rx);
