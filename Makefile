@@ -103,7 +103,7 @@ transmitter: build $(TARGETS) $(OBJS_TRANSMITTER) $(TRANSMITTER)
 
 reciever: build $(TARGETS) $(OBJS_RECIEVER) $(RECIEVER)
 
-test: build $(TESTS)
+test: build $(TARGETS) $(TESTS)
 
 build:
 	@mkdir -p lib
