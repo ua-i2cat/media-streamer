@@ -343,8 +343,15 @@ int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCo
 int main(int argc, char **argv)
 {
     int stop_at = 0;
+    char *yuv_path;
     if (argc == 2) {
-        stop_at = atoi(argv[1]);
+        yuv_path = argv[1];
+    } else if (argc == 3) {
+        yuv_path = argv[1];
+        stop_at = atoi(argv[2]);
+    } else {
+        printf("usage: %s input [max frames]\n", argv[0]);
+        return -1;
     }
 
     int new_first = 0;
@@ -404,8 +411,6 @@ int main(int argc, char **argv)
     AVCodecContext codec_ctx;
     int video_stream = -1;
     av_register_all();
-
-    char *yuv_path = "/home/ignacio/Development/samples/sintel.yuv";
 
     int width = 854;
     int height = 480;
