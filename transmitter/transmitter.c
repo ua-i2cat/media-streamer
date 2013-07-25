@@ -9,8 +9,6 @@
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 
-#define INITIAL_VIDEO_RECV_BUFFER_SIZE  ((4*1920*1080)*110/100) //command line net.core setup: sysctl -w net.core.rmem_max=9123840
-
 void *transmitter_encoder_routine(void *arg);
 void *transmitter_rtpenc_routine(void *arg);
 int transmitter_init_threads(struct participant_data *participant);
@@ -24,7 +22,7 @@ void *transmitter_encoder_routine(void *arg)
     struct participant_data *participant = (struct participant_data *)arg;
 
     participant->encoder->input_frame_length = vc_get_linesize(participant->width, UYVY)*participant->height;
-    participant->encoder->input_frame = malloc(participant->encoder->input_frame_length);
+    participant->encoder->input_frame = malloc(participant->encoder->input_frame_length); // TODO error handling
 
     compress_init("libavcodec:codec=H.264", &participant->encoder->sc);
 
@@ -77,39 +75,20 @@ void *transmitter_rtpenc_routine(void *arg)
     struct rtp_session *session = participant->session;
 
     // TODO initialization
-    //struct pdb *participants = pdb_init();
     char *mcast_if = NULL;
     double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
     int ttl = 255;
     int recv_port = 2004;
-    void *rtp_recv_callback = NULL;
 
     struct rtp *rtp  = rtp_init_if(session->addr, mcast_if,
                                    recv_port, session->port, ttl,
-                                   rtcp_bw, 0, rtp_recv_callback,
+                                   rtcp_bw, 0, (void *)NULL,
                                    (void *)NULL, 0);
-    //rtp_set_my_ssrc(rtp, 10000);
-    // TODO
+    
     rtp_set_option(rtp, RTP_OPT_WEAK_VALIDATION, 1);
     rtp_set_sdes(rtp, rtp_my_ssrc(rtp), RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING));
-    //rtp_set_recv_buf(rtp, INITIAL_VIDEO_RECV_BUFFER_SIZE);
-    rtp_set_send_buf(rtp, 1024 * 56);
-    //pdb_add(participants, rtp_my_ssrc(rtp));
-
-    struct timeval curr_time;
-    struct timeval start_time;
-    gettimeofday(&start_time, NULL);
-    uint32_t timestamp;
 
     while (RUN) {
-
-        gettimeofday(&curr_time, NULL);
-        timestamp = tv_diff(curr_time, start_time) * 90000;
-        rtp_update(rtp, curr_time);
-        //rtp_send_ctrl(rtp, timestamp, 0, curr_time);
-
-        // TODO
-
         sem_wait(&participant->encoder->output_sem);
         if (!RUN) {
             break;
@@ -118,18 +97,15 @@ void *transmitter_rtpenc_routine(void *arg)
                           rtp, get_local_mediatime(), 1, participant->codec,
                           participant->encoder->frame->fps,
                           participant->encoder->frame->interlacing, 0, 0);
-        debug_msg(" new frame sent!\n");
     }   
 
-    //rtp_send_bye(rtp);
+    // TODO
     //rtp_done(rtp);
-    debug_msg(" rtpenc routine END\n");
     pthread_exit(NULL);
 }
 
 int transmitter_init_threads(struct participant_data *participant)
 {
-    debug_msg(" initializing the pair of threads for a participant\n");
     participant->encoder = malloc(sizeof(struct encoder_th));
     struct encoder_th *encoder = participant->encoder;
     if (encoder == NULL) {
@@ -143,26 +119,21 @@ int transmitter_init_threads(struct participant_data *participant)
         return -1;
     }
 
-    debug_msg("initializing semaphores\n");
     sem_init(&encoder->input_sem, 1, 0);
     sem_init(&encoder->output_sem, 1, 0);
 
-    debug_msg("initializing the pair of threads\n");
     int ret = 0;
     ret = pthread_create(&encoder->thread, NULL,
                 transmitter_encoder_routine, participant);
     if (ret < 0) {
         // TODO
     }
-    debug_msg("pthread_create encoder OK!\n");
     ret = pthread_create(&rtpenc->thread, NULL,
                 transmitter_rtpenc_routine, participant);
     if (ret < 0) {
         // TODO
     }
-    debug_msg("pthread_create rtpenc OK!\n");
 
-    debug_msg(" threads (for a participant) initialized\n");
     return 0;
 }
 
@@ -210,6 +181,8 @@ void *transmitter_master_routine(void *arg)
         free(participant->encoder);
 
         participant = participant->next;
+
+        // TODO semaphore destruction
     }
     if (ret != 0) {
         ret = -1;
