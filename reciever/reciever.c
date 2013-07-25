@@ -1,10 +1,11 @@
 #include "rtp/rtp.h"
 #include "rtp/rtp_callback.h"
-#include "rtp/rtpdec.h"
+#include "rtp/rtpdec_h264.h"
 #include "rtp/rtpenc.h"
 #include "pdb.h"
 #include "video.h"
 #include "tv.h"
+#include "debug.h"
 
 #include "video_decompress.h"
 #include "video_decompress/libavcodec.h"
@@ -13,62 +14,43 @@
 
 #include "participants.h"
 
-decoder_thread_t *init_decoder_thread(participant_data_t *src){
-	decoder_thread_t *decoder;
-	struct video_desc des;
-	
-	initialize_video_decompress();
-	
-	decoder = malloc(sizeof(decoder_thread_t));
-	decoder->data = malloc(vc_get_linesize(src->width, RGB)*src->height*sizeof(char));
-	
-	pthread_mutex_init(&decoder->lock, NULL);
-	pthread_cond_init(&decoder->notify_frame, NULL);
-	
-	if (decompress_is_available(LIBAVCODEC_MAGIC)) { //TODO: add some magic to determine codec
-	  decoder->sd = decompress_init(LIBAVCODEC_MAGIC);
-
-	  des.width = src->width;
-	  des.height = src->height;
-	  des.color_spec  = src->codec;
-	  des.tile_count = 0;
-	  des.interlacing = PROGRESSIVE;
-	  des.fps=10;
-        
-	  decompress_reconfigure(decoder->sd, des, 16, 8, 0, vc_get_linesize(des.width, UYVY), UYVY);
-      } else {
-	//TODO: error_msg
-      }
-      
-      return decoder;
-}
-
 void decoder_th(void* participant){
       participant_data_t *src = (participant_data_t *) participant;
       
       //TODO: this should be reconfigurable
       src->frame_length = vc_get_linesize(src->width, RGB)*src->height;
       
-      while(TRUE){ //TODO: stop it somehow
-	//TODO: spurious signals no handled, some flag is needed!
+      pthread_mutex_lock(&src->proc.decoder->lock);
+      while(src->proc.decoder->run){
+	
+	while(! src->proc.decoder->new_frame)
+	  pthread_cond_wait(&src->proc.decoder->notify_frame, &src->proc.decoder->lock);
+	
+	src->proc.decoder->new_frame = FALSE;
 	pthread_mutex_lock(&src->lock);
-	pthread_cond_wait(&src->proc.decoder->notify_frame, &src->lock);
-	decompress_frame(src->proc.decoder->sd,(unsigned char *) src->frame,(unsigned char *)src->proc.decoder->data,src->proc.decoder->data_len,0);
+	//decompress_frame(src->proc.decoder->sd,(unsigned char *) src->frame,(unsigned char *)src->proc.decoder->data,src->proc.decoder->data_len,0);
+	sleep(1);
+	printf("I am so cool, I am God, I am %u, better than other participants\n", src->ssrc);
 	src->new = TRUE;
 	pthread_mutex_unlock(&src->lock);
       }
       
+      pthread_mutex_unlock(&src->proc.decoder->lock);
+
       decompress_done(src->proc.decoder->sd);
 }
 
 void init_decoder(participant_data_t *src){
-      if (src->proc.decoder == NULL){
-	pthread_mutex_lock(&src->lock);
-	src->proc.decoder = init_decoder_thread(src);
-	pthread_mutex_unlock(&src->lock);
-      }
-      
-      pthread_create(&src->proc.decoder->th_id, NULL, &decoder_th, src);
+      assert(src->proc.decoder == NULL);
+  
+      pthread_mutex_lock(&src->lock);
+      src->proc.decoder = init_decoder_thread(src);
+      src->proc.decoder->run = TRUE;
+      pthread_mutex_unlock(&src->lock);
+     
+      if (pthread_create(&src->proc.decoder->th_id, NULL, &decoder_th, src) != 0)
+	src->proc.decoder->run = FALSE;
+
 }
 
 int start_input(void *participants) {
@@ -138,26 +120,44 @@ int start_input(void *participants) {
 	    cp = pdb_iter_init(part_db, &it);
 	    
      	    while (cp != NULL ) {
+	      
+	      pthread_rwlock_rdlock(&list->lock);
 	      src = get_participant_ssrc(list, cp->ssrc);
+	      pthread_rwlock_unlock(&list->lock);
+	      
 	      if (src != NULL && src->proc.decoder == NULL) {
+		
+		pthread_mutex_lock(&src->lock);
+		src->ssrc = cp->ssrc;
+		pthread_mutex_unlock(&src->lock);
 		init_decoder(src);
+		
 	      } else if (src != NULL) {
-		if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame, rx_data)) {
-		  pthread_mutex_lock(&src->proc.decoder->lock); //TODO: This is needed
+		if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data)) {
+		  
+		  gettimeofday(&curr_time, NULL);
+		  
+		  pthread_mutex_lock(&src->proc.decoder->lock); 
+		  
 		  memcpy(src->proc.decoder->data, rx_data->frame_buffer[0], rx_data->buffer_len[0]); //TODO: get rid of this magic number
 		  src->proc.decoder->data_len = rx_data->buffer_len[0];
+		  src->proc.decoder->new_frame = TRUE;
 		  pthread_cond_signal(&src->proc.decoder->notify_frame);
+		  
 		  pthread_mutex_unlock(&src->proc.decoder->lock);
 		}
 	      } else {
 		//TODO: delete cp form pdb or ignore it
 	      }
+	      pbuf_remove(cp->playout_buffer, curr_time);
 	      cp = pdb_iter_next(&it);
 	    }
 	    pdb_iter_done(&it);
         }
     }
 
+    
+    
     pthread_rwlock_rdlock(&list->lock);
     src = list->first;
     pthread_rwlock_unlock(&list->lock);
@@ -169,7 +169,6 @@ int start_input(void *participants) {
     }
     
     destroy_list(list);
-    //TODO: destroy participants
     rtp_done(session);
     
     return 0;

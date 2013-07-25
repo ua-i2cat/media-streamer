@@ -19,11 +19,14 @@ int main(){
   
   list = init_participant_list();
   
-  add_participant(list, 1080, 720, H264, NULL, 0);
+  add_participant(list, 1080, 720, H264, NULL, 0, INPUT);
+  add_participant(list, 1080, 720, H264, NULL, 0, INPUT);
+  add_participant(list, 1080, 720, H264, NULL, 0, INPUT);
   
   pthread_t input_th;
   
   pthread_create(&input_th, NULL, &start_input, (void *) list);
+  
   
   pthread_join(input_th, NULL);
 }

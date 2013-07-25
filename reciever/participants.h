@@ -2,6 +2,8 @@
 
 typedef struct participant_data participant_data_t;
 
+typedef enum ptype {INPUT, OUTPUT} ptype_t;
+
 struct participant_data {
 	pthread_mutex_t    	lock;
 	uint8_t 	   	new;
@@ -14,6 +16,7 @@ struct participant_data {
 	uint32_t		width;
 	uint32_t		height;
 	codec_t			codec;
+	ptype_t			type;
 	struct rtp_session	*session;
 	union {
 	  struct decoder_thread	*decoder;
@@ -23,8 +26,10 @@ struct participant_data {
 
 typedef struct decoder_thread {
 	pthread_t		th_id;
+	uint8_t			run;
 	pthread_mutex_t		lock;
 	pthread_cond_t		notify_frame;
+	uint8_t			new_frame;
 	char			*data;
 	uint32_t		data_len;
 	struct state_decompress *sd;
@@ -47,4 +52,4 @@ participant_list_t *init_participant_list();
 
 participant_data_t *get_participant_ssrc(participant_list_t *list, uint32_t ssrc);
 
-int add_participant(participant_list_t *list, int width, int height, codec_t codec, char *dst, uint32_t port);
+int add_participant(participant_list_t *list, int width, int height, codec_t codec, char *dst, uint32_t port, ptype_t type);
