@@ -2,6 +2,7 @@
 #include "rtp/rtpenc_h264.h"
 #include "pdb.h"
 #include "video_codec.h"
+#include "video_compress.h"
 #include "debug.h"
 #include "tv.h"
 #include <stdlib.h>
@@ -106,14 +107,14 @@ void *transmitter_rtpenc_routine(void *arg)
 
 int transmitter_init_threads(struct participant_data *participant)
 {
-    participant->encoder = malloc(sizeof(struct encoder_th));
-    struct encoder_th *encoder = participant->encoder;
+    participant->encoder = malloc(sizeof(struct encoder_thread));
+    struct encoder_thread *encoder = participant->encoder;
     if (encoder == NULL) {
         error_msg(" unsuccessful malloc\n");
         return -1;
     }
-    encoder->rtpenc = malloc(sizeof(struct rtpenc_th));
-    struct rtpenc_th *rtpenc = encoder->rtpenc;
+    encoder->rtpenc = malloc(sizeof(struct rtpenc_thread));
+    struct rtpenc_thread *rtpenc = encoder->rtpenc;
     if (rtpenc == NULL) {
         error_msg(" unsuccessful malloc\n");
         return -1;
@@ -155,9 +156,9 @@ void *transmitter_master_routine(void *arg)
         struct participant_data *ptc = list->first;
         while (ptc != NULL) {
             if (ptc->encoder != NULL) { // -> has a pair of threads
-                if (*(ptc->new)) { // -> has new data
+                if (ptc->new) { // -> has new data
                     pthread_mutex_lock(&ptc->lock);
-                    *(ptc->new) = 0;
+                    ptc->new = 0;
                     sem_post(&ptc->encoder->input_sem);
                     pthread_mutex_unlock(&ptc->lock);
                 }
@@ -312,9 +313,6 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    int new_first = 0;
-    int new_last = 0;
-
     struct rtp_session session_first = {
         .addr = "127.0.0.1",
         .port = 5004
@@ -326,7 +324,7 @@ int main(int argc, char **argv)
     };
 
     struct participant_data first = {
-        .new = &new_first,
+        .new = 0,
         .ssrc = 0,
         .frame = NULL,
         .frame_length = 0,
@@ -340,7 +338,7 @@ int main(int argc, char **argv)
     };
 
     struct participant_data last = {
-        .new = &new_last,
+        .new = 0,
         .ssrc = 0,
         .frame = (char *)NULL,
         .frame_length = 0,
@@ -389,17 +387,17 @@ int main(int argc, char **argv)
         if (ret == 0) {
             counter++;
             debug_msg(" new frame read!\n");
-            pthread_mutex_lock(&list.lock);
+            pthread_rwlock_wrlock(&list.lock);
             struct participant_data *participant = list.first;
             while (participant != NULL) {
                 pthread_mutex_lock(&participant->lock);
                 participant->frame = (char *)b1;
                 participant->frame_length = vc_get_linesize(width, UYVY)*height;
-                *(participant->new) = 1;
+                participant->new = 1;
                 pthread_mutex_unlock(&participant->lock);
                 participant = participant->next;
             }
-            pthread_mutex_unlock(&list.lock);
+            pthread_rwlock_unlock(&list.lock);
             usleep(40000);
         } else {
             break;
