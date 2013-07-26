@@ -1,4 +1,5 @@
 #include "transmitter.h"
+#include "rtp/rtp.h"
 #include "rtp/rtpenc_h264.h"
 #include "pdb.h"
 #include "video_codec.h"
@@ -22,10 +23,12 @@ void *transmitter_encoder_routine(void *arg)
 {
     struct participant_data *participant = (struct participant_data *)arg;
 
-    participant->encoder->input_frame_length = vc_get_linesize(participant->width, UYVY)*participant->height;
-    participant->encoder->input_frame = malloc(participant->encoder->input_frame_length); // TODO error handling
+    encoder_thread_t *encoder = participant->proc.encoder;
 
-    compress_init("libavcodec:codec=H.264", &participant->encoder->sc);
+    encoder->input_frame_length = vc_get_linesize(participant->width, UYVY)*participant->height;
+    encoder->input_frame = malloc(encoder->input_frame_length); // TODO error handling
+
+    compress_init("libavcodec:codec=H.264", &encoder->sc);
 
     struct video_frame *frame = vf_alloc(1);
     int width = participant->width;
@@ -38,34 +41,34 @@ void *transmitter_encoder_routine(void *arg)
     frame->interlacing=PROGRESSIVE;
     
     while (RUN) {
-        sem_wait(&participant->encoder->input_sem);
+        sem_wait(&encoder->input_sem);
         if (!RUN) {
             break;
         }
 
         pthread_mutex_lock(&participant->lock);
-        memcpy(participant->encoder->input_frame, participant->frame, participant->encoder->input_frame_length);
-        participant->encoder->input_frame_length = participant->frame_length;
+        memcpy(encoder->input_frame, participant->frame, encoder->input_frame_length);
+        encoder->input_frame_length = participant->frame_length;
         pthread_mutex_unlock(&participant->lock);
 
         
-        frame->tiles[0].data = participant->encoder->input_frame;
-        frame->tiles[0].data_len = participant->encoder->input_frame_length;
+        frame->tiles[0].data = encoder->input_frame;
+        frame->tiles[0].data_len = encoder->input_frame_length;
 
         struct video_frame *tx_frame;
-        int i = participant->encoder->index;
-        tx_frame = compress_frame(participant->encoder->sc, frame, i);
+        int i = encoder->index;
+        tx_frame = compress_frame(encoder->sc, frame, i);
         i = (i + 1)%2;
-        participant->encoder->index = i;
-        participant->encoder->frame = tx_frame;
+        encoder->index = i;
+        encoder->frame = tx_frame;
         
-        sem_post(&participant->encoder->output_sem);    
+        sem_post(&encoder->output_sem);    
     }
 
     debug_msg(" encoder routine END\n");
     int ret = 0;
-    compress_done(participant->encoder->sc);
-    free(participant->encoder->input_frame);
+    compress_done(encoder->sc);
+    free(encoder->input_frame);
     pthread_exit((void *)&ret);
 }
 
@@ -90,14 +93,15 @@ void *transmitter_rtpenc_routine(void *arg)
     rtp_set_sdes(rtp, rtp_my_ssrc(rtp), RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING));
 
     while (RUN) {
-        sem_wait(&participant->encoder->output_sem);
+        encoder_thread_t *encoder = participant->proc.encoder;
+        sem_wait(&encoder->output_sem);
         if (!RUN) {
             break;
         }
-        tx_send_base_h264(vf_get_tile(participant->encoder->frame, 0),
+        tx_send_base_h264(vf_get_tile(encoder->frame, 0),
                           rtp, get_local_mediatime(), 1, participant->codec,
-                          participant->encoder->frame->fps,
-                          participant->encoder->frame->interlacing, 0, 0);
+                          encoder->frame->fps,
+                          encoder->frame->interlacing, 0, 0);
     }   
 
     // TODO
@@ -107,14 +111,14 @@ void *transmitter_rtpenc_routine(void *arg)
 
 int transmitter_init_threads(struct participant_data *participant)
 {
-    participant->encoder = malloc(sizeof(struct encoder_thread));
-    struct encoder_thread *encoder = participant->encoder;
+    participant->proc.encoder = malloc(sizeof(encoder_thread_t));
+    encoder_thread_t *encoder = participant->proc.encoder;
     if (encoder == NULL) {
         error_msg(" unsuccessful malloc\n");
         return -1;
     }
-    encoder->rtpenc = malloc(sizeof(struct rtpenc_thread));
-    struct rtpenc_thread *rtpenc = encoder->rtpenc;
+    encoder->rtpenc = malloc(sizeof(rtpenc_thread_t));
+    rtpenc_thread_t *rtpenc = encoder->rtpenc;
     if (rtpenc == NULL) {
         error_msg(" unsuccessful malloc\n");
         return -1;
@@ -155,11 +159,11 @@ void *transmitter_master_routine(void *arg)
     while (RUN) {
         struct participant_data *ptc = list->first;
         while (ptc != NULL) {
-            if (ptc->encoder != NULL) { // -> has a pair of threads
+            if (ptc->proc.encoder != NULL) { // -> has a pair of threads
                 if (ptc->new) { // -> has new data
                     pthread_mutex_lock(&ptc->lock);
                     ptc->new = 0;
-                    sem_post(&ptc->encoder->input_sem);
+                    sem_post(&ptc->proc.encoder->input_sem);
                     pthread_mutex_unlock(&ptc->lock);
                 }
             }
@@ -172,14 +176,14 @@ void *transmitter_master_routine(void *arg)
     void *end;
     participant = list->first;
     while (participant != NULL) {
-        sem_post(&participant->encoder->input_sem);
-        sem_post(&participant->encoder->output_sem);
+        sem_post(&participant->proc.encoder->input_sem);
+        sem_post(&participant->proc.encoder->output_sem);
         
-        ret += pthread_join(participant->encoder->rtpenc->thread, &end);
-        ret += pthread_join(participant->encoder->thread, &end);
+        ret += pthread_join(participant->proc.encoder->rtpenc->thread, &end);
+        ret += pthread_join(participant->proc.encoder->thread, &end);
 
-        free(participant->encoder->rtpenc);
-        free(participant->encoder);
+        free(participant->proc.encoder->rtpenc);
+        free(participant->proc.encoder);
 
         participant = participant->next;
 
@@ -334,7 +338,7 @@ int main(int argc, char **argv)
         .height = 480,
         .codec = H264,
         .session = &session_first,
-        .encoder = NULL
+        .proc.encoder = NULL
     };
 
     struct participant_data last = {
@@ -348,7 +352,7 @@ int main(int argc, char **argv)
         .height = 480,
         .codec = H264,
         .session = &session_last,
-        .encoder = NULL  
+        .proc.encoder = NULL  
     };
 
     first.next = &last;
