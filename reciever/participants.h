@@ -7,7 +7,7 @@ typedef enum {INPUT, OUTPUT} ptype_t;
 
 struct participant_data {
 	pthread_mutex_t    	lock;
-	uint8_t 	   	new;
+	uint8_t 	   	new_frame;
 	uint32_t 		ssrc;
 	uint32_t		id;
 	char			*frame;
