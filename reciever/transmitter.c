@@ -195,7 +195,7 @@ void *transmitter_master_routine(void *arg)
     pthread_exit((void *)&ret);
 }
 
-int start_out_manager(struct participant_list *list, uint32_t port)
+int start_out_manager(participant_list_t *list, uint32_t port)
 {
     UNUSED(port);
     debug_msg("creating the master thread...\n");
@@ -317,55 +317,24 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    struct rtp_session session_first = {
-        .addr = "127.0.0.1",
-        .port = 5004
-    };
+    participant_list_t *list = init_participant_list();
+    if (list == NULL) {
+        error_msg(" could not initialize a participant list\n");
+    }
+    int ret = 0;
+    ret = add_participant(list, 0, 854, 480, H264, "127.0.0.1", 5004, OUTPUT);
+    if (ret < 0) {
+        error_msg(" could not add a new participant\n");
+        destroy_participant_list(list);
+        return -1;
+    }
+    ret = add_participant(list, 0, 854, 480, H264, "127.0.0.1", 6004, OUTPUT);
+    if (ret < 0) {
+        error_msg(" could not add a new participant\n");
+        destroy_participant_list(list);
+        return -1;
+    }
 
-    struct rtp_session session_last = {
-        .addr = "127.0.0.1",
-        .port = 6004
-    };
-
-    struct participant_data first = {
-        .new = 0,
-        .ssrc = 0,
-        .frame = NULL,
-        .frame_length = 0,
-        .next = NULL,
-        .previous = NULL,
-        .width = 854,
-        .height = 480,
-        .codec = H264,
-        .session = &session_first,
-        .proc.encoder = NULL
-    };
-
-    struct participant_data last = {
-        .new = 0,
-        .ssrc = 0,
-        .frame = (char *)NULL,
-        .frame_length = 0,
-        .next = NULL,
-        .previous = NULL,
-        .width = 854,
-        .height = 480,
-        .codec = H264,
-        .session = &session_last,
-        .proc.encoder = NULL  
-    };
-
-    first.next = &last;
-    last.previous = &first;
-
-    struct participant_list list = {
-        .count = 2,
-        .first = &first,
-        .last = &last
-    };
-
-
-    start_out_manager(&list, 8000);
 
     AVFormatContext *pformat_ctx = avformat_alloc_context();
     AVCodecContext codec_ctx;
@@ -381,6 +350,9 @@ int main(int argc, char **argv)
                         codec_ctx.width, codec_ctx.height)*sizeof(uint8_t));
 
     int counter = 0;
+    
+    start_out_manager(list, 8000);
+    
     while(1) {
         int ret = read_frame(pformat_ctx, video_stream, &codec_ctx, b1);
 
@@ -391,8 +363,8 @@ int main(int argc, char **argv)
         if (ret == 0) {
             counter++;
             debug_msg(" new frame read!\n");
-            pthread_rwlock_wrlock(&list.lock);
-            struct participant_data *participant = list.first;
+            pthread_rwlock_wrlock(&list->lock);
+            struct participant_data *participant = list->first;
             while (participant != NULL) {
                 pthread_mutex_lock(&participant->lock);
                 participant->frame = (char *)b1;
@@ -401,7 +373,7 @@ int main(int argc, char **argv)
                 pthread_mutex_unlock(&participant->lock);
                 participant = participant->next;
             }
-            pthread_rwlock_unlock(&list.lock);
+            pthread_rwlock_unlock(&list->lock);
             usleep(40000);
         } else {
             break;
@@ -411,6 +383,7 @@ int main(int argc, char **argv)
     stop_out_manager();
     av_free(pformat_ctx);
     av_free(b1);
+    destroy_participant_list(list);
     debug_msg(" done!\n");
 
     return 0;
