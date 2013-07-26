@@ -82,7 +82,7 @@ OBJS_TEST     = $(patsubst %.c, %.o,	$(wildcard tests/*.c) $(wildcard tests/*/*.
 
 OBJS_RECIEVER = reciever/participants.o reciever/reciever.o
 
-OBJS_TRANSMITTER = transmitter/transmitter.o
+OBJS_TRANSMITTER = $(patsubst %.c, %.o, $(wildcard transmitter/*.c))
 
 # -------------------------------------------------------------------------------------------------
 
