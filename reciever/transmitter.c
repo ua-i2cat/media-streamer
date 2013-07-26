@@ -32,7 +32,6 @@ void *transmitter_encoder_routine(void *arg)
     vf_get_tile(frame, 0)->width=width;
     vf_get_tile(frame, 0)->height=height;
     vf_get_tile(frame, 0)->linesize=vc_get_linesize(width, UYVY);
-    frame->fps=5; // TODO!
     frame->color_spec=UYVY;
     frame->interlacing=PROGRESSIVE;
     
@@ -46,7 +45,6 @@ void *transmitter_encoder_routine(void *arg)
         memcpy(encoder->input_frame, participant->frame, encoder->input_frame_length);
         encoder->input_frame_length = participant->frame_length;
         pthread_mutex_unlock(&participant->lock);
-
         
         frame->tiles[0].data = encoder->input_frame;
         frame->tiles[0].data_len = encoder->input_frame_length;
@@ -87,14 +85,18 @@ void *transmitter_rtpenc_routine(void *arg)
     
     rtp_set_option(rtp, RTP_OPT_WEAK_VALIDATION, 1);
     rtp_set_sdes(rtp, rtp_my_ssrc(rtp), RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING));
+    
+    struct timeval curr_time;
 
     while (RUN) {
         encoder_thread_t *encoder = participant->proc.encoder;
-        sem_wait(&encoder->output_sem);
         if (!RUN) {
             break;
         }
-        tx_send_base_h264(vf_get_tile(encoder->frame, 0),
+        sem_wait(&encoder->output_sem);
+        gettimeofday(&curr_time, NULL);
+        rtp_update(rtp, curr_time);
+        tx_send_base(vf_get_tile(encoder->frame, 0),
                           rtp, get_local_mediatime(), 1, participant->codec,
                           encoder->frame->fps,
                           encoder->frame->interlacing, 0, 0);
