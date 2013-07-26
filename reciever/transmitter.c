@@ -349,10 +349,9 @@ int main(int argc, char **argv)
     uint8_t *b1 = (uint8_t *)av_malloc(avpicture_get_size(codec_ctx.pix_fmt,
                         codec_ctx.width, codec_ctx.height)*sizeof(uint8_t));
 
-    int counter = 0;
-    
     start_out_manager(list, 8000);
     
+    int counter = 0;
     while(1) {
         int ret = read_frame(pformat_ctx, video_stream, &codec_ctx, b1);
 
