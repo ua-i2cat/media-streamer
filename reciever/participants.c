@@ -9,7 +9,7 @@ participant_data_t *init_participant(int id, int width, int height, codec_t code
   participant = (participant_data_t *) malloc(sizeof(participant_data_t));
   
   pthread_mutex_init(&participant->lock, NULL);
-  participant->new = FALSE;
+  participant->new_frame = FALSE;
   participant->ssrc = 0;
   participant->frame = malloc(vc_get_linesize(width, RGB)*height);
   participant->height = height;

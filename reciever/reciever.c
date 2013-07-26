@@ -26,7 +26,7 @@ void decoder_th(void* participant){
 	  src->proc.decoder->new_frame = FALSE;
 	  pthread_mutex_lock(&src->lock);
 	  decompress_frame(src->proc.decoder->sd,(unsigned char *) src->frame, (unsigned char *)src->proc.decoder->data, src->proc.decoder->data_len, 0);
-	  src->new = TRUE;
+	  src->new_frame = TRUE;
 	  pthread_mutex_unlock(&src->lock);
 	} 
       }
