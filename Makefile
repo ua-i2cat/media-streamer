@@ -80,9 +80,9 @@ OBJS		  = $(filter-out $(OBJS_EXCLUDE), $(OBJS_C) $(OBJS_CPP))
 
 OBJS_TEST     = $(patsubst %.c, %.o,	$(wildcard tests/*.c) $(wildcard tests/*/*.c))
 
-OBJS_RECIEVER = reciever/participants.o reciever/reciever.o
+OBJS_RECIEVER = $(addprefix reciever/, participants.o reciever.o test.o)
 
-OBJS_TRANSMITTER = $(patsubst %.c, %.o, $(wildcard transmitter/*.c))
+OBJS_TRANSMITTER = $(addprefix reciever/, participants.o transmitter.o)
 
 # -------------------------------------------------------------------------------------------------
 
@@ -125,7 +125,7 @@ $(TARGET_DEC): $(OBJS_DEC) $(HEADERS)
 bin/%: tests/%.o $(OBJS) $(HEADERS)
 	$(LINKER) $(LDFLAGS_TEST) $(INC) $+ -o $@ $(LIBS_TEST)
 	
-bin/%: reciever/%.o $(OBJS_RECIEVER) $(OBJS)
+$(RECIEVER): $(OBJS_RECIEVER) $(OBJS)
 	$(LINKER) $(LDFLAGS_TEST) $(INC) $+ -o $@ $(LIBS_TEST)
 	
 $(TRANSMITTER): $(OBJS_TRANSMITTER) $(OBJS)

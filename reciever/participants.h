@@ -1,4 +1,5 @@
 #include "video.h"
+#include <semaphore.h>
 
 typedef struct participant_data participant_data_t;
 
@@ -34,6 +35,22 @@ typedef struct decoder_thread {
 	uint32_t		data_len;
 	struct state_decompress *sd;
 } decoder_thread_t;
+
+typedef struct rtpenc_thread {
+    pthread_t thread;
+} rtpenc_thread_t;
+
+typedef struct encoder_thread {
+    pthread_t   thread;
+    rtpenc_thread_t *rtpenc;
+    struct compress_state *sc;
+    int index;
+    struct video_frame *frame;
+    char    *input_frame;
+    int     input_frame_length;
+    sem_t input_sem;
+    sem_t output_sem;
+} encoder_thread_t;
 
 typedef struct participant_list {
 	pthread_rwlock_t   	lock;
