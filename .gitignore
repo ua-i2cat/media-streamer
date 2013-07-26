@@ -7,7 +7,7 @@ bin
 *.uyvy
 *.uyvy422
 *.h264
-*.mpd
+*.spd
 
 *~
 *.swp
