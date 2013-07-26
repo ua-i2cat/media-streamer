@@ -11,4 +11,6 @@ typedef struct reciever {
 
 int start_reciever(reciever_t *recv);
 
+reciever_t *init_reciever(participant_list_t *list, int port);
+
 int stop_reciever(reciever_t *reciever);
