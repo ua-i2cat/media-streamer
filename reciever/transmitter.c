@@ -160,9 +160,9 @@ void *transmitter_master_routine(void *arg)
         struct participant_data *ptc = list->first;
         while (ptc != NULL) {
             if (ptc->proc.encoder != NULL) { // -> has a pair of threads
-                if (ptc->new) { // -> has new data
+                if (ptc->new_frame) { // -> has new data
                     pthread_mutex_lock(&ptc->lock);
-                    ptc->new = 0;
+                    ptc->new_frame = 0;
                     sem_post(&ptc->proc.encoder->input_sem);
                     pthread_mutex_unlock(&ptc->lock);
                 }
@@ -368,7 +368,7 @@ int main(int argc, char **argv)
                 pthread_mutex_lock(&participant->lock);
                 participant->frame = (char *)b1;
                 participant->frame_length = vc_get_linesize(width, UYVY)*height;
-                participant->new = 1;
+                participant->new_frame = 1;
                 pthread_mutex_unlock(&participant->lock);
                 participant = participant->next;
             }
