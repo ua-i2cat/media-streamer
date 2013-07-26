@@ -96,7 +96,7 @@ void *transmitter_rtpenc_routine(void *arg)
         sem_wait(&encoder->output_sem);
         gettimeofday(&curr_time, NULL);
         rtp_update(rtp, curr_time);
-        tx_send_base(vf_get_tile(encoder->frame, 0),
+        tx_send_base_h264(vf_get_tile(encoder->frame, 0),
                           rtp, get_local_mediatime(), 1, participant->codec,
                           encoder->frame->fps,
                           encoder->frame->interlacing, 0, 0);
