@@ -30,7 +30,7 @@ TARGETS       = $(TARGET_RTP) $(TARGET_ENC) $(TARGET_DEC)
 
 TESTS = $(addprefix bin/, rtp encoder decoder ug_ug vlc_vlc vlc_ug ug_vlc enc_tx rx_dec enc_dec 2in2out)
 
-TRANSMITTER = $(addprefix bin/, transmitter)
+TRANSMITTER = $(addprefix bin/, test_transmitter)
 
 RECIEVER = $(addprefix bin/, test)
 
@@ -82,7 +82,7 @@ OBJS_TEST     = $(patsubst %.c, %.o,	$(wildcard tests/*.c) $(wildcard tests/*/*.
 
 OBJS_RECIEVER = $(addprefix reciever/, participants.o reciever.o test.o)
 
-OBJS_TRANSMITTER = $(addprefix reciever/, participants.o transmitter.o)
+OBJS_TRANSMITTER = $(addprefix reciever/, participants.o transmitter.o test_transmitter.o)
 
 # -------------------------------------------------------------------------------------------------
 
