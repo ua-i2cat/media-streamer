@@ -7,6 +7,8 @@
 #include "debug.h"
 #include "tv.h"
 
+#define DEFAULT_FPS 5
+
 void *transmitter_encoder_routine(void *arg);
 void *transmitter_rtpenc_routine(void *arg);
 int transmitter_init_threads(struct participant_data *participant);
@@ -33,6 +35,7 @@ void *transmitter_encoder_routine(void *arg)
     vf_get_tile(frame, 0)->height=height;
     vf_get_tile(frame, 0)->linesize=vc_get_linesize(width, UYVY);
     frame->color_spec=UYVY;
+    frame->fps = DEFAULT_FPS; // FIXME: if it's not set -> core dump.
     frame->interlacing=PROGRESSIVE;
     
     while (RUN) {
