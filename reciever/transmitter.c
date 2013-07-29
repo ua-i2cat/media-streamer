@@ -177,18 +177,19 @@ void *transmitter_master_routine(void *arg)
     void *end;
     participant = list->first;
     while (participant != NULL) {
-        sem_post(&participant->proc.encoder->input_sem);
         sem_post(&participant->proc.encoder->output_sem);
+        sem_post(&participant->proc.encoder->input_sem);
         
         ret += pthread_join(participant->proc.encoder->rtpenc->thread, &end);
         ret += pthread_join(participant->proc.encoder->thread, &end);
+
+        sem_destroy(&participant->proc.encoder->input_sem);
+        sem_destroy(&participant->proc.encoder->output_sem);
 
         free(participant->proc.encoder->rtpenc);
         free(participant->proc.encoder);
 
         participant = participant->next;
-
-        // TODO semaphore destruction
     }
     if (ret != 0) {
         ret = -1;
