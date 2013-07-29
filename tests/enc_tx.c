@@ -124,7 +124,7 @@ int main(){
     // const char* pathUGDEC = "/home/gerardcl/workspace/git-repos/ug-modules/decodedUGvideo.yuv";
     // const char* pathFFMPEGDEC = "/home/gerardcl/workspace/git-repos/ug-modules/decodedFFMPEGvideo.yuv";
     // const char* pathOriginal1DEC = "/home/gerardcl/workspace/git-repos/ug-modules/tulips_uyvy422_prog_packed_qcif.yuv";
-    const char* pathSintelDEC = "/home/gerardcl/workspace/git-repos/ug-modules/sintel.yuv";
+    const char* pathSintelDEC = "/home/gerardcl/workspace/test_files/sintel.yuv";
 
     // int ret;
 
@@ -282,7 +282,6 @@ int main(){
 
         	if (ret==0) {
                 gettimeofday(&curr_time, NULL);
-                //printf("\nFRAME RECIEVED (first byte = %x)\n",rx_data->frame_buffer[0][0]);
 
                 frame->tiles[0].data = (char *)b1;
                 frame->tiles[0].data_len = vc_get_linesize(width, UYVY)*heigth;

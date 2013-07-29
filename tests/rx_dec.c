@@ -160,6 +160,7 @@ int main(int argc, char **argv)
     }
 
     struct recieved_data *rx_data = calloc(1, sizeof(struct recieved_data));
+    rx_data->frame_buffer[0]  = calloc(1, 4 * WIDTH * HEIGHT);
 
     tx_init();
 
@@ -186,7 +187,7 @@ int main(int argc, char **argv)
         int ret;
         //printf("PACKET RECIEVED, building FRAME\n");
         while (cp != NULL ) {
-            ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data);
+            ret = pbuf_decode(cp->playout_buffer, curr_time, decode_frame, rx_data);
             //printf("DECODE return value: %d\n", ret);
             if (ret) {
                 gettimeofday(&curr_time, NULL);
@@ -224,7 +225,7 @@ int main(int argc, char **argv)
 
     compress_done(sc);
     decompress_done(sd);
-
+    free(rx_data->frame_buffer[0]);
     rtp_done(devices[index]);
     printf("RTP DONE\n");
 }

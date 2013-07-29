@@ -127,6 +127,8 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
                 }
 
                 if(!buffers->frame_buffer[substream]) {
+
+                	//TODO SHOULD BE MALLOCed OUTSIDE
                 	buffers->frame_buffer[substream] = (char *) malloc(buffer_length);
                 }
 
