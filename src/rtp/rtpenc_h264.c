@@ -123,7 +123,7 @@ static uint8_t *rtpenc_h264_find_startcode_internal(uint8_t *start,
 		uint8_t *end)
 {
 	uint8_t *p = start;
-	uint8_t *pend = end;
+	uint8_t *pend = end - 3; // XXX: w/o -3, p[1] and p[2] may fail.
 
 	for (p = start; p < pend; p++) {
 		if (p[0] == 0 && p[1] == 0 && p[2] == 1) {
