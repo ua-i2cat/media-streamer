@@ -38,7 +38,7 @@ int main(){
   
     sleep(3);
   
-    //stop_reciever(reciever);
+    stop_reciever(reciever);
   
     pthread_join(reciever->th_id, NULL);
   }

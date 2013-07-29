@@ -96,6 +96,7 @@ int reciever_thread(reciever_t *reciever) {
     uint32_t timestamp; //TODO: why is this used
     
     struct recieved_data *rx_data = calloc(1, sizeof(struct recieved_data));
+    rx_data->frame_buffer[0] = malloc(1920*1080*4*sizeof(char));
 
     while(reciever->run){
         gettimeofday(&curr_time, NULL);
