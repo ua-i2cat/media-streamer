@@ -196,9 +196,8 @@ void *transmitter_master_routine(void *arg)
     pthread_exit((void *)&ret);
 }
 
-int start_out_manager(participant_list_t *list, uint32_t port)
+int start_out_manager(participant_list_t *list)
 {
-    UNUSED(port);
     debug_msg("creating the master thread...\n");
     int ret = pthread_create(&MASTER_THREAD, NULL, transmitter_master_routine, list);
     if (ret < 0) {
