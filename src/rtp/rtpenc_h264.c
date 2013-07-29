@@ -123,9 +123,9 @@ static uint8_t *rtpenc_h264_find_startcode_internal(uint8_t *start,
 		uint8_t *end)
 {
 	uint8_t *p = start;
-	uint8_t *pend = end - 3; // XXX: w/o -3, p[1] and p[2] may fail.
+	uint8_t *pend = end; // - 3; // XXX: w/o -3, p[1] and p[2] may fail.
 
-	for (p = start; p < pend; p++) {
+	for (p = start; p + 2 < pend; p++) {
 		if (p[0] == 0 && p[1] == 0 && p[2] == 1) {
 			return p;
 		}
@@ -286,16 +286,15 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session, uint32_t ts,
 			 			(char *)nal_payload, nal_payload_size, extn, extn_len,
 						extn_type);
 
-			unsigned char *dst = (unsigned char *)(nal.data);
+			/*unsigned char *dst = (unsigned char *)(nal.data);
 			unsigned char *end = (unsigned char *)(nal.data + nal.size);
-			debug_msg("\n\nFirst six bytes: %02x %02x %02x %02x %02x %02x\n", dst[0], dst[1], dst[2], dst[3], dst[4], dst[5]);
-			debug_msg("Last six bytes: %02x %02x %02x %02x %02x %02x\n", end[-6],
-					end[-5],
+			debug_msg("\n\nFirst four bytes: %02x %02x %02x %02x\n", dst[0], dst[1], dst[2], dst[3]);
+			debug_msg("Last four bytes: %02x %02x %02x %02x\n",
 					end[-4],
 					end[-3],
 					end[-2],
 					end[-1]);
-			debug_msg("NAL size: %d\n\n", nal.size); // - startcode_size);
+			debug_msg("NAL size: %d\n\n", nal.size); // - startcode_size); */
 
 			if (err < 0) {
 				error_msg("There was a problem sending the RTP packet\n");
