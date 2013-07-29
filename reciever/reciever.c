@@ -42,7 +42,7 @@ void init_decoder(participant_data_t *src){
       src->proc.decoder->run = TRUE;
       pthread_mutex_unlock(&src->lock);
      
-      if (pthread_create(&src->proc.decoder->th_id, NULL, &decoder_th, src) != 0)
+      if (pthread_create(&src->proc.decoder->th_id, NULL, &decoder_th, (void *) src) != 0)
 	src->proc.decoder->run = FALSE;
 
 }
@@ -82,7 +82,7 @@ reciever_t *init_reciever(participant_list_t *list, int port){
     return reciever;
 }
 
-int reciever_thread(reciever_t *reciever) {
+void reciever_thread(reciever_t *reciever) {
     struct pdb_e *cp;
     participant_data_t *src;
 
@@ -102,7 +102,7 @@ int reciever_thread(reciever_t *reciever) {
         gettimeofday(&curr_time, NULL);
         timestamp = tv_diff(curr_time, start_time) * 90000;
         rtp_update(reciever->session, curr_time);
-        rtp_send_ctrl(reciever->session, timestamp, 0, curr_time);
+        //rtp_send_ctrl(reciever->session, timestamp, 0, curr_time); //TODO: why is this used?
 
         timeout.tv_sec = 0;
         timeout.tv_usec = 10000;
@@ -111,7 +111,7 @@ int reciever_thread(reciever_t *reciever) {
 	    pdb_iter_t it;
 	    cp = pdb_iter_init(reciever->part_db, &it);
 	    
-     	    while (cp != NULL ) {
+     	    while (cp != NULL) {
 	      
 	      pthread_rwlock_rdlock(&reciever->list->lock);
 	      src = get_participant_ssrc(reciever->list, cp->ssrc);
@@ -150,8 +150,6 @@ int reciever_thread(reciever_t *reciever) {
     destroy_participant_list(reciever->list);
     rtp_done(reciever->session);
     free(reciever);
-    
-    return 0;
 }
 
 int start_reciever(reciever_t *reciever){
