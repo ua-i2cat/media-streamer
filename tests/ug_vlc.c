@@ -18,7 +18,7 @@
 
 FILE *F_video_rx=NULL;
 
-int width = 1280;
+int width = 854;
 int height = 720;
 double fps = 15;
 
@@ -49,7 +49,8 @@ int main(){
     double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
     int ttl = 255;
     // char *saveptr = NULL;
-    char *addr="127.0.0.1";
+    char *addr="192.168.10.121";
+    //char *addr="127.0.0.1";
     char *mcast_if= NULL;
     struct timeval curr_time;
     struct timeval timeout;
@@ -59,8 +60,8 @@ int main(){
 
     int required_connections;
     // uint32_t ts;
-    int recv_port = 5004;
-    int send_port = 7004;
+    int recv_port = 7004;
+    int send_port = 5004;
     int index=0;
     int exit = 1;
 
@@ -142,6 +143,7 @@ int main(){
     }
 
     struct recieved_data *rx_data = calloc(1, sizeof(struct recieved_data));
+    rx_data->frame_buffer[0]  = calloc(1, 4 * width * height);
 
     tx_init();
 
@@ -192,6 +194,7 @@ int main(){
                 if(tx_frame->tiles[0].data_len>0)
                     tx_send_base_h264(vf_get_tile(tx_frame, 0), devices[0], get_local_mediatime(), 1, tx_frame->color_spec, tx_frame->fps, tx_frame->interlacing, 0, 0);
                 
+                printf("\nH264 SEND\n");
                 //if (xec > 3)
                 //  exit = 0;
                 //xec++;
@@ -208,7 +211,7 @@ int main(){
 
     compress_done(sc);
     decompress_done(sd);
-
+    free(rx_data->frame_buffer[0]);
     rtp_done(devices[index]);
     printf("RTP DONE\n");
 }
