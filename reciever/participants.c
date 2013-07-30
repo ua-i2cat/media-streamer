@@ -45,12 +45,18 @@ void destroy_decoder_thread(decoder_thread_t *dec_th){
     free(dec_th);
 }
 
+void destroy_encoder_thread(decoder_thread_t *enc_th){
+    // TODO
+}
+
 void destroy_participant(participant_data_t *src){
   free(src->frame);
   free(src->session);
   
   if (src->type == INPUT && src->proc.decoder != NULL){
     destroy_decoder_thread(src->proc.decoder);
+  } else if (src->type = OUTPUT && src->proc.encoder != NULL){
+    destroy_encoder_thread(src->proc.encoder);
   }
   
   pthread_mutex_destroy(&src->lock);
