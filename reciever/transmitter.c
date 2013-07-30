@@ -17,7 +17,7 @@ void *transmitter_encoder_routine(void *arg);
 void *transmitter_rtpenc_routine(void *arg);
 int transmitter_init_threads(struct participant_data *participant);
 void *transmitter_master_routine(void *arg);
-void *transmitter_dummy_callback(void *arg);
+void transmitter_dummy_callback(struct rtp *session, rtp_event *e);
 
 pthread_t MASTER_THREAD;
 int RUN = 1;
@@ -74,10 +74,10 @@ void *transmitter_encoder_routine(void *arg)
     pthread_exit((void *)&ret);
 }
 
-void *transmitter_dummy_callback(void *arg)
+void transmitter_dummy_callback(struct rtp *session, rtp_event *e)
 {
-    UNUSED(arg);
-    return (void *)NULL;
+    UNUSED(session);
+    UNUSED(e);
 }
 
 void *transmitter_rtpenc_routine(void *arg)
