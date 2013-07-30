@@ -205,7 +205,6 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session, uint32_t ts,
 	UNUSED(substream);
 	UNUSED(fragment_offset);
 
-printf("data len to encode: %d\n",tile->data_len);
 	uint8_t *data = (uint8_t *) tile->data;
 	int data_len = tile->data_len;
 
