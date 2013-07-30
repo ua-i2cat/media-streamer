@@ -7,12 +7,17 @@
 #include "debug.h"
 #include "tv.h"
 
-#define DEFAULT_FPS 5
+#define DEFAULT_FPS 24
+#define DEFAULT_RECV_PORT 12006 // just trying to not interfere with anything
+#define DEFAULT_RTCP_BW 5 * 1024 * 1024
+#define DEFAULT_TTL 255
+#define DEFAULT_SEND_BUFFER_SIZE 1024 * 56
 
 void *transmitter_encoder_routine(void *arg);
 void *transmitter_rtpenc_routine(void *arg);
 int transmitter_init_threads(struct participant_data *participant);
 void *transmitter_master_routine(void *arg);
+void *transmitter_dummy_callback(void *arg);
 
 pthread_t MASTER_THREAD;
 int RUN = 1;
@@ -72,7 +77,7 @@ void *transmitter_encoder_routine(void *arg)
 void *transmitter_dummy_callback(void *arg)
 {
     UNUSED(arg);
-    return;
+    return (void *)NULL;
 }
 
 void *transmitter_rtpenc_routine(void *arg)
@@ -81,11 +86,10 @@ void *transmitter_rtpenc_routine(void *arg)
     struct participant_data *participant = (struct participant_data *)arg;
     struct rtp_session *session = participant->session;
 
-    // TODO initialization
     char *mcast_if = NULL;
-    double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
-    int ttl = 255;
-    int recv_port = 12004; // TODO: use a constant
+    double rtcp_bw = DEFAULT_RTCP_BW;
+    int ttl = DEFAULT_TTL;
+    int recv_port = DEFAULT_RECV_PORT;
 
     struct rtp *rtp  = rtp_init_if(session->addr, mcast_if,
                                    recv_port, session->port, ttl,
@@ -94,7 +98,7 @@ void *transmitter_rtpenc_routine(void *arg)
     
     rtp_set_option(rtp, RTP_OPT_WEAK_VALIDATION, 1);
     rtp_set_sdes(rtp, rtp_my_ssrc(rtp), RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING));
-    rtp_set_send_buf(rtp, 1024 * 56);
+    rtp_set_send_buf(rtp, DEFAULT_SEND_BUFFER_SIZE);
 
     tx_init();
     
@@ -115,6 +119,7 @@ void *transmitter_rtpenc_routine(void *arg)
     }   
 
     // TODO
+    rtp_send_bye(rtp);
     rtp_done(rtp);
     pthread_exit(NULL);
 }
