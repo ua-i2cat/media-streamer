@@ -42,6 +42,7 @@ typedef struct rtpenc_thread {
 
 typedef struct encoder_thread {
     pthread_t   thread;
+    uint8_t     run;
     rtpenc_thread_t *rtpenc;
     struct compress_state *sc;
     int index;
