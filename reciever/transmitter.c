@@ -45,7 +45,7 @@ void *transmitter_encoder_routine(void *arg)
         }
 
         pthread_mutex_lock(&participant->lock);
-        memcpy(encoder->input_frame, participant->frame, encoder->input_frame_length);
+        memcpy(encoder->input_frame, participant->frame, participant->frame_length);
         encoder->input_frame_length = participant->frame_length;
         pthread_mutex_unlock(&participant->lock);
         
@@ -69,6 +69,12 @@ void *transmitter_encoder_routine(void *arg)
     pthread_exit((void *)&ret);
 }
 
+void *transmitter_dummy_callback(void *arg)
+{
+    UNUSED(arg);
+    return;
+}
+
 void *transmitter_rtpenc_routine(void *arg)
 {
     debug_msg(" transmitter rtpenc routine START\n");
@@ -79,24 +85,27 @@ void *transmitter_rtpenc_routine(void *arg)
     char *mcast_if = NULL;
     double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
     int ttl = 255;
-    int recv_port = 2004;
+    int recv_port = 12004; // TODO: use a constant
 
     struct rtp *rtp  = rtp_init_if(session->addr, mcast_if,
                                    recv_port, session->port, ttl,
-                                   rtcp_bw, 0, (void *)NULL,
+                                   rtcp_bw, 0, transmitter_dummy_callback,
                                    (void *)NULL, 0);
     
     rtp_set_option(rtp, RTP_OPT_WEAK_VALIDATION, 1);
     rtp_set_sdes(rtp, rtp_my_ssrc(rtp), RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING));
+    rtp_set_send_buf(rtp, 1024 * 56);
+
+    tx_init();
     
     struct timeval curr_time;
 
     while (RUN) {
         encoder_thread_t *encoder = participant->proc.encoder;
+        sem_wait(&encoder->output_sem);
         if (!RUN) {
             break;
         }
-        sem_wait(&encoder->output_sem);
         gettimeofday(&curr_time, NULL);
         rtp_update(rtp, curr_time);
         tx_send_base_h264(vf_get_tile(encoder->frame, 0),
@@ -106,7 +115,7 @@ void *transmitter_rtpenc_routine(void *arg)
     }   
 
     // TODO
-    //rtp_done(rtp);
+    rtp_done(rtp);
     pthread_exit(NULL);
 }
 
