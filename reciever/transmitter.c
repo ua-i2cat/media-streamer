@@ -103,6 +103,9 @@ void *transmitter_rtpenc_routine(void *arg)
     tx_init();
     
     struct timeval curr_time;
+    struct timeval start_time;
+    double timestamp;
+    gettimeofday(&start_time, NULL);
 
     while (RUN) {
         encoder_thread_t *encoder = participant->proc.encoder;
@@ -112,13 +115,14 @@ void *transmitter_rtpenc_routine(void *arg)
         }
         gettimeofday(&curr_time, NULL);
         rtp_update(rtp, curr_time);
+        timestamp = tv_diff(curr_time, start_time)*90000;
+        rtp_send_ctrl(rtp, timestamp, 0, curr_time);
         tx_send_base_h264(vf_get_tile(encoder->frame, 0),
                           rtp, get_local_mediatime(), 1, participant->codec,
                           encoder->frame->fps,
                           encoder->frame->interlacing, 0, 0);
     }   
 
-    // TODO
     rtp_send_bye(rtp);
     rtp_done(rtp);
     pthread_exit(NULL);
