@@ -125,7 +125,7 @@ static uint8_t *rtpenc_h264_find_startcode_internal(uint8_t *start,
 	uint8_t *p = start;
 	uint8_t *pend = end; // - 3; // XXX: w/o -3, p[1] and p[2] may fail.
 
-	for (p = start; p + 2 < pend; p++) {
+	for (p = start; p < pend; p++) {
 		if (p[0] == 0 && p[1] == 0 && p[2] == 1) {
 			return p;
 		}
@@ -160,7 +160,7 @@ int rtpenc_h264_parse_nal_units(uint8_t *buf_in, int size,
 	// TODO: control error
 	nal_start = rtpenc_h264_find_startcode(p, end);
 	for (;;) {
-		if (nal_start == end) {
+		if (nal_start == end || nal_start == NULL) {
 			break;
 		}
 
@@ -205,6 +205,7 @@ void tx_send_base_h264(struct tile *tile, struct rtp *rtp_session, uint32_t ts,
 	UNUSED(substream);
 	UNUSED(fragment_offset);
 
+printf("data len to encode: %d\n",tile->data_len);
 	uint8_t *data = (uint8_t *) tile->data;
 	int data_len = tile->data_len;
 
