@@ -68,7 +68,7 @@
 //#include "video_display.h"
 
 //#include "audio/audio.h"
-//#include "utils/list.h"
+#include "utils/list.h"
 
 /* The coded representation of a single frame */
 struct coded_data {
@@ -99,7 +99,7 @@ struct vcodec_state {
         unsigned int max_frame_size; // maximal frame size
                                      // to be returned to caller by a decoder to allow him adjust buffers accordingly
         unsigned int decoded;
-        //struct simple_linked_list *messages;
+        struct simple_linked_list *messages;
 };
 
 /*struct pbuf_audio_data {

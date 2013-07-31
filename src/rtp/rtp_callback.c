@@ -76,7 +76,7 @@ char hdr_buf[100];
 struct msghdr msg;
 struct iovec iov[10];
 
-extern uint32_t RTT;
+uint32_t RTT = 0;
 
 static void process_rr(struct rtp *session, rtp_event * e)
 {
@@ -241,7 +241,7 @@ void rtp_recv_callback(struct rtp *session, rtp_event * e)
                         struct pdb_e *pdb_item = NULL;
                         if(pdb_remove(participants, e->ssrc, &pdb_item) == 0) {
 #ifndef SHARED_DECODER
-                                destroy_decoder(pdb_item->video_decoder_state);
+                                //destroy_decoder(pdb_item->video_decoder_state);
 #endif
                         }
                 }
@@ -255,4 +255,5 @@ void rtp_recv_callback(struct rtp *session, rtp_event * e)
                 debug_msg("Unknown RTP event (type=%d)\n", e->type);
         }
 }
+
 
