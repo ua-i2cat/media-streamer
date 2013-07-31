@@ -1,3 +1,6 @@
+#ifndef _PARTICIPANTS_H_
+#define _PARTICIPANTS_H_
+
 #include "video.h"
 #include <semaphore.h>
 
@@ -80,3 +83,5 @@ participant_data_t *get_participant_ssrc(participant_list_t *list, uint32_t ssrc
 int remove_participant(participant_list_t *list, uint32_t id);
 
 void destroy_participant_list(participant_list_t *list);
+
+#endif

@@ -1,6 +1,7 @@
 #include "participants.h"
 #include "video_decompress/libavcodec.h"
 #include "video_decompress.h"
+#include "transmitter.h"
 
 participant_data_t *init_participant(int id, int width, int height, codec_t codec, char *dst, uint32_t port, ptype_t type){
   participant_data_t *participant;
