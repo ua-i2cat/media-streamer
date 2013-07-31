@@ -127,7 +127,8 @@ int reciever_thread(reciever_t *reciever) {
 	      } else if (src != NULL) {
 		if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data)) {	  
 		  gettimeofday(&curr_time, NULL);
-		  
+
+          pthread_mutex_lock(&src->lock);
 		  pthread_mutex_lock(&src->proc.decoder->lock); 
 		  
 		  memcpy(src->proc.decoder->data, rx_data->frame_buffer[0], rx_data->buffer_len[0]); //TODO: get rid of this magic number
@@ -136,6 +137,7 @@ int reciever_thread(reciever_t *reciever) {
 		  pthread_cond_signal(&src->proc.decoder->notify_frame);
 		  
 		  pthread_mutex_unlock(&src->proc.decoder->lock);
+          pthread_mutex_unlock(&src->lock);
 		}
 	      } else {
 		//TODO: delete cp form pdb or ignore it
