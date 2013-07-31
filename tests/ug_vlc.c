@@ -18,6 +18,10 @@
 
 FILE *F_video_rx=NULL;
 
+int width = 640;
+int height = 360;
+double fps = 15;
+
 int main(){
     struct rtp **devices = NULL;
     struct pdb *participants;
@@ -29,23 +33,25 @@ int main(){
     struct video_frame *tx_frame;
 
     tx_frame = vf_alloc(1);
-    vf_get_tile(tx_frame, 0)->width=1280;
-    vf_get_tile(tx_frame, 0)->height=720;
-    tx_frame->fps=10;
+    vf_get_tile(tx_frame, 0)->width=width;
+    vf_get_tile(tx_frame, 0)->height=height;
+    tx_frame->fps=fps;
     tx_frame->color_spec=H264;
     tx_frame->interlacing=PROGRESSIVE;
 
     frame = vf_alloc(1);
-    vf_get_tile(frame, 0)->width=1280;
-    vf_get_tile(frame, 0)->height=720;
-    frame->fps=10;
+    vf_get_tile(frame, 0)->width=width;
+    vf_get_tile(frame, 0)->height=height;
+    frame->tiles[0].data = malloc(4*width*height);
+    frame->fps=fps;
     frame->color_spec=UYVY;
     frame->interlacing=PROGRESSIVE;
 
     double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
     int ttl = 255;
     // char *saveptr = NULL;
-    char *addr="127.0.0.1";
+    char *addr="192.168.10.214";
+    //char *addr="127.0.0.1";
     char *mcast_if= NULL;
     struct timeval curr_time;
     struct timeval timeout;
@@ -84,12 +90,12 @@ int main(){
     if (decompress_is_available(LIBAVCODEC_MAGIC)) {
         sd = decompress_init(LIBAVCODEC_MAGIC);
 
-      	des.width = 1280;
-        des.height = 720;
+      	des.width = width;
+        des.height = height;
         des.color_spec  = H264;
         des.tile_count = 0;
         des.interlacing = PROGRESSIVE;
-        des.fps=10;
+        des.fps=fps;
 
         decompress_reconfigure(sd, des, 16, 8, 0, vc_get_linesize(des.width, UYVY), UYVY);  //r=16,g=8,b=0
     }
@@ -138,6 +144,7 @@ int main(){
     }
 
     struct recieved_data *rx_data = calloc(1, sizeof(struct recieved_data));
+    rx_data->frame_buffer[0]  = calloc(1, 4 * width * height);
 
     tx_init();
 
@@ -168,26 +175,29 @@ int main(){
             if (ret) {
                 gettimeofday(&curr_time, NULL);
                 //printf("\nFRAME RECIEVED (first byte = %x)\n",rx_data->frame_buffer[0][0]);
-                frame->tiles[0].data = rx_data->frame_buffer[0];
+//                frame->tiles[0].data = rx_data->frame_buffer[0];
                 frame->tiles[0].data_len = rx_data->buffer_len[0];
-
-                // TODO decode
-                decompress_frame(sd,(unsigned char *) out,(unsigned char *)rx_data->frame_buffer[0],rx_data->buffer_len[0],rx_data->buffer_num[0]);
-                frame->tiles[0].data=out;//rx_data->frame_buffer[0];
-                frame->tiles[0].data_len = vc_get_linesize(des.width, UYVY)*des.height;//rx_data->buffer_len[0];
+		memcpy(frame->tiles[0].data,rx_data->frame_buffer[0],rx_data->buffer_len[0]);
+                printf("\ndata len decodec: %d\n", rx_data->buffer_len[0]);
+		// TODO decode
+//                decompress_frame(sd,(unsigned char *) out,(unsigned char *)rx_data->frame_buffer[0],rx_data->buffer_len[0],rx_data->buffer_num[0]);
+//                frame->tiles[0].data=out;//rx_data->frame_buffer[0];
+//                frame->tiles[0].data_len = vc_get_linesize(des.width, UYVY)*des.height;//rx_data->buffer_len[0];
                 // TODO encode
 
-                tx_frame = compress_frame(sc, frame, i);
-                if (tx_frame == NULL) {
-                    printf("frame NULL!!!\n");
-                    continue;
-                }
-                i = (i + 1)%2;
+//                tx_frame = compress_frame(sc, frame, i);
+//                if (tx_frame == NULL) {
+//                    printf("frame NULL!!!\n");
+//                    continue;
+//                }
+//                i = (i + 1)%2;
                 
                 //printf("[MAIN to SENDER] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
-                if(tx_frame->tiles[0].data_len>0)
-                    tx_send_base_h264(vf_get_tile(tx_frame, 0), devices[0], get_local_mediatime(), 1, tx_frame->color_spec, tx_frame->fps, tx_frame->interlacing, 0, 0);
+//               if(tx_frame->tiles[0].data_len>0)
+//                    tx_send_base_h264(vf_get_tile(tx_frame, 0), devices[0], get_local_mediatime(), 1, tx_frame->color_spec, tx_frame->fps, tx_frame->interlacing, 0, 0);
+                    tx_send_base_h264(vf_get_tile(frame, 0), devices[0], get_local_mediatime(), 1, frame->color_spec, frame->fps, frame->interlacing, 0, 0);
                 
+//                printf("\nH264 SEND\n");
                 //if (xec > 3)
                 //  exit = 0;
                 //xec++;
@@ -204,7 +214,7 @@ int main(){
 
     compress_done(sc);
     decompress_done(sd);
-
+    free(rx_data->frame_buffer[0]);
     rtp_done(devices[index]);
     printf("RTP DONE\n");
 }

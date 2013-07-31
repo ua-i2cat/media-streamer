@@ -33,12 +33,12 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
         // allocated buffers when we have compressed data. But in case of LDGM, there
         // is just the LDGM buffer present, so we point to it instead to copying
         struct recieved_data *buffers = (struct recieved_data *) rx_data; // for FEC or compressed data
-        for (i = 0; i < (int) MAX_SUBSTREAMS; ++i) {
-                //pckt_list[i] = ll_create();
-        		buffers->buffer_len[i] = 0;
-                buffers->buffer_num[i] = 0;
-                buffers->frame_buffer[i] = NULL;
-        }
+       // for (i = 0; i < (int) MAX_SUBSTREAMS; ++i) {
+       //         //pckt_list[i] = ll_create();
+       // 		buffers->buffer_len[i] = 0;
+       //         buffers->buffer_num[i] = 0;
+       //         buffers->frame_buffer[i] = NULL;
+       // }
 
         //perf_record(UVP_DECODEFRAME, frame);
 
@@ -126,9 +126,11 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
                         goto cleanup;
                 }
 
-                if(!buffers->frame_buffer[substream]) {
-                	buffers->frame_buffer[substream] = (char *) malloc(buffer_length);
-                }
+                //if(!buffers->frame_buffer[substream]) {
+
+                	//TODO SHOULD BE MALLOCed OUTSIDE
+                	//buffers->frame_buffer[substream] = (char *) malloc(buffer_length);
+               // }
 
                 buffers->buffer_num[substream] = buffer_number;
                 buffers->buffer_len[substream] = buffer_length;

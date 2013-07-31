@@ -92,6 +92,7 @@ int main()
 	}
 
 	struct recieved_data *rx_data = calloc(1, sizeof(struct recieved_data));
+    rx_data->frame_buffer[0]  = calloc(1, 4 * width * height);
 
 	tx_init_h264();
 
@@ -140,7 +141,7 @@ int main()
 		}
 		pdb_iter_done(&it);
 	}
-
+    free(rx_data->frame_buffer[0]);
 	rtp_done(devices[index]);
 	printf("RTP DONE\n");
 }

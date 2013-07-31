@@ -4,7 +4,10 @@ bin
 
 *.mp4
 *.yuv
+*.uyvy
+*.uyvy422
 *.h264
+*.sdp
 
 *~
 *.swp
