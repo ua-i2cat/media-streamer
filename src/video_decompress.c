@@ -48,14 +48,18 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #include "config_unix.h"
+#include "config_win32.h"
 #endif // HAVE_CONFIG_H
 
 #include <stdio.h>
 #include <string.h>
 #include "video_codec.h"
 #include "video_decompress.h"
+#include "video_decompress/dxt_glsl.h"
+#include "video_decompress/jpeg.h"
 #include "video_decompress/libavcodec.h"
 #include "video_decompress/null.h"
+#include "video_decompress/jpeg_to_dxt.h"
 #include "lib_common.h"
 
 #define DECOMPRESS_MAGIC 0xdff34f21u
@@ -119,19 +123,19 @@ static int decompress_fill_symbols(decoder_table_t *device)
 
 
 struct decode_from_to decoders_for_codec[] = {
-        //{ DXT1, RGBA, RTDXT_MAGIC, 500},
-        //{ DXT1_YUV, RGBA, RTDXT_MAGIC, 500 },
-        //{ DXT5, RGBA, RTDXT_MAGIC, 500 },
-        //{ DXT1, UYVY, RTDXT_MAGIC, 500 },
-        //{ DXT1_YUV, UYVY, RTDXT_MAGIC, 500 },
-        //{ DXT5, UYVY, RTDXT_MAGIC, 500 },
-        //{ JPEG, RGB, JPEG_MAGIC, 500 },
-        //{ JPEG, UYVY, JPEG_MAGIC, 500 },
+        { DXT1, RGBA, RTDXT_MAGIC, 500},
+        { DXT1_YUV, RGBA, RTDXT_MAGIC, 500 },
+        { DXT5, RGBA, RTDXT_MAGIC, 500 },
+        { DXT1, UYVY, RTDXT_MAGIC, 500 },
+        { DXT1_YUV, UYVY, RTDXT_MAGIC, 500 },
+        { DXT5, UYVY, RTDXT_MAGIC, 500 },
+        { JPEG, RGB, JPEG_MAGIC, 500 },
+        { JPEG, UYVY, JPEG_MAGIC, 500 },
         { H264, UYVY, LIBAVCODEC_MAGIC, 500 },
         { JPEG, UYVY, LIBAVCODEC_MAGIC, 600 },
         { MJPG, UYVY, LIBAVCODEC_MAGIC, 500 },
-        //{ JPEG, DXT1, JPEG_TO_DXT_MAGIC, 900 },
-        //{ JPEG, DXT5, JPEG_TO_DXT_MAGIC, 900 },
+        { JPEG, DXT1, JPEG_TO_DXT_MAGIC, 900 },
+        { JPEG, DXT5, JPEG_TO_DXT_MAGIC, 900 },
         { VP8, UYVY, LIBAVCODEC_MAGIC, 500 },
         { (codec_t) -1, (codec_t) -1, NULL_MAGIC, 0 }
 };

@@ -40,6 +40,7 @@
  *
  */
 
+//#include "host.h"
 
 /*
  * Packet formats:

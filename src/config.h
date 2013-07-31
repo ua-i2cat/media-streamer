@@ -14,7 +14,7 @@
 #define AUDIO_PLAYBACK_ABI_VERSION 4
 
 /* Autoconf result */
-#define AUTOCONF_RESULT "  Target ...................... i686-pc-linux-gnu\n  Debug output ................ no\n  Profiling support ........... no\n  IPv6 support ................ yes\n  RT priority ................. no\n  Standalone modules .......... no\n  License ..................... unredistributeable\n  iHDTV support ............... no\n\n  Bluefish444 ................. no (audio: no)\n  DeckLink .................... yes\n  DirectShow .................. no\n  DELTACAST ................... no\n  DVS ......................... no\n  Linsys capture .............. yes\n  OpenGL ...................... no\n  Quicktime ................... no\n  SAGE ........................ no\n  SDL ......................... yes\n  Screen Capture .............. yes\n  V4L2 ........................ no\n  SW Video Mix ................ no\n\n  Portaudio ................... no\n  ALSA ........................ yes\n  CoreAudio ................... no\n  JACK  ....................... yes\n  JACK transport .............. no\n\n  FastDXT ..................... no\n  Realtime DXT (OpenGL) ....... no\n  JPEG ........................ no (static: yes)\n  UYVY dummy compression ...... no\n  Libavcodec .................. yes (audio: no)\n\n  scale postprocessor ......... no\n  testcard extras ............. no\n  \n"
+#define AUTOCONF_RESULT "  Target ...................... x86_64-unknown-linux-gnu\n  Debug output ................ no\n  Profiling support ........... no\n  IPv6 support ................ yes\n  RT priority ................. no\n  Standalone modules .......... no\n  License ..................... unredistributeable\n  iHDTV support ............... no\n\n  Bluefish444 ................. no (audio: no)\n  DeckLink .................... yes\n  DirectShow .................. no\n  DELTACAST ................... no\n  DVS ......................... no\n  Linsys capture .............. yes\n  OpenGL ...................... yes\n  Quicktime ................... no\n  SAGE ........................ no\n  SDL ......................... yes\n  Screen Capture .............. yes\n  V4L2 ........................ yes\n  SW Video Mix ................ yes\n\n  Portaudio ................... no\n  ALSA ........................ yes\n  CoreAudio ................... no\n  JACK  ....................... yes\n  JACK transport .............. no\n\n  FastDXT ..................... no\n  Realtime DXT (OpenGL) ....... yes\n  JPEG ........................ no (static: yes)\n  UYVY dummy compression ...... yes\n  Libavcodec .................. yes (audio: no)\n\n  scale postprocessor ......... yes\n  testcard extras ............. no\n  \n"
 
 /* Build drivers as a standalone libraries */
 /* #undef BUILD_LIBRARIES */
@@ -26,13 +26,13 @@
 /* #undef DEBUG */
 
 /* Current GIT revision */
-#define GIT_VERSION "v1.1-370-g958edc9"
+/* #undef GIT_VERSION */
 
 /* We have 32-bit Linux */
-#define HAVE_32B_LINUX 1
+/* #undef HAVE_32B_LINUX */
 
 /* We have 64-bit Linux */
-/* #undef HAVE_64B_LINUX */
+#define HAVE_64B_LINUX 1
 
 /* Build with ALSA support */
 #define HAVE_ALSA 1
@@ -59,7 +59,7 @@
 /* #undef HAVE_CARBON_CARBON_H */
 
 /* Build with dummy UYVY compression */
-/* #undef HAVE_COMPRESS_UYVY */
+#define HAVE_COMPRESS_UYVY 1
 
 /* Build with CoreAudio support */
 /* #undef HAVE_COREAUDIO */
@@ -89,7 +89,7 @@
 #define HAVE_DV_CODEC 1
 
 /* Build with DXT_GLSL support */
-/* #undef HAVE_DXT_GLSL */
+#define HAVE_DXT_GLSL 1
 
 /* Build with support for FastDXT */
 /* #undef HAVE_FASTDXT */
@@ -98,16 +98,16 @@
 /* #undef HAVE_FIREWIRE_DV_FREEBSD */
 
 /* Build with OpenGL output */
-/* #undef HAVE_GL */
+#define HAVE_GL 1
 
 /* Define to 1 if you have the <GLUT/glut.h> header file. */
 /* #undef HAVE_GLUT_GLUT_H */
 
 /* Define to 1 if you have the <GL/glew.h> header file. */
-/* #undef HAVE_GL_GLEW_H */
+#define HAVE_GL_GLEW_H 1
 
 /* Define to 1 if you have the <GL/glut.h> header file. */
-/* #undef HAVE_GL_GLUT_H */
+#define HAVE_GL_GLUT_H 1
 
 /* Define to 1 if you have the <GL/glx.h> header file. */
 #define HAVE_GL_GLX_H 1
@@ -155,7 +155,7 @@
 #define HAVE_LIBASOUND 1
 
 /* Define to 1 if you have the `avcodec' library (-lavcodec). */
-#define HAVE_LIBAVCODEC 1
+/* #undef HAVE_LIBAVCODEC */
 
 /* Define to 1 if you have the <libavcodec/avcodec.h> header file. */
 /* #undef HAVE_LIBAVCODEC_AVCODEC_H */
@@ -188,10 +188,10 @@
 /* #undef HAVE_LIBSDL_TTF */
 
 /* Define to 1 if you have the `v4l2' library (-lv4l2). */
-/* #undef HAVE_LIBV4L2 */
+#define HAVE_LIBV4L2 1
 
 /* Define to 1 if you have the `v4lconvert' library (-lv4lconvert). */
-/* #undef HAVE_LIBV4LCONVERT */
+#define HAVE_LIBV4LCONVERT 1
 
 /* Define to 1 if you have the `X11' library (-lX11). */
 #define HAVE_LIBX11 1
@@ -215,7 +215,7 @@
 #define HAVE_MEMORY_H 1
 
 /* Build with ncurses support */
-#define HAVE_NCURSES 1
+/* #undef HAVE_NCURSES */
 
 /* Define to 1 if you have the <OpenGL/glext.h> header file. */
 /* #undef HAVE_OPENGL_GLEXT_H */
@@ -233,7 +233,7 @@
 /* #undef HAVE_SAGE */
 
 /* Build scale postprocessor */
-/* #undef HAVE_SCALE */
+#define HAVE_SCALE 1
 
 /* Define to 1 if you have the `sched_setscheduler' function. */
 #define HAVE_SCHED_SETSCHEDULER 1
@@ -275,7 +275,7 @@
 #define HAVE_STRTOK_R 1
 
 /* Build SW mix capture */
-/* #undef HAVE_SWMIX */
+#define HAVE_SWMIX 1
 
 /* Define to 1 if you have the <sys/filio.h> header file. */
 /* #undef HAVE_SYS_FILIO_H */
@@ -296,7 +296,7 @@
 #define HAVE_UNISTD_H 1
 
 /* Build with V4L2 support */
-/* #undef HAVE_V4L2 */
+#define HAVE_V4L2 1
 
 /* Define to 1 if you have the <VideoMasterHD_Core.h> header file. */
 /* #undef HAVE_VIDEOMASTERHD_CORE_H */
@@ -324,7 +324,7 @@
 #define OS_VERSION_MAJOR 3
 
 /* OS kernel minor version */
-#define OS_VERSION_MINOR 2
+#define OS_VERSION_MINOR 8
 
 /* Name of package */
 #define PACKAGE "ultragrid"
@@ -354,7 +354,7 @@
 /* #undef SHARED_DECODER */
 
 /* The size of `int *', as computed by sizeof. */
-#define SIZEOF_INT_P 4
+#define SIZEOF_INT_P 8
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1

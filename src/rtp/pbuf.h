@@ -62,6 +62,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #include "config_unix.h"
+#include "config_win32.h"
 #endif // HAVE_CONFIG_H
 
 //#include "video_display.h"
@@ -79,7 +80,7 @@ struct coded_data {
 
 /* The playout buffer */
 struct pbuf;
-//struct state_decoder;
+struct state_decoder;
 //struct state_audio_decoder;
 
 struct vcodec_message {
@@ -92,21 +93,21 @@ struct fps_changed_message {
         unsigned interframe_codec:1;
 };
 
-//struct vcodec_state {
-//        struct display *display;
-//        struct state_decoder *decoder;
-//        unsigned int max_frame_size; // maximal frame size
-//                                     // to be returned to caller by a decoder to allow him adjust buffers accordingly
-//        unsigned int decoded;
-//        struct simple_linked_list *messages;
-//};
+struct vcodec_state {
+        //struct display *display;
+        struct state_decoder *decoder;
+        unsigned int max_frame_size; // maximal frame size
+                                     // to be returned to caller by a decoder to allow him adjust buffers accordingly
+        unsigned int decoded;
+        //struct simple_linked_list *messages;
+};
 
-//struct pbuf_audio_data {
-//        audio_frame buffer;
-//        struct state_audio_decoder *decoder;
-//
-//        bool reconfigured;
-//};
+/*struct pbuf_audio_data {
+        audio_frame buffer;
+        struct state_audio_decoder *decoder;
+
+        bool reconfigured;
+};*/
 
 /**
  * @param decode_data
@@ -117,8 +118,8 @@ typedef int decode_frame_t(struct coded_data *cdata, void *decode_data);
  */
 struct pbuf	*pbuf_init(void);
 void		 pbuf_insert(struct pbuf *playout_buf, rtp_packet *r);
-int 	 	 audio_pbuf_decode(struct pbuf *playout_buf, struct timeval curr_time,
-                             decode_frame_t decode_func, void *data);
+//int 	 	 audio_pbuf_decode(struct pbuf *playout_buf, struct timeval curr_time,
+//                             decode_frame_t decode_func, void *data);
 int 	 	 pbuf_decode(struct pbuf *playout_buf, struct timeval curr_time,
                              decode_frame_t decode_func, void *data);
                              //struct video_frame *framebuffer, int i, struct state_decoder *decoder);

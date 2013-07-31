@@ -45,11 +45,11 @@
  *
  */
 
+struct module;
 struct tile;
 struct video_desc;
 
-void                *libavcodec_compress_init(char * opts);
-struct tile         *libavcodec_compress_tile(void *args, struct tile *tx, struct video_desc *desc,
+struct module       *libavcodec_compress_init(struct module *parent, char * opts);
+struct tile         *libavcodec_compress_tile(struct module *mod, struct tile *tx, struct video_desc *desc,
                 int buffer);
-void                 libavcodec_compress_done(void *args);
 

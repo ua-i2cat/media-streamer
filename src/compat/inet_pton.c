@@ -24,6 +24,7 @@
 #ifndef HAVE_INET_PTON
 #include "config.h"
 #include "config_unix.h"
+#include "config_win32.h"
 #include "inet_pton.h"
 
 #define	IN6ADDRSZ	16

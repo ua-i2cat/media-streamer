@@ -25,6 +25,7 @@
  */
 
 #include "config_unix.h"
+#include "config_win32.h"
 #include "debug.h"
 #include "crypt_aes_impl.h"
 #include "crypt_aes.h"

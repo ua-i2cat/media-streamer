@@ -48,16 +48,23 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #include "config_unix.h"
+#include "config_win32.h"
 #endif // HAVE_CONFIG_H
 
 #include <stdio.h>
 #include <string.h>
+#include "messaging.h"
+#include "module.h"
 #include "video_codec.h"
 #include "video_compress.h"
+#include "video_compress/dxt_glsl.h"
+#include "video_compress/fastdxt.h"
 #include "video_compress/libavcodec.h"
+#include "video_compress/jpeg.h"
 #include "video_compress/none.h"
+#include "video_compress/uyvy.h"
 #include "lib_common.h"
-
+#include "compat/platform_spin.h"
 #include "utils/worker.h"
 
 /* *_str are symbol names inside library */
@@ -71,29 +78,40 @@ struct compress_t {
         const char         *compress_frame_str;
         compress_tile_t     compress_tile;
         const char         *compress_tile_str;
-        compress_done_t     done;
-        const char         *done_str;
 
         void *handle;
 };
 
-struct compress_state {
+struct compress_state_real {
         struct compress_t  *handle;
-        void              **state;
+        struct module     **state;
         unsigned int        state_count;
-        char               *compress_options;
+        char                compress_options[1024];
 
         struct video_frame *out_frame[2];
 
         unsigned int uncompressed:1;
 };
 
-int compress_init_noerr;
+struct compress_state {
+        struct module mod;
+        struct compress_state_real *ptr;
+        platform_spin_t spin;
+};
+
+typedef struct compress_state compress_state_proxy;
+
+struct module compress_init_noerr;
 
 static void init_compressions(void);
-static struct video_frame *compress_frame_tiles(struct compress_state *s, struct video_frame *frame,
-                int buffer_index);
+static struct video_frame *compress_frame_tiles(struct compress_state_real *s, struct video_frame *frame,
+                int buffer_index, struct module *parent);
 static void *compress_tile(void *arg);
+static struct response *compress_change_callback(struct module *receiver, struct message *msg);
+static int compress_init_real(struct module *parent, char *config_string,
+                struct compress_state_real **state);
+static void compress_done_real(struct compress_state_real *s);
+static void compress_done(struct module *mod);
 
 struct compress_t compress_modules[] = {
 #if defined HAVE_FASTDXT || defined BUILD_LIBRARIES
@@ -103,7 +121,6 @@ struct compress_t compress_modules[] = {
                 MK_NAME(fastdxt_init),
                 MK_NAME(NULL),
                 MK_NAME(fastdxt_compress_tile),
-                MK_NAME(fastdxt_done),
                 NULL
         },
 #endif
@@ -114,7 +131,6 @@ struct compress_t compress_modules[] = {
                 MK_NAME(dxt_glsl_compress_init),
                 MK_NAME(dxt_glsl_compress),
                 MK_NAME(NULL),
-                MK_NAME(dxt_glsl_compress_done),
                 NULL
         },
 #endif
@@ -125,7 +141,6 @@ struct compress_t compress_modules[] = {
                 MK_NAME(jpeg_compress_init),
                 MK_NAME(jpeg_compress),
                 MK_NAME(NULL),
-                MK_NAME(jpeg_compress_done),
                 NULL
         },
 #endif
@@ -136,7 +151,6 @@ struct compress_t compress_modules[] = {
                 MK_NAME(uyvy_compress_init),
                 MK_NAME(uyvy_compress),
                 MK_NAME(NULL),
-                MK_NAME(uyvy_compress_done),
                 NULL
         },
 #endif
@@ -147,7 +161,6 @@ struct compress_t compress_modules[] = {
                 MK_NAME(libavcodec_compress_init),
                 MK_NAME(NULL),
                 MK_NAME(libavcodec_compress_tile),
-                MK_NAME(libavcodec_compress_done),
                 NULL
         },
 #endif
@@ -157,7 +170,6 @@ struct compress_t compress_modules[] = {
                 MK_STATIC(none_compress_init),
                 MK_STATIC(none_compress),
                 MK_STATIC(NULL),
-                MK_STATIC(none_compress_done),
                 NULL
         },
 };
@@ -183,18 +195,15 @@ static int compress_fill_symbols(struct compress_t *compression)
 {
         void *handle = compression->handle;
 
-        compression->init = (void *(*) (char *))
+        compression->init = (compress_init_t)
                 dlsym(handle, compression->init_str);
         compression->compress_frame = (struct video_frame * (*)(void *, struct video_frame *, int))
                 dlsym(handle, compression->compress_frame_str);
         compression->compress_tile = (struct tile * (*)(void *, struct tile*, struct video_desc *, int))
                 dlsym(handle, compression->compress_tile_str);
-        compression->done = (void (*)(void *))
-                dlsym(handle, compression->done_str);
-
 
         if(!compression->init || (compression->compress_frame == 0 && compression->compress_tile == 0)
-                        || !compression->done) {
+                        ) {
                 fprintf(stderr, "Library %s opening error: %s \n", compression->library_name, dlerror());
                 return FALSE;
         }
@@ -235,9 +244,93 @@ void show_compress_help()
         }
 }
 
-int compress_init(char *config_string, struct compress_state **state)
+static struct response *compress_change_callback(struct module *receiver, struct message *msg)
 {
-        struct compress_state *s;
+        struct msg_change_compress_data *data =
+                (struct msg_change_compress_data *) msg;
+        compress_state_proxy *proxy = receiver->priv_data;
+
+        if(data->what == CHANGE_PARAMS) {
+                platform_spin_lock(&proxy->spin);
+                struct response *resp = NULL;
+                for(unsigned int i = 0; i < proxy->ptr->state_count; ++i) {
+                        if(resp) {
+                                resp->deleter(resp);
+                        }
+                        struct msg_change_compress_data *tmp_data =
+                                (struct msg_change_compress_data *)
+                                new_message(sizeof(struct msg_change_compress_data));
+                        tmp_data->what = data->what;
+                        strncpy(tmp_data->config_string, data->config_string,
+                                        sizeof(tmp_data->config_string) - 1);
+                        resp = send_message_to_receiver(proxy->ptr->state[i],
+                                        (struct message *) tmp_data);
+                }
+                platform_spin_unlock(&proxy->spin);
+
+                free_message(msg);
+
+                return resp;
+        }
+
+#if 0
+        // this change relates to current compress, resend request to it
+        if(strcasecmp(s->handle->name, data->module) == 0) {
+                data->what = CHANGE_PARAMS;
+                return send_message(messaging_instance(), MSG_CHANGE_COMPRESS, msg->data);
+        }
+#endif
+
+        struct compress_state_real *new_state;
+        char config[1024];
+        strncpy(config, data->config_string, sizeof(config));
+
+        int ret = compress_init_real(&proxy->mod, config, &new_state);
+        if(ret == 0) {
+                struct compress_state_real *old = proxy->ptr;
+                platform_spin_lock(&proxy->spin);
+                proxy->ptr = new_state;
+                platform_spin_unlock(&proxy->spin);
+                compress_done_real(old);
+
+                return new_response(RESPONSE_OK, NULL);
+        }
+
+        return new_response(RESPONSE_INT_SERV_ERR, NULL);
+}
+
+int compress_init(struct module *parent, char *config_string, struct compress_state **state) {
+        struct compress_state_real *s;
+
+        compress_state_proxy *proxy;
+        proxy = malloc(sizeof(compress_state_proxy));
+
+        module_init_default(&proxy->mod);
+        proxy->mod.cls = MODULE_CLASS_COMPRESS;
+        proxy->mod.priv_data = proxy;
+        proxy->mod.deleter = compress_done;
+        proxy->mod.msg_callback = compress_change_callback;
+
+        int ret = compress_init_real(&proxy->mod, config_string, &s);
+        if(ret == 0) {
+                proxy->ptr = s;
+
+                platform_spin_init(&proxy->spin);
+                *state = proxy;
+                //subscribe_messages(messaging_instance(), MSG_CHANGE_COMPRESS, compress_change_callback,
+                //                proxy);
+        } else {
+                free(proxy);
+        }
+
+        module_register(&proxy->mod, parent);
+
+        return ret;
+}
+
+static int compress_init_real(struct module *parent, char *config_string, struct compress_state_real **state)
+{
+        struct compress_state_real *s;
         char *compress_options = NULL;
         
         if(!config_string) 
@@ -251,7 +344,7 @@ int compress_init(char *config_string, struct compress_state **state)
 
         pthread_once(&compression_list_initialized, init_compressions);
         
-        s = (struct compress_state *) calloc(1, sizeof(struct compress_state));
+        s = (struct compress_state_real *) calloc(1, sizeof(struct compress_state_real));
         s->state_count = 1;
         if(strcmp(config_string, "none") == 0) {
                 s->uncompressed = TRUE;
@@ -264,8 +357,10 @@ int compress_init(char *config_string, struct compress_state **state)
                                 strlen(available_compress_modules[i]->name)) == 0) {
                         s->handle = available_compress_modules[i];
                         if(config_string[strlen(available_compress_modules[i]->name)] == ':') 
-                                        compress_options = config_string +
-                                                strlen(available_compress_modules[i]->name) + 1;
+                                compress_options = config_string +
+                                        strlen(available_compress_modules[i]->name) + 1;
+                        else
+                                compress_options = "";
                 }
         }
         if(!s->handle) {
@@ -273,14 +368,14 @@ int compress_init(char *config_string, struct compress_state **state)
                 free(s);
                 return -1;
         }
-        s->compress_options = compress_options;
+        strncpy(s->compress_options, compress_options, sizeof(s->compress_options) - 1);
+        s->compress_options[sizeof(s->compress_options) - 1] = '\0';
         if(s->handle->init) {
-                s->state = calloc(1, sizeof(void *));
-                if(compress_options) {
-                        compress_options = strdup(compress_options);
-                }
-                s->state[0] = s->handle->init(compress_options);
-                free(compress_options);
+                s->state = calloc(1, sizeof(struct module *));
+                char compress_options[1024];
+                strncpy(compress_options, s->compress_options, sizeof(compress_options) - 1);
+                compress_options[sizeof(compress_options) - 1] = '\0';
+                s->state[0] = s->handle->init(parent, compress_options);
                 if(!s->state[0]) {
                         fprintf(stderr, "Compression initialization failed: %s\n", config_string);
                         free(s->state);
@@ -298,30 +393,40 @@ int compress_init(char *config_string, struct compress_state **state)
         } else {
                 return -1;
         }
+
         *state = s;
         return 0;
 }
 
-const char *get_compress_name(struct compress_state *s)
+const char *get_compress_name(compress_state_proxy *proxy)
 {
-        if(s)
-                return s->handle->name;
+        if(proxy)
+                return proxy->ptr->handle->name;
         else
                 return NULL;
 }
 
-struct video_frame *compress_frame(struct compress_state *s, struct video_frame *frame, int buffer_index)
+struct video_frame *compress_frame(compress_state_proxy *proxy, struct video_frame *frame, int buffer_index)
 {
-        if(!s)
+        struct video_frame *ret;
+        if(!proxy)
                 return NULL;
 
+        platform_spin_lock(&proxy->spin);
+
+        struct compress_state_real *s = proxy->ptr;
+
         if(s->handle->compress_frame) {
-                return s->handle->compress_frame(s->state[0], frame, buffer_index);
+                ret = s->handle->compress_frame(s->state[0], frame, buffer_index);
         } else if(s->handle->compress_tile) {
-                return compress_frame_tiles(s, frame, buffer_index);
+                ret = compress_frame_tiles(s, frame, buffer_index, &proxy->mod);
         } else {
-                return NULL;
+                ret = NULL;
         }
+
+        platform_spin_unlock(&proxy->spin);
+
+        return ret;
 }
 
 struct compress_data {
@@ -342,15 +447,16 @@ static void *compress_tile(void *arg) {
         return s;
 }
 
-static struct video_frame *compress_frame_tiles(struct compress_state *s, struct video_frame *frame,
-                int buffer_index)
+static struct video_frame *compress_frame_tiles(struct compress_state_real *s, struct video_frame *frame,
+                int buffer_index, struct module *parent)
 {
         if(frame->tile_count != s->state_count) {
-                s->state = realloc(s->state, frame->tile_count * sizeof(void *));
+                s->state = realloc(s->state, frame->tile_count * sizeof(struct module *));
                 for(unsigned int i = s->state_count; i < frame->tile_count; ++i) {
                         char compress_options[1024];
                         strncpy(compress_options, s->compress_options, sizeof(compress_options));
-                        s->state[i] = s->handle->init(compress_options);
+                        compress_options[sizeof(compress_options) - 1] = '\0';
+                        s->state[i] = s->handle->init(parent, compress_options);
                         if(!s->state[i]) {
                                 fprintf(stderr, "Compression initialization failed\n");
                                 return NULL;
@@ -396,20 +502,35 @@ static struct video_frame *compress_frame_tiles(struct compress_state *s, struct
         return s->out_frame[buffer_index];
 }
 
-void compress_done(struct compress_state *s)
+static void compress_done(struct module *mod)
+{
+        if(!mod)
+                return;
+
+        compress_state_proxy *proxy = mod->priv_data;
+        struct compress_state_real *s = proxy->ptr;
+        compress_done_real(s);
+
+        platform_spin_destroy(&proxy->spin);
+        free(proxy);
+}
+
+static void compress_done_real(struct compress_state_real *s)
 {
         if(!s)
                 return;
+
         for(unsigned int i = 0; i < s->state_count; ++i) {
-                s->handle->done(s->state[i]);
+                module_done(s->state[i]);
         }
         free(s->state);
         free(s);
 }
 
-int is_compress_none(struct compress_state *s)
+int is_compress_none(compress_state_proxy *proxy)
 {
-        assert(s != NULL);
+        assert(proxy != NULL);
+        struct compress_state_real *s = proxy->ptr;
 
         return s->uncompressed;
 }

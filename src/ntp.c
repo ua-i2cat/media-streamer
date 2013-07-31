@@ -15,6 +15,7 @@
 
 #include "config.h"
 #include "config_unix.h"
+#include "config_win32.h"
 #include "compat/gettimeofday.h"
 
 #include "ntp.h"

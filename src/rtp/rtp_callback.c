@@ -56,12 +56,17 @@
 
 #include "config.h"
 #include "config_unix.h"
+#include "config_win32.h"
 #include "debug.h"
+//#include "host.h"
+#include "pdb.h"
+//#include "video_display.h"
+#include "video_codec.h"
 #include "ntp.h"
 #include "tv.h"
+//#include "rtp/decoders.h"
 #include "rtp/rtp.h"
 #include "rtp/pbuf.h"
-#include "pdb.h"
 #include "rtp/rtp_callback.h"
 #include "tfrc.h"
 
@@ -71,7 +76,7 @@ char hdr_buf[100];
 struct msghdr msg;
 struct iovec iov[10];
 
-uint32_t RTT;
+extern uint32_t RTT;
 
 static void process_rr(struct rtp *session, rtp_event * e)
 {
@@ -234,20 +239,15 @@ void rtp_recv_callback(struct rtp *session, rtp_event * e)
         case SOURCE_DELETED:
                 {
                         struct pdb_e *pdb_item = NULL;
-                        printf("\n[RTP CALLBACK] SOURCE DELETED\n");
                         if(pdb_remove(participants, e->ssrc, &pdb_item) == 0) {
 #ifndef SHARED_DECODER
-                                //destroy_decoder(pdb_item->video_decoder_state);
+                                destroy_decoder(pdb_item->video_decoder_state);
 #endif
                         }
                 }
                 break;
         case SOURCE_CREATED:
-        		printf("\n[RTP CALLBACK] SOURCE CREATED\n");
                 pdb_add(participants, e->ssrc);
-
-                //TODO H264: FIRST PACKET SHOULD BE ADDED TO BUFFER TOO....
-
                 break;
         case RR_TIMEOUT:
                 break;

@@ -62,6 +62,7 @@
 
 #include "config.h"
 #include "config_unix.h"
+#include "config_win32.h"
 #include "debug.h"
 #include "rtp/rtp.h"            /* Needed by pbuf.h */
 #include "rtp/pbuf.h"

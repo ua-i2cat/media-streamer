@@ -44,6 +44,7 @@
 
 #include "config.h"
 #include "config_unix.h"
+#include "config_win32.h"
 
 /* Public API */
 #define UVP_INIT 1

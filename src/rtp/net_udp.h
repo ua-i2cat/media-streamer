@@ -39,6 +39,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #include "config_unix.h"
+#include "config_win32.h"
 #endif // HAVE_CONFIG_H
 
 #ifndef _NET_UDP
@@ -87,6 +88,8 @@ int         udp_select_r(struct timeval *timeout, struct udp_fd_r *);
 void	    udp_fd_zero_r(struct udp_fd_r *);
 void        udp_fd_set_r(socket_udp *s, struct udp_fd_r *);
 int         udp_fd_isset_r(socket_udp *s, struct udp_fd_r *);
+
+int         udp_change_dest(socket_udp *s, const char *addr);
 
 
 /*************************************************************************************************/
