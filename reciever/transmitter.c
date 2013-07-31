@@ -17,7 +17,9 @@ void *transmitter_encoder_routine(void *arg);
 void *transmitter_rtpenc_routine(void *arg);
 int transmitter_init_threads(struct participant_data *participant);
 void *transmitter_master_routine(void *arg);
+
 void transmitter_dummy_callback(struct rtp *session, rtp_event *e);
+void transmitter_destroy_encoder_thread(encoder_thread_t *encoder);
 
 pthread_t MASTER_THREAD;
 int RUN = 1;
@@ -107,6 +109,8 @@ void *transmitter_rtpenc_routine(void *arg)
     double timestamp;
     gettimeofday(&start_time, NULL);
 
+    participant->proc.encoder->run = TRUE;
+
     while (RUN) {
         encoder_thread_t *encoder = participant->proc.encoder;
         sem_wait(&encoder->output_sem);
@@ -126,6 +130,22 @@ void *transmitter_rtpenc_routine(void *arg)
     rtp_send_bye(rtp);
     rtp_done(rtp);
     pthread_exit(NULL);
+}
+
+void transmitter_destroy_encoder_thread(encoder_thread_t *encoder)
+{
+    sem_post(&encoder->output_sem);
+    sem_post(&encoder->input_sem);
+    
+    // TODO: error control? reporting?
+    pthread_join(encoder->rtpenc->thread, NULL);
+    pthread_join(encoder->thread, NULL);
+
+    sem_destroy(&encoder->input_sem);
+    sem_destroy(&encoder->output_sem);
+
+    free(encoder->rtpenc);
+    free(encoder);
 }
 
 int transmitter_init_threads(struct participant_data *participant)
@@ -191,28 +211,12 @@ void *transmitter_master_routine(void *arg)
     }
 
     debug_msg(" terminating pairs of threads\n");
-    int ret = 0;
-    void *end;
     participant = list->first;
     while (participant != NULL) {
-        sem_post(&participant->proc.encoder->output_sem);
-        sem_post(&participant->proc.encoder->input_sem);
-        
-        ret += pthread_join(participant->proc.encoder->rtpenc->thread, &end);
-        ret += pthread_join(participant->proc.encoder->thread, &end);
-
-        sem_destroy(&participant->proc.encoder->input_sem);
-        sem_destroy(&participant->proc.encoder->output_sem);
-
-        free(participant->proc.encoder->rtpenc);
-        free(participant->proc.encoder);
-
+        transmitter_destroy_encoder_thread(participant->proc.encoder);
         participant = participant->next;
     }
-    if (ret != 0) {
-        ret = -1;
-    }
-    pthread_exit((void *)&ret);
+    pthread_exit((void *)NULL);
 }
 
 int start_out_manager(participant_list_t *list)
