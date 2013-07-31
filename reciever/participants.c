@@ -53,7 +53,7 @@ void destroy_participant(participant_data_t *src){
   if (src->type == INPUT && src->proc.decoder != NULL){
     destroy_decoder_thread(src->proc.decoder);
   } else if (src->type = OUTPUT && src->proc.encoder != NULL){
-    transmitter_destroy_encoder_thread(&src->proc.encoder);
+    //transmitter_destroy_encoder_thread(&src->proc.encoder);
   }
   
   pthread_mutex_destroy(&src->lock);
