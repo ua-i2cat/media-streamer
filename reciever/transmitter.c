@@ -19,7 +19,7 @@ int transmitter_init_threads(struct participant_data *participant);
 void *transmitter_master_routine(void *arg);
 
 void transmitter_dummy_callback(struct rtp *session, rtp_event *e);
-void transmitter_destroy_encoder_thread(encoder_thread_t *encoder);
+void transmitter_destroy_encoder_thread(encoder_thread_t **encoder);
 
 pthread_t MASTER_THREAD;
 int RUN = 1;
@@ -132,30 +132,30 @@ void *transmitter_rtpenc_routine(void *arg)
     pthread_exit(NULL);
 }
 
-void transmitter_destroy_encoder_thread(encoder_thread_t *encoder)
+void transmitter_destroy_encoder_thread(encoder_thread_t **encoder)
 {
-    if (encoder == NULL) {
+    if (*encoder == NULL) {
         return;
     }
 
-    if (encoder->run != TRUE) {
+    if (encoder[0]->run != TRUE) {
         return;
     }
 
-    sem_post(&encoder->output_sem);
-    sem_post(&encoder->input_sem);
+    sem_post(&encoder[0]->output_sem);
+    sem_post(&encoder[0]->input_sem);
     
     // TODO: error control? reporting?
-    pthread_join(encoder->rtpenc->thread, NULL);
-    pthread_join(encoder->thread, NULL);
+    pthread_join(encoder[0]->rtpenc->thread, NULL);
+    pthread_join(encoder[0]->thread, NULL);
 
-    sem_destroy(&encoder->input_sem);
-    sem_destroy(&encoder->output_sem);
+    sem_destroy(&encoder[0]->input_sem);
+    sem_destroy(&encoder[0]->output_sem);
 
-    free(encoder->rtpenc);
-    free(encoder);
+    free(encoder[0]->rtpenc);
+    free(encoder[0]);
 
-    encoder = NULL;
+    encoder[0] = NULL;
 
     //encoder->run = FALSE;
 }
@@ -228,7 +228,7 @@ void *transmitter_master_routine(void *arg)
     debug_msg(" terminating pairs of threads\n");
     participant = list->first;
     while (participant != NULL) {
-        transmitter_destroy_encoder_thread(participant->proc.encoder);
+        transmitter_destroy_encoder_thread(&participant->proc.encoder);
         participant = participant->next;
     }
     pthread_exit((void *)NULL);
