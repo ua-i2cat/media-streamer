@@ -200,13 +200,11 @@ int remove_participant(participant_list_t *list, uint32_t id){
     pthread_mutex_lock(&participant->lock);
  
   } else if (participant->type == OUTPUT /*&& participant->proc.encoder->run == TRUE*/){
-    //TODO: check if there is a thread to stop
+    // transmitter_destroy_encoder_thread takes care of this
   }
-  
 
   if (participant->next == NULL && participant->previous == NULL) {
-    assert(list->last == participant);
-    assert(list->first == participant);
+    assert(list->last == participant && list->first == participant);
     list->first = NULL;
     list->last = NULL;
   } else if (participant->next == NULL) {
