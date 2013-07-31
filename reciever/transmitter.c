@@ -134,6 +134,14 @@ void *transmitter_rtpenc_routine(void *arg)
 
 void transmitter_destroy_encoder_thread(encoder_thread_t *encoder)
 {
+    if (encoder == NULL) {
+        return;
+    }
+
+    if (encoder->run != TRUE) {
+        return;
+    }
+
     sem_post(&encoder->output_sem);
     sem_post(&encoder->input_sem);
     
@@ -146,6 +154,10 @@ void transmitter_destroy_encoder_thread(encoder_thread_t *encoder)
 
     free(encoder->rtpenc);
     free(encoder);
+
+    encoder = NULL;
+
+    //encoder->run = FALSE;
 }
 
 int transmitter_init_threads(struct participant_data *participant)
@@ -156,6 +168,7 @@ int transmitter_init_threads(struct participant_data *participant)
         error_msg(" unsuccessful malloc\n");
         return -1;
     }
+    encoder->run = FALSE;
     encoder->rtpenc = malloc(sizeof(rtpenc_thread_t));
     rtpenc_thread_t *rtpenc = encoder->rtpenc;
     if (rtpenc == NULL) {
@@ -177,6 +190,8 @@ int transmitter_init_threads(struct participant_data *participant)
     if (ret < 0) {
         // TODO
     }
+
+    encoder->run = TRUE;
 
     return 0;
 }

@@ -45,10 +45,6 @@ void destroy_decoder_thread(decoder_thread_t *dec_th){
     free(dec_th);
 }
 
-void destroy_encoder_thread(decoder_thread_t *enc_th){
-    // TODO
-}
-
 void destroy_participant(participant_data_t *src){
   free(src->frame);
   free(src->session);
@@ -56,7 +52,7 @@ void destroy_participant(participant_data_t *src){
   if (src->type == INPUT && src->proc.decoder != NULL){
     destroy_decoder_thread(src->proc.decoder);
   } else if (src->type = OUTPUT && src->proc.encoder != NULL){
-    destroy_encoder_thread(src->proc.encoder);
+    transmitter_destroy_encoder_thread(src->proc.encoder);
   }
   
   pthread_mutex_destroy(&src->lock);
@@ -207,16 +203,24 @@ int remove_participant(participant_list_t *list, uint32_t id){
     //TODO: check if there is a thread to stop
   }
   
-  
-  if (participant->next == NULL){
+
+  if (participant->next == NULL && participant->previous == NULL) {
+    assert(list->last == participant);
+    assert(list->first == participant);
+    list->first = NULL;
+    list->last = NULL;
+  } else if (participant->next == NULL) {
     assert(list->last == participant);
     list->last = participant->previous;
-  } else if (participant->previous == NULL){
+    participant->previous->next = NULL;
+  } else if (participant->previous == NULL) {
     assert(list->first == participant);
     list->first = participant->next;
+    participant->next->previous = NULL;
   } else {
-    assert(participant->next != NULL && participant->next != NULL);
+    assert(participant->next != NULL && participant->previous != NULL);
     participant->previous->next = participant->next;
+    participant->next->previous = participant->previous;
   }
   list->count--;
   
