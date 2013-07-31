@@ -18,8 +18,8 @@
 
 FILE *F_video_rx=NULL;
 
-int width = 854;
-int height = 720;
+int width = 640;
+int height = 360;
 double fps = 15;
 
 int main(){
@@ -42,6 +42,7 @@ int main(){
     frame = vf_alloc(1);
     vf_get_tile(frame, 0)->width=width;
     vf_get_tile(frame, 0)->height=height;
+    frame->tiles[0].data = malloc(4*width*height);
     frame->fps=fps;
     frame->color_spec=UYVY;
     frame->interlacing=PROGRESSIVE;
@@ -49,7 +50,7 @@ int main(){
     double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
     int ttl = 255;
     // char *saveptr = NULL;
-    char *addr="192.168.10.121";
+    char *addr="192.168.10.214";
     //char *addr="127.0.0.1";
     char *mcast_if= NULL;
     struct timeval curr_time;
@@ -60,8 +61,8 @@ int main(){
 
     int required_connections;
     // uint32_t ts;
-    int recv_port = 7004;
-    int send_port = 5004;
+    int recv_port = 5004;
+    int send_port = 7004;
     int index=0;
     int exit = 1;
 
@@ -174,27 +175,29 @@ int main(){
             if (ret) {
                 gettimeofday(&curr_time, NULL);
                 //printf("\nFRAME RECIEVED (first byte = %x)\n",rx_data->frame_buffer[0][0]);
-                frame->tiles[0].data = rx_data->frame_buffer[0];
+//                frame->tiles[0].data = rx_data->frame_buffer[0];
                 frame->tiles[0].data_len = rx_data->buffer_len[0];
-
-                // TODO decode
-                decompress_frame(sd,(unsigned char *) out,(unsigned char *)rx_data->frame_buffer[0],rx_data->buffer_len[0],rx_data->buffer_num[0]);
-                frame->tiles[0].data=out;//rx_data->frame_buffer[0];
-                frame->tiles[0].data_len = vc_get_linesize(des.width, UYVY)*des.height;//rx_data->buffer_len[0];
+		memcpy(frame->tiles[0].data,rx_data->frame_buffer[0],rx_data->buffer_len[0]);
+                printf("\ndata len decodec: %d\n", rx_data->buffer_len[0]);
+		// TODO decode
+//                decompress_frame(sd,(unsigned char *) out,(unsigned char *)rx_data->frame_buffer[0],rx_data->buffer_len[0],rx_data->buffer_num[0]);
+//                frame->tiles[0].data=out;//rx_data->frame_buffer[0];
+//                frame->tiles[0].data_len = vc_get_linesize(des.width, UYVY)*des.height;//rx_data->buffer_len[0];
                 // TODO encode
 
-                tx_frame = compress_frame(sc, frame, i);
-                if (tx_frame == NULL) {
-                    printf("frame NULL!!!\n");
-                    continue;
-                }
-                i = (i + 1)%2;
+//                tx_frame = compress_frame(sc, frame, i);
+//                if (tx_frame == NULL) {
+//                    printf("frame NULL!!!\n");
+//                    continue;
+//                }
+//                i = (i + 1)%2;
                 
                 //printf("[MAIN to SENDER] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
-                if(tx_frame->tiles[0].data_len>0)
-                    tx_send_base_h264(vf_get_tile(tx_frame, 0), devices[0], get_local_mediatime(), 1, tx_frame->color_spec, tx_frame->fps, tx_frame->interlacing, 0, 0);
+//               if(tx_frame->tiles[0].data_len>0)
+//                    tx_send_base_h264(vf_get_tile(tx_frame, 0), devices[0], get_local_mediatime(), 1, tx_frame->color_spec, tx_frame->fps, tx_frame->interlacing, 0, 0);
+                    tx_send_base_h264(vf_get_tile(frame, 0), devices[0], get_local_mediatime(), 1, frame->color_spec, frame->fps, frame->interlacing, 0, 0);
                 
-                printf("\nH264 SEND\n");
+//                printf("\nH264 SEND\n");
                 //if (xec > 3)
                 //  exit = 0;
                 //xec++;

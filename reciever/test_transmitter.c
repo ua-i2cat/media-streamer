@@ -153,8 +153,8 @@ int main(int argc, char **argv)
             struct participant_data *participant = list->first;
             while (participant != NULL) {
                 pthread_mutex_lock(&participant->lock);
-                participant->frame = (char *)b1;
                 participant->frame_length = vc_get_linesize(width, UYVY)*height;
+                memcpy(participant->frame, (char *)b1, participant->frame_length);
                 participant->new_frame = 1;
                 pthread_mutex_unlock(&participant->lock);
                 participant = participant->next;
@@ -167,9 +167,9 @@ int main(int argc, char **argv)
     }
     debug_msg(" deallocating resources and terminating threads\n");
     stop_out_manager();
+    destroy_participant_list(list);
     av_free(pformat_ctx);
     av_free(b1);
-    destroy_participant_list(list);
     debug_msg(" done!\n");
 
     return 0;

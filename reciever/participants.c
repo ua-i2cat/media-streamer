@@ -1,6 +1,7 @@
 #include "participants.h"
 #include "video_decompress/libavcodec.h"
 #include "video_decompress.h"
+#include "transmitter.h"
 
 participant_data_t *init_participant(int id, int width, int height, codec_t codec, char *dst, uint32_t port, ptype_t type){
   participant_data_t *participant;
@@ -51,6 +52,8 @@ void destroy_participant(participant_data_t *src){
   
   if (src->type == INPUT && src->proc.decoder != NULL){
     destroy_decoder_thread(src->proc.decoder);
+  } else if (src->type = OUTPUT && src->proc.encoder != NULL){
+    //transmitter_destroy_encoder_thread(&src->proc.encoder);
   }
   
   pthread_mutex_destroy(&src->lock);
@@ -198,19 +201,25 @@ int remove_participant(participant_list_t *list, uint32_t id){
     pthread_mutex_lock(&participant->lock);
  
   } else if (participant->type == OUTPUT /*&& participant->proc.encoder->run == TRUE*/){
-    //TODO: check if there is a thread to stop
+    // transmitter_destroy_encoder_thread takes care of this
   }
-  
-  
-  if (participant->next == NULL){
+
+  if (participant->next == NULL && participant->previous == NULL) {
+    assert(list->last == participant && list->first == participant);
+    list->first = NULL;
+    list->last = NULL;
+  } else if (participant->next == NULL) {
     assert(list->last == participant);
     list->last = participant->previous;
-  } else if (participant->previous == NULL){
+    participant->previous->next = NULL;
+  } else if (participant->previous == NULL) {
     assert(list->first == participant);
     list->first = participant->next;
+    participant->next->previous = NULL;
   } else {
-    assert(participant->next != NULL && participant->next != NULL);
+    assert(participant->next != NULL && participant->previous != NULL);
     participant->previous->next = participant->next;
+    participant->next->previous = participant->previous;
   }
   list->count--;
   
