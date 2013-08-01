@@ -52,16 +52,16 @@ void destroy_participant(participant_data_t *src){
   
   if (src->type == INPUT && src->proc.decoder != NULL){
     destroy_decoder_thread(src->proc.decoder);
-  } else if (src->type = OUTPUT && src->proc.encoder != NULL){
-    //transmitter_destroy_encoder_thread(&src->proc.encoder);
-  }
+  } /*else if (src->type = OUTPUT && src->proc.encoder != NULL){
+    transmitter_destroy_encoder_thread(&src->proc.encoder);
+  }*/
   
   pthread_mutex_destroy(&src->lock);
   
   free(src);
 }
 
-participant_list_t *init_participant_list(){
+participant_list_t *init_participant_list(void){
   participant_list_t 	*list;
     
   list = (participant_list_t *) malloc(sizeof(participant_list_t));
@@ -184,20 +184,13 @@ int remove_participant(participant_list_t *list, uint32_t id){
   
   if (participant->type == INPUT && participant->proc.decoder != NULL
     && participant->proc.decoder->run == TRUE){
-    bool lock = FALSE;
-   
+
     participant->proc.decoder->run = FALSE;
     pthread_cond_signal(&participant->proc.decoder->notify_frame);
     pthread_mutex_unlock(&participant->lock);
-    //if (pthread_rwlock_trywrlock(&list->lock) != 0)
-    //  lock = TRUE;
-    //pthread_rwlock_unlock(&list->lock);
     
     pthread_join(participant->proc.decoder->th_id, NULL); //TODO: timeout to force thread kill //TODO unlock 
     
-    //if (lock){
-    //  pthread_rwlock_wrlock(&list->lock);
-    //}
     pthread_mutex_lock(&participant->lock);
  
   } else if (participant->type == OUTPUT /*&& participant->proc.encoder->run == TRUE*/){

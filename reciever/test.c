@@ -17,7 +17,7 @@ int main(){
   
   if (start_reciever(reciever)) {
   
-    /*sleep(10);
+    sleep(10);
   
     pthread_rwlock_wrlock(&list->lock);
     if (remove_participant(list,3))
@@ -38,7 +38,7 @@ int main(){
   
     sleep(3);
   
-    stop_reciever(reciever);*/
+    stop_reciever(reciever);
   
     pthread_join(reciever->th_id, NULL);
   }

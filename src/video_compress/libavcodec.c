@@ -329,7 +329,7 @@ static bool configure_with(struct libav_video_compress *s, struct video_desc des
                 fprintf(stderr, "H.264 not available in UltraGrid BSD build. "
                                 "Reconfigure UltraGrid with --enable-gpl if "
                                 "needed.\n");
-                exit_uv(1);
+                //exit_uv(1);
                 return false;
         }
 #endif

@@ -83,7 +83,7 @@ static void configure_with(struct state_decompress *decompressor, struct video_d
 
         if(!init_gl_context(&decompressor->context, GL_CONTEXT_ANY)) {
                 fprintf(stderr, "[RTDXT decompress] Failed to create GL context.");
-                exit_uv(128);
+                //exit_uv(128);
                 decompressor->compressed_len = 0;
                 return;
         }

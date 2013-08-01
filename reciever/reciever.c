@@ -8,13 +8,11 @@
 
 #define INITIAL_VIDEO_RECV_BUFFER_SIZE  ((4*1920*1080)*110/100) //command line net.core setup: sysctl -w net.core.rmem_max=9123840
 
-void decoder_th(void* participant){
+void *decoder_th(void* participant){
       participant_data_t *src = (participant_data_t *) participant;
       
       //TODO: this should be reconfigurable
       src->frame_length = vc_get_linesize(src->width, RGB)*src->height;
-      
-      printf("NEW decoder %d %d\n", src->proc.decoder->th_id, src->id);
       
       pthread_mutex_lock(&src->proc.decoder->lock);
       while(src->proc.decoder->run){
@@ -42,7 +40,7 @@ void init_decoder(participant_data_t *src){
       src->proc.decoder->run = TRUE;
       pthread_mutex_unlock(&src->lock);
      
-      if (pthread_create(&src->proc.decoder->th_id, NULL, &decoder_th, (void *) src) != 0)
+      if (pthread_create(&src->proc.decoder->th_id, NULL, (void *) decoder_th, src) != 0)
 	src->proc.decoder->run = FALSE;
 
 }
@@ -65,16 +63,16 @@ reciever_t *init_reciever(participant_list_t *list, int port){
       
     if (reciever->session != NULL) {
       if (!rtp_set_option(reciever->session, RTP_OPT_WEAK_VALIDATION, 1)) {
-	return -1;
+	return NULL;
       }
       
       if (!rtp_set_sdes(reciever->session, rtp_my_ssrc(reciever->session),
 	RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING))) { //TODO: is this needed?
-	return -1;
+	return NULL;
       }
 
       if (!rtp_set_recv_buf(reciever->session, INITIAL_VIDEO_RECV_BUFFER_SIZE)) {
-	return -1;
+	return NULL;
       }
 
     }
@@ -82,7 +80,7 @@ reciever_t *init_reciever(participant_list_t *list, int port){
     return reciever;
 }
 
-void reciever_thread(reciever_t *reciever) {
+void *reciever_thread(reciever_t *reciever) {
     struct pdb_e *cp;
     participant_data_t *src;
 
@@ -157,7 +155,7 @@ void reciever_thread(reciever_t *reciever) {
 int start_reciever(reciever_t *reciever){
   reciever->run = TRUE;
   
-  if (pthread_create(&reciever->th_id, NULL, &reciever_thread, (void *) reciever) != 0)
+  if (pthread_create(&reciever->th_id, NULL, (void *) reciever_thread, reciever) != 0)
     reciever->run = FALSE;
   
   return reciever->run;

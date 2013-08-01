@@ -187,7 +187,7 @@ static int reconfigure_compress(struct video_compress *compress, int width,
                         break;
                 default:
                         fprintf(stderr, "Unknown codec %d!", codec);
-                        exit_uv(128);
+                        //exit_uv(128);
                         return FALSE;
         }
         
@@ -300,7 +300,7 @@ struct module *fastdxt_init(struct module *parent, char *num_threads_str)
                     (&(compress->thread_ids[x]), NULL, compress_thread,
                      (void *)compress)) {
                         perror("Unable to create compressor thread!");
-                        exit_uv(x);
+                        //exit_uv(x);
                         return NULL;
                 }
         }
@@ -356,7 +356,7 @@ struct tile * fastdxt_compress_tile(struct module *mod, struct tile *tx, struct 
 
         if(desc->interlacing != INTERLACED_MERGED && desc->interlacing != PROGRESSIVE) {
                 fprintf(stderr, "Unsupported interlacing format.\n");
-                exit_uv(1);
+                //exit_uv(1);
         }
 
         if(desc->interlacing == INTERLACED_MERGED) {

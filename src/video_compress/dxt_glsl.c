@@ -99,7 +99,7 @@ static int configure_with(struct video_compress *s, struct video_frame *frame)
                                 vf_get_tile(frame, x)->width != vf_get_tile(frame, 0)->width) {
 
                         fprintf(stderr,"[RTDXT] Requested to compress tiles of different size!");
-                        exit_uv(128);
+                        //exit_uv(128);
                         return FALSE;
                 }
         }
@@ -151,7 +151,7 @@ static int configure_with(struct video_compress *s, struct video_frame *frame)
                         break;
                 default:
                         fprintf(stderr, "[RTDXT] Unknown codec: %d\n", frame->color_spec);
-                        exit_uv(128);
+                        //exit_uv(128);
                         return FALSE;
         }
 
@@ -192,7 +192,7 @@ static int configure_with(struct video_compress *s, struct video_frame *frame)
         for(int i = 0; i < (int) frame->tile_count; ++i) {
                 if(s->encoder[i] == NULL) {
                         fprintf(stderr, "[RTDXT] Unable to create decoder.\n");
-                        exit_uv(128);
+                        //exit_uv(128);
                         return FALSE;
                 }
         }

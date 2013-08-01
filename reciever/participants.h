@@ -69,7 +69,7 @@ typedef struct rtp_session {
 } rtp_session_t;
 
 
-participant_list_t *init_participant_list();
+participant_list_t *init_participant_list(void);
 
 decoder_thread_t *init_decoder_thread(participant_data_t *src);
 
@@ -83,5 +83,11 @@ participant_data_t *get_participant_ssrc(participant_list_t *list, uint32_t ssrc
 int remove_participant(participant_list_t *list, uint32_t id);
 
 void destroy_participant_list(participant_list_t *list);
+
+void destroy_participant(participant_data_t *src);
+
+void destroy_decoder_thread(decoder_thread_t *dec_th);
+
+participant_data_t *init_participant(int id, int width, int height, codec_t codec, char *dst, uint32_t port, ptype_t type);
 
 #endif

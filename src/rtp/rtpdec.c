@@ -96,7 +96,7 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
 //                        seed = ntohl(hdr[4]);
                 } else {
                         fprintf(stderr, "[decoder] Unknown packet type: %d.\n", pckt->pt);
-                        //exit_uv(1);i
+                        //exit_uv(1);
                         printf("unknown packet type\n");
                         ret = FALSE;
                         goto cleanup;

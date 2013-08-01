@@ -11,9 +11,9 @@ LDFLAGS_DEC   =-shared  -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname
 LDFLAGS_TEST  = -Wl,--dynamic-list-data,--as-needed
 
 LIBS_RTP      += -lrt -ldl -lieee -lm
-LIBS_ENC      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm
-LIBS_DEC      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm
-LIBS	      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm
+LIBS_ENC      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut
+LIBS_DEC      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut
+LIBS	      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut
 	 	
 LIBS_RTP_TEST += $(LIBS_RTP) -L./lib -lrtp
 LIBS_ENC_TEST += $(LIBS_ENC) -L./lib -lvcompress
@@ -35,6 +35,14 @@ TRANSMITTER = $(addprefix bin/, test_transmitter)
 RECIEVER = $(addprefix bin/, test)
 
 DOCS 	      = COPYRIGHT README REPORTING-BUGS
+
+# -----------------------------------------------------------------------------
+
+OBJS_LINK 	+= dxt_compress/dxt_util.o \
+				dxt_compress/dxt_decoder.o \
+				dxt_compress/dxt_encoder.o
+
+# -----------------------------------------------------------------------------
 
 OBJS_RTP 	 += src/tv.o \
 				src/perf.o \
@@ -134,7 +142,7 @@ tests: test
 
 transmitter: build $(TARGETS) $(OBJS_TRANSMITTER) $(TRANSMITTER)
 
-reciever: build $(TARGETS) $(OBJS_RECIEVER) $(RECIEVER)
+reciever: dxt build $(TARGETS) $(OBJS_RECIEVER) $(RECIEVER)
 
 test: build $(TARGETS) $(TESTS)
 
@@ -145,6 +153,9 @@ build:
 rtp: $(TARGET_RTP)
 encoder: $(TARGET_ENC)
 decoder: $(TARGET_DEC)
+
+dxt:
+	cd dxt_compress; make
 
 $(TARGET_RTP): $(OBJS_RTP)
 	$(LINKER) $(LDFLAGS_RTP) -o $(TARGET_RTP) $+ $(LIBS_RTP)
@@ -158,7 +169,7 @@ $(TARGET_DEC): $(OBJS_DEC)
 bin/%: tests/%.o $(OBJS) $(HEADERS)
 	$(LINKER) $(LDFLAGS_TEST) $(INC) $+ -o $@ $(LIBS_TEST)
 	
-$(RECIEVER): $(OBJS_RECIEVER)
+$(RECIEVER): $(OBJS_RECIEVER) $(OBJS_LINK)
 	$(LINKER) $(LDFLAGS_TEST) $(INC) $+ -o $@ $(LIBS_TEST)
 	
 $(TRANSMITTER): $(OBJS_TRANSMITTER) $(OBJS)
@@ -169,3 +180,5 @@ $(TRANSMITTER): $(OBJS_TRANSMITTER) $(OBJS)
 
 clean:
 	rm -f $(OBJS) $(OBJS_TEST) $(HEADERS) $(TARGETS) $(TESTS) $(OBJS_RECIEVER) $(OBJS_TRANSMITTER) $(RECIEVER) $(TRANSMITTER)
+	cd dxt_compress; make clean
+

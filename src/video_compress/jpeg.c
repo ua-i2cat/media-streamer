@@ -110,7 +110,7 @@ static int configure_with(struct compress_jpeg_state *s, struct video_frame *fra
                 if (vf_get_tile(frame, x)->width != vf_get_tile(frame, 0)->width ||
                                 vf_get_tile(frame, x)->width != vf_get_tile(frame, 0)->width) {
                         fprintf(stderr,"[JPEG] Requested to compress tiles of different size!");
-                        exit_uv(129);
+                        //exit_uv(129);
                         return FALSE;
                 }
         }
@@ -168,7 +168,7 @@ static int configure_with(struct compress_jpeg_state *s, struct video_frame *fra
                         break;
                 default:
                         fprintf(stderr, "[JPEG] Unknown codec: %d\n", frame->color_spec);
-                        exit_uv(128);
+                        //exit_uv(128);
                         return FALSE;
         }
 
@@ -229,7 +229,7 @@ static int configure_with(struct compress_jpeg_state *s, struct video_frame *fra
         
         if(!s->encoder) {
                 fprintf(stderr, "[DXT GLSL] Failed to create encoder.\n");
-                exit_uv(128);
+                //exit_uv(128);
                 return FALSE;
         }
         
