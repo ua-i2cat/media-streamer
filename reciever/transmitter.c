@@ -24,6 +24,12 @@ void transmitter_destroy_encoder_thread(encoder_thread_t **encoder);
 
 pthread_t MASTER_THREAD;
 int RUN = 1;
+sem_t FRAME_SEM;
+
+void notify_out_manager()
+{
+    sem_post(&FRAME_SEM);
+}
 
 void *transmitter_encoder_routine(void *arg)
 {
@@ -213,6 +219,7 @@ void *transmitter_master_routine(void *arg)
     debug_msg("entering the master loop\n");
     while (RUN) {
         struct participant_data *ptc = list->first;
+        sem_wait(&FRAME_SEM);
         while (ptc != NULL) {
             if (ptc->proc.encoder != NULL) { // -> has a pair of threads
                 if (ptc->new_frame) { // -> has new data
@@ -240,6 +247,7 @@ void *transmitter_master_routine(void *arg)
 int start_out_manager(participant_list_t *list)
 {
     debug_msg("creating the master thread...\n");
+    sem_init(&FRAME_SEM, 1, 0);
     int ret = pthread_create(&MASTER_THREAD, NULL, transmitter_master_routine, list);
     if (ret < 0) {
         error_msg("could not initiate the transmitter master thread\n");
