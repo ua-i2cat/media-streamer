@@ -12,7 +12,7 @@
 #define DEFAULT_RTCP_BW 5 * 1024 * 1024
 #define DEFAULT_TTL 255
 #define DEFAULT_SEND_BUFFER_SIZE 1920 * 1080 * 4 * sizeof(char)
-#define PIXEL_FORMAT UYVY
+#define PIXEL_FORMAT RGB
 
 void *transmitter_encoder_routine(void *arg);
 void *transmitter_rtpenc_routine(void *arg);
@@ -222,7 +222,7 @@ void *transmitter_master_routine(void *arg)
                     pthread_mutex_unlock(&ptc->lock);
                 }
             } else {
-                transmitter_init_threads(participant);
+                transmitter_init_threads(ptc);
             }
             ptc = ptc->next;
         }
