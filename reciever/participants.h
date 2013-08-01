@@ -1,7 +1,7 @@
 #ifndef _PARTICIPANTS_H_
 #define _PARTICIPANTS_H_
 
-#include "video.h"
+#include "../src/video.h"
 #include <semaphore.h>
 
 typedef struct participant_data participant_data_t;
