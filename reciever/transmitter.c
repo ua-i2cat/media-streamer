@@ -11,7 +11,8 @@
 #define DEFAULT_RECV_PORT 12006 // just trying to not interfere with anything
 #define DEFAULT_RTCP_BW 5 * 1024 * 1024
 #define DEFAULT_TTL 255
-#define DEFAULT_SEND_BUFFER_SIZE 1024 * 56
+#define DEFAULT_SEND_BUFFER_SIZE 1920 * 1080 * 4 * sizeof(char)
+#define PIXEL_FORMAT UYVY
 
 void *transmitter_encoder_routine(void *arg);
 void *transmitter_rtpenc_routine(void *arg);
@@ -30,7 +31,7 @@ void *transmitter_encoder_routine(void *arg)
 
     encoder_thread_t *encoder = participant->proc.encoder;
 
-    encoder->input_frame_length = vc_get_linesize(participant->width, UYVY)*participant->height;
+    encoder->input_frame_length = vc_get_linesize(participant->width, PIXEL_FORMAT)*participant->height;
     encoder->input_frame = malloc(encoder->input_frame_length); // TODO error handling
 
     compress_init("libavcodec:codec=H.264", &encoder->sc);
@@ -40,8 +41,8 @@ void *transmitter_encoder_routine(void *arg)
     int height = participant->height;
     vf_get_tile(frame, 0)->width=width;
     vf_get_tile(frame, 0)->height=height;
-    vf_get_tile(frame, 0)->linesize=vc_get_linesize(width, UYVY);
-    frame->color_spec=UYVY;
+    vf_get_tile(frame, 0)->linesize=vc_get_linesize(width, PIXEL_FORMAT);
+    frame->color_spec = PIXEL_FORMAT;
     frame->fps = DEFAULT_FPS; // FIXME: if it's not set -> core dump.
     frame->interlacing=PROGRESSIVE;
     
@@ -220,6 +221,8 @@ void *transmitter_master_routine(void *arg)
                     sem_post(&ptc->proc.encoder->input_sem);
                     pthread_mutex_unlock(&ptc->lock);
                 }
+            } else {
+                transmitter_init_threads(participant);
             }
             ptc = ptc->next;
         }
