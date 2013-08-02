@@ -69,7 +69,7 @@ typedef struct rtp_session {
 } rtp_session_t;
 
 
-participant_list_t *init_participant_list();
+participant_list_t *init_participant_list(void);
 
 decoder_thread_t *init_decoder_thread(participant_data_t *src);
 

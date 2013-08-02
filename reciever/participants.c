@@ -3,6 +3,12 @@
 #include "video_decompress.h"
 #include "transmitter.h"
 
+participant_data_t *init_participant(int id, int width, int height, codec_t codec, char *dst, uint32_t port, ptype_t type);
+void destroy_decoder_thread(decoder_thread_t *dec_th);
+void destroy_participant(participant_data_t *src);
+int remove_participant(participant_list_t *list, uint32_t id);
+void destroy_participant_list(participant_list_t *list);
+
 participant_data_t *init_participant(int id, int width, int height, codec_t codec, char *dst, uint32_t port, ptype_t type){
   participant_data_t *participant;
   rtp_session_t *rtp;
@@ -52,7 +58,7 @@ void destroy_participant(participant_data_t *src){
   
   if (src->type == INPUT && src->proc.decoder != NULL){
     destroy_decoder_thread(src->proc.decoder);
-  } else if (src->type = OUTPUT && src->proc.encoder != NULL){
+  } else if (src->type == OUTPUT && src->proc.encoder != NULL){
     //transmitter_destroy_encoder_thread(&src->proc.encoder);
   }
   

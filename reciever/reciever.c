@@ -5,8 +5,11 @@
 #include "rtp/rtpdec_h264.h"
 #include "pdb.h"
 #include "tv.h"
+#include "video_compress.h"
 
 #define INITIAL_VIDEO_RECV_BUFFER_SIZE  ((4*1920*1080)*110/100) //command line net.core setup: sysctl -w net.core.rmem_max=9123840
+
+void decoder_th(void* participant);
 
 void decoder_th(void* participant){
       participant_data_t *src = (participant_data_t *) participant;
