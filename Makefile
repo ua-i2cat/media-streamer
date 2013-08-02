@@ -86,7 +86,7 @@ OBJS_TRANSMITTER = $(addprefix reciever/, participants.o transmitter.o test_tran
 
 # -------------------------------------------------------------------------------------------------
 
-all: build $(TARGETS)
+all: build $(TARGETS) reciever transmitter
 
 .c.o:
 	$(CC) $(CFLAGS) $(INC) -c $< -o $@
