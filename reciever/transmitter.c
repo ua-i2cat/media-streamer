@@ -58,17 +58,15 @@ void *transmitter_encoder_routine(void *arg)
             break;
         }
 
+        // Lock while compressing ( = reading the data buffer)
         pthread_mutex_lock(&participant->lock);
-        //memcpy(encoder->input_frame, participant->frame, participant->frame_length);
-        //encoder->input_frame_length = participant->frame_length;
-        //pthread_mutex_unlock(&participant->lock);
         
         frame->tiles[0].data = participant->frame;
         frame->tiles[0].data_len = participant->frame_length;
-
         struct video_frame *tx_frame;
         int i = encoder->index;
         tx_frame = compress_frame(encoder->sc, frame, i);
+        
         pthread_mutex_unlock(&participant->lock);
         
         i = (i + 1)%2;
