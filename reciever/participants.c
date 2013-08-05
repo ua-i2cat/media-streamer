@@ -1,7 +1,6 @@
 #include "participants.h"
 #include "video_decompress/libavcodec.h"
 #include "video_decompress.h"
-#include "transmitter.h"
 
 participant_data_t *init_participant(int id, int width, int height, codec_t codec, char *dst, uint32_t port, ptype_t type);
 void destroy_decoder_thread(decoder_thread_t *dec_th);
@@ -59,7 +58,19 @@ void destroy_participant(participant_data_t *src){
   if (src->type == INPUT && src->proc.decoder != NULL){
     destroy_decoder_thread(src->proc.decoder);
   } else if (src->type == OUTPUT && src->proc.encoder != NULL){
-    //transmitter_destroy_encoder_thread(&src->proc.encoder);
+    encoder_thread_t **encoder = &src->proc.encoder;
+    if (encoder[0]->run == TRUE) {
+        sem_destroy(&encoder[0]->output_sem);
+        sem_destroy(&encoder[0]->input_sem);
+
+        pthread_join(encoder[0]->rtpenc->thread, NULL);
+        pthread_join(encoder[0]->thread, NULL);
+
+        free(encoder[0]->rtpenc);
+        free(encoder[0]);
+
+        encoder[0] = NULL;
+    }
   }
   
   pthread_mutex_destroy(&src->lock);
