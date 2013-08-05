@@ -63,7 +63,7 @@ OBJS_ALL  = $(OBJS_RTP) $(OBJS_RM) $(OBJS_ENC) $(OBJS_DEC) $(OBJS_RX) $(OBJS_TX)
 
 # -------------------------------------------------------------------------------------------------
 
-all: build $(TARGET_ALL) doc
+all: build $(TARGET_ALL)
 
 .c.o:
 	$(CC) $(CFLAGS) $(INC) -c $< -o $@
