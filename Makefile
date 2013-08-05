@@ -63,7 +63,7 @@ OBJS_ALL  = $(OBJS_RTP) $(OBJS_RM) $(OBJS_ENC) $(OBJS_DEC) $(OBJS_RX) $(OBJS_TX)
 
 # -------------------------------------------------------------------------------------------------
 
-all: build $(TARGET_ALL)
+all: build $(TARGET_ALL) doc
 
 .c.o:
 	$(CC) $(CFLAGS) $(INC) -c $< -o $@
@@ -114,7 +114,11 @@ $(TARGET_TX): $(TARGET_LIBS) $(OBJS_TX) $(HEADERS)
 	$(LINKER) $(LDFLAGS_TEST) $(INC) $(OBJS_TX) $(HEADERS) -o $@ $(LIBS_TEST)
 
 
+doc:
+	doxygen
+
 # -------------------------------------------------------------------------------------------------
 
 clean:
 	rm -f $(OBJS_ALL) $(HEADERS) $(TARGET_ALL)
+	rm -rf doc
