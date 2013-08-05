@@ -122,3 +122,5 @@ doc:
 clean:
 	rm -f $(OBJS_ALL) $(HEADERS) $(TARGET_ALL)
 	rm -rf doc
+
+.PHONY: all clean doc
