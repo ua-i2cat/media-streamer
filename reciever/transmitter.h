@@ -3,7 +3,8 @@
  * @brief Output manager functions.
  *
  * Allows the compression and transmition over RTP of uncompressed video
- * (RGB interleaved 4:4:4) using the participants.h API.
+ * (RGB interleaved 4:4:4, according to <em>ffmpeg</em>: <em>rgb24</em>),
+ * using the participants.h API.
  *
  */
 
