@@ -23,70 +23,47 @@ LIBS_TEST     += $(LIBS) -L./lib -lrtp -lvcompress -lvdecompress -lavformat
 
 INC           = -I./src -I$(HOME)/ffmpeg_build/include
 	  
-TARGET_RTP    = lib/librtp.so
-TARGET_ENC    = lib/libvcompress.so
-TARGET_DEC    = lib/libvdecompress.so
-TARGETS       = $(TARGET_RTP) $(TARGET_ENC) $(TARGET_DEC)
+TARGET_RTP  = lib/librtp.so
+TARGET_ENC  = lib/libvcompress.so
+TARGET_DEC  = lib/libvdecompress.so
+TARGET_LIBS = $(TARGET_RTP) $(TARGET_ENC) $(TARGET_DEC)
 
-TESTS = $(addprefix bin/, rtp encoder decoder ug_ug vlc_vlc vlc_ug ug_vlc enc_tx rx_dec enc_dec 2in2out)
+TARGET_RX   = bin/test
+TARGET_TX   = bin/test_transmitter
 
-TRANSMITTER = $(addprefix bin/, test_transmitter)
+TARGET_TEST = $(addprefix bin/, rtp encoder decoder ug_ug vlc_vlc vlc_ug ug_vlc enc_tx rx_dec enc_dec 2in2out)
 
-RECIEVER = $(addprefix bin/, test)
+TARGET_ALL  = $(TARGET_LIBS) $(TARGET_RX) $(TARGET_TX) $(TARGET_TEST)
 
-DOCS 	      = COPYRIGHT README REPORTING-BUGS
+DOCS 	    = COPYRIGHT README REPORTING-BUGS
 
-OBJS_RTP 	 += src/compat/drand48.o \
-				src/crypto/crypt_des.o \
-				src/crypto/crypt_aes.o \
-				src/crypto/crypt_aes_impl.o \
-				src/crypto/md5.o \
-				src/compat/gettimeofday.o \
-				src/crypto/random.o \
-				src/tv.o \
-				src/perf.o \
-				src/tfrc.o \
-				src/ntp.o \
-				src/pdb.o \
-				src/compat/inet_pton.o \
-				src/compat/inet_ntop.o \
-				src/compat/vsnprintf.o \
-				src/rtp/pbuf.o \
-				src/rtp/rtp_callback.o \
-				src/rtp/net_udp.o \
-				src/rtp/rtp.o \
-				src/rtp/rtpdec.o \
-				src/rtp/rtpenc.o \
-				src/rtp/rtpdec_h264.o \
-				src/rtp/rtpenc_h264.o \
+SRCS_RTP  = $(wildcard src/*.c src/compat/*.c src/crypto/*.c src/rtp/*.c)
+SRCS_RM   = $(wildcard src/utils/*.cpp)
+SRCS_ENC  = $(wildcard src/video_compress/*.c)
+SRCS_DEC  = $(wildcard src/video_decompress/*.c)
 
-OBJS_RM 	 += src/utils/resource_manager.o \
-				src/utils/worker.o \
+SRCS_RX   = $(addprefix reciever/, participants.c reciever.c test.c)
+SRCS_TX   = $(addprefix reciever/, participants.c transmitter.c test_transmitter.c)
 
-OBJS_ENC     += src/video_compress/none.o \
-				src/video_compress/libavcodec.o \
-				src/video_compress.o \
 
-OBJS_DEC     += src/video_decompress/libavcodec.o \
-				src/video_decompress/null.o \
-				src/video_decompress.o \
+SRCS_TEST = $(wildcard tests/*.c)
 
-OBJS_C		  = $(patsubst %.c, %.o ,	$(wildcard src/*.c) $(wildcard src/*/*.c))
-OBJS_CPP	  =	$(patsubst %.cpp, %.o,	$(wildcard src/*.cpp) $(wildcard src/*/*.cpp))
+# src/lib_common.o must be excluded (it does not compile and, apparently, it's not used)
+OBJS_RTP  = $(filter-out src/lib_common.o, $(patsubst %.c, %.o, $(SRCS_RTP)))
+OBJS_RM   = $(patsubst %.cpp, %.o, $(SRCS_RM))
+OBJS_ENC  = $(patsubst %.c, %.o, $(SRCS_ENC))
+OBJS_DEC  = $(patsubst %.c, %.o, $(SRCS_DEC))
 
-OBJS_EXCLUDE  = src/lib_common.o
+OBJS_RX   = $(patsubst %.c, %.o, $(SRCS_RX))
+OBJS_TX   = $(patsubst %.c, %.o, $(SRCS_TX))
 
-OBJS		  = $(filter-out $(OBJS_EXCLUDE), $(OBJS_C) $(OBJS_CPP))
+OBJS_TEST = $(patsubst %.c, %.o, $(SRCS_TEST))
 
-OBJS_TEST     = $(patsubst %.c, %.o,	$(wildcard tests/*.c) $(wildcard tests/*/*.c))
-
-OBJS_RECIEVER = $(addprefix reciever/, participants.o reciever.o test.o)
-
-OBJS_TRANSMITTER = $(addprefix reciever/, participants.o transmitter.o test_transmitter.o)
+OBJS_ALL  = $(OBJS_RTP) $(OBJS_RM) $(OBJS_ENC) $(OBJS_DEC) $(OBJS_RX) $(OBJS_TX) $(OBJS_TEST)
 
 # -------------------------------------------------------------------------------------------------
 
-all: build $(TARGETS) reciever transmitter
+all: build $(TARGET_ALL)
 
 .c.o:
 	$(CC) $(CFLAGS) $(INC) -c $< -o $@
@@ -97,42 +74,47 @@ all: build $(TARGETS) reciever transmitter
 configure-messages:
 	@echo ""
 
+rtp: build $(TARGET_RTP)
+
+encoder: build $(TARGET_ENC)
+
+decoder: build $(TARGET_DEC)
+
+libs: build $(TARGET_RTP) $(TARGET_ENC) $(TARGET_DEC)
+
+transmitter: build $(TARGET_TX)
+
+reciever: build $(TARGET_RX)
+
 tests: test
 
-transmitter: build $(TARGETS) $(OBJS_TRANSMITTER) $(TRANSMITTER)
-
-reciever: build $(TARGETS) $(OBJS_RECIEVER) $(RECIEVER)
-
-test: build $(TARGETS) $(TESTS)
+test: build $(TARGET_TEST)
 
 build:
 	@mkdir -p lib
 	@mkdir -p bin
 
-rtp: $(TARGET_RTP)
-encoder: $(TARGET_ENC)
-decoder: $(TARGET_DEC)
-
-$(TARGET_RTP): $(OBJS_RTP) $(HEADERS)
+$(TARGET_RTP): $(OBJS_RTP) $(OBJS_RM) $(HEADERS)
 	$(LINKER) $(LDFLAGS_RTP) -o $(TARGET_RTP) $+ $(LIBS_RTP)
 
-$(TARGET_ENC): $(OBJS_ENC) $(HEADERS)
-	$(LINKER) $(LDFLAGS) $(LDFLAGS_ENC) -o $(TARGET_ENC) $+ $(LIBS_ENC)
+$(TARGET_ENC): $(OBJS_ENC) $(OBJS_RM) $(HEADERS)
+	$(LINKER) $(LDFLAGS_ENC) -o $(TARGET_ENC) $+ $(LIBS_ENC)
 
-$(TARGET_DEC): $(OBJS_DEC) $(HEADERS)
-	$(LINKER) $(LDFLAGS) $(LDFLAGS_DEC) -o $(TARGET_DEC) $+ $(LIBS_DEC)
+$(TARGET_DEC): $(OBJS_DEC) $(OBJS_RM) $(HEADERS)
+	$(LINKER) $(LDFLAGS_DEC) -o $(TARGET_DEC) $+ $(LIBS_DEC)
 
-bin/%: tests/%.o $(OBJS) $(HEADERS)
-	$(LINKER) $(LDFLAGS_TEST) $(INC) $+ -o $@ $(LIBS_TEST)
+# tests
+bin/%: tests/%.o $(TARGET_LIBS) $(HEADERS)
+	$(LINKER) $(LDFLAGS_TEST) $(INC) $< $(HEADERS) -o $@ $(LIBS_TEST)
+
+$(TARGET_RX): $(TARGET_LIBS) $(OBJS_RX) $(HEADERS)
+	$(LINKER) $(LDFLAGS_TEST) $(INC) $(OBJS_RX) $(HEADERS) -o $@ $(LIBS_TEST)
 	
-$(RECIEVER): $(OBJS_RECIEVER) $(OBJS)
-	$(LINKER) $(LDFLAGS_TEST) $(INC) $+ -o $@ $(LIBS_TEST)
-	
-$(TRANSMITTER): $(OBJS_TRANSMITTER) $(OBJS)
-	$(LINKER) $(LDFLAGS_TEST) $(INC) $+ -o $@ $(LIBS_TEST)
+$(TARGET_TX): $(TARGET_LIBS) $(OBJS_TX) $(HEADERS)
+	$(LINKER) $(LDFLAGS_TEST) $(INC) $(OBJS_TX) $(HEADERS) -o $@ $(LIBS_TEST)
 
 
 # -------------------------------------------------------------------------------------------------
 
 clean:
-	rm -f $(OBJS) $(OBJS_TEST) $(HEADERS) $(TARGETS) $(TESTS) $(OBJS_RECIEVER) $(OBJS_TRANSMITTER) $(RECIEVER) $(TRANSMITTER)
+	rm -f $(OBJS_ALL) $(HEADERS) $(TARGET_ALL)
