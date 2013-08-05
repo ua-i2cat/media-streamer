@@ -139,6 +139,7 @@ void *transmitter_rtpenc_routine(void *arg)
     pthread_exit(NULL);
 }
 
+
 void transmitter_destroy_encoder_thread(encoder_thread_t **encoder)
 {
     if (*encoder == NULL) {
@@ -241,7 +242,7 @@ void *transmitter_master_routine(void *arg)
     debug_msg(" terminating pairs of threads\n");
     participant = list->first;
     while (participant != NULL) {
-        transmitter_destroy_encoder_thread(&participant->proc.encoder);
+        //transmitter_destroy_encoder_thread(&participant->proc.encoder);
         participant = participant->next;
     }
     pthread_exit((void *)NULL);

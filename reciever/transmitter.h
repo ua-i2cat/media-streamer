@@ -56,6 +56,7 @@ int stop_out_manager(void);
  *
  * @note exposed as an API function to allow its use from, for example,
  *       <em>remove_participant</em>.
+ * @deprecated
  */
 void transmitter_destroy_encoder_thread(encoder_thread_t **encoder);
 
