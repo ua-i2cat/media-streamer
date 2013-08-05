@@ -220,6 +220,9 @@ void *transmitter_master_routine(void *arg)
     while (RUN) {
         struct participant_data *ptc = list->first;
         sem_wait(&FRAME_SEM);
+        if (!RUN) {
+            break;
+        }
         while (ptc != NULL) {
             if (ptc->proc.encoder != NULL) { // -> has a pair of threads
                 if (ptc->new_frame) { // -> has new data
@@ -258,6 +261,7 @@ int start_out_manager(participant_list_t *list)
 int stop_out_manager()
 {
     RUN = 0;
+    notify_out_manager();
     int ret = pthread_join(MASTER_THREAD, NULL);
     return ret;
 }
