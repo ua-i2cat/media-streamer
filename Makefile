@@ -140,7 +140,7 @@ configure-messages:
 
 tests: test
 
-transmitter: build $(TARGETS) $(OBJS_TRANSMITTER) $(TRANSMITTER)
+transmitter: dxt build $(TARGETS) $(OBJS_TRANSMITTER) $(TRANSMITTER)
 
 reciever: dxt build $(TARGETS) $(OBJS_RECIEVER) $(RECIEVER)
 
@@ -172,7 +172,7 @@ bin/%: tests/%.o $(OBJS) $(HEADERS)
 $(RECIEVER): $(OBJS_RECIEVER) $(OBJS_LINK)
 	$(LINKER) $(LDFLAGS_TEST) $(INC) $+ -o $@ $(LIBS_TEST)
 	
-$(TRANSMITTER): $(OBJS_TRANSMITTER) $(OBJS)
+$(TRANSMITTER): $(OBJS_TRANSMITTER) $(OBJS_LINK)
 	$(LINKER) $(LDFLAGS_TEST) $(INC) $+ -o $@ $(LIBS_TEST)
 
 

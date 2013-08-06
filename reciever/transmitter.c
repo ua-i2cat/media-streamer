@@ -27,13 +27,16 @@ int RUN = 1;
 void *transmitter_encoder_routine(void *arg)
 {
     struct participant_data *participant = (struct participant_data *)arg;
+    struct module *cmod;
 
     encoder_thread_t *encoder = participant->proc.encoder;
 
     encoder->input_frame_length = vc_get_linesize(participant->width, UYVY)*participant->height;
     encoder->input_frame = malloc(encoder->input_frame_length); // TODO error handling
 
-    compress_init("libavcodec:codec=H.264", &encoder->sc);
+    module_init_default(cmod);
+
+    compress_init(cmod, "libavcodec:codec=H.264", &encoder->sc);
 
     struct video_frame *frame = vf_alloc(1);
     int width = participant->width;
@@ -71,8 +74,9 @@ void *transmitter_encoder_routine(void *arg)
 
     debug_msg(" encoder routine END\n");
     int ret = 0;
-    compress_done(encoder->sc);
+    compress_done(&encoder->sc);
     free(encoder->input_frame);
+    module_done(cmod);
     pthread_exit((void *)&ret);
 }
 
