@@ -1,6 +1,6 @@
+#include "config.h"
 #include "transmitter.h"
 #include "rtp/rtp.h"
-#include "rtp/rtpenc_h264.h"
 #include "pdb.h"
 #include "video_codec.h"
 #include "video_compress.h"
@@ -11,7 +11,8 @@
 #define DEFAULT_RECV_PORT 12006 // just trying to not interfere with anything
 #define DEFAULT_RTCP_BW 5 * 1024 * 1024
 #define DEFAULT_TTL 255
-#define DEFAULT_SEND_BUFFER_SIZE 1024 * 56
+#define DEFAULT_SEND_BUFFER_SIZE 1920 * 1080 * 4 * sizeof(char)
+#define PIXEL_FORMAT RGB
 
 void *transmitter_encoder_routine(void *arg);
 void *transmitter_rtpenc_routine(void *arg);
@@ -23,6 +24,12 @@ void transmitter_destroy_encoder_thread(encoder_thread_t **encoder);
 
 pthread_t MASTER_THREAD;
 int RUN = 1;
+sem_t FRAME_SEM;
+
+void notify_out_manager()
+{
+    sem_post(&FRAME_SEM);
+}
 
 void *transmitter_encoder_routine(void *arg)
 {
@@ -31,7 +38,7 @@ void *transmitter_encoder_routine(void *arg)
 
     encoder_thread_t *encoder = participant->proc.encoder;
 
-    encoder->input_frame_length = vc_get_linesize(participant->width, UYVY)*participant->height;
+    encoder->input_frame_length = vc_get_linesize(participant->width, PIXEL_FORMAT)*participant->height;
     encoder->input_frame = malloc(encoder->input_frame_length); // TODO error handling
 
     module_init_default(cmod);
@@ -43,8 +50,8 @@ void *transmitter_encoder_routine(void *arg)
     int height = participant->height;
     vf_get_tile(frame, 0)->width=width;
     vf_get_tile(frame, 0)->height=height;
-    vf_get_tile(frame, 0)->linesize=vc_get_linesize(width, UYVY);
-    frame->color_spec=UYVY;
+    vf_get_tile(frame, 0)->linesize=vc_get_linesize(width, PIXEL_FORMAT);
+    frame->color_spec = PIXEL_FORMAT;
     frame->fps = DEFAULT_FPS; // FIXME: if it's not set -> core dump.
     frame->interlacing=PROGRESSIVE;
     
@@ -54,17 +61,17 @@ void *transmitter_encoder_routine(void *arg)
             break;
         }
 
+        // Lock while compressing ( = reading the data buffer)
         pthread_mutex_lock(&participant->lock);
-        memcpy(encoder->input_frame, participant->frame, participant->frame_length);
-        encoder->input_frame_length = participant->frame_length;
-        pthread_mutex_unlock(&participant->lock);
         
-        frame->tiles[0].data = encoder->input_frame;
-        frame->tiles[0].data_len = encoder->input_frame_length;
-
+        frame->tiles[0].data = participant->frame;
+        frame->tiles[0].data_len = participant->frame_length;
         struct video_frame *tx_frame;
         int i = encoder->index;
         tx_frame = compress_frame(encoder->sc, frame, i);
+        
+        pthread_mutex_unlock(&participant->lock);
+        
         i = (i + 1)%2;
         encoder->index = i;
         encoder->frame = tx_frame;
@@ -135,6 +142,7 @@ void *transmitter_rtpenc_routine(void *arg)
     rtp_done(rtp);
     pthread_exit(NULL);
 }
+
 
 void transmitter_destroy_encoder_thread(encoder_thread_t **encoder)
 {
@@ -216,6 +224,10 @@ void *transmitter_master_routine(void *arg)
     debug_msg("entering the master loop\n");
     while (RUN) {
         struct participant_data *ptc = list->first;
+        sem_wait(&FRAME_SEM);
+        if (!RUN) {
+            break;
+        }
         while (ptc != NULL) {
             if (ptc->proc.encoder != NULL) { // -> has a pair of threads
                 if (ptc->new_frame) { // -> has new data
@@ -224,6 +236,8 @@ void *transmitter_master_routine(void *arg)
                     sem_post(&ptc->proc.encoder->input_sem);
                     pthread_mutex_unlock(&ptc->lock);
                 }
+            } else {
+                transmitter_init_threads(ptc);
             }
             ptc = ptc->next;
         }
@@ -232,7 +246,7 @@ void *transmitter_master_routine(void *arg)
     debug_msg(" terminating pairs of threads\n");
     participant = list->first;
     while (participant != NULL) {
-        transmitter_destroy_encoder_thread(&participant->proc.encoder);
+        //transmitter_destroy_encoder_thread(&participant->proc.encoder);
         participant = participant->next;
     }
     pthread_exit((void *)NULL);
@@ -241,6 +255,7 @@ void *transmitter_master_routine(void *arg)
 int start_out_manager(participant_list_t *list)
 {
     debug_msg("creating the master thread...\n");
+    sem_init(&FRAME_SEM, 1, 0);
     int ret = pthread_create(&MASTER_THREAD, NULL, transmitter_master_routine, list);
     if (ret < 0) {
         error_msg("could not initiate the transmitter master thread\n");
@@ -251,6 +266,7 @@ int start_out_manager(participant_list_t *list)
 int stop_out_manager()
 {
     RUN = 0;
+    notify_out_manager();
     int ret = pthread_join(MASTER_THREAD, NULL);
     return ret;
 }

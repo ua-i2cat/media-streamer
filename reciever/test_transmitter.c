@@ -1,3 +1,4 @@
+#include "config.h"
 #include "transmitter.h"
 #include "video_compress.h"
 #include "debug.h"
@@ -19,7 +20,7 @@ int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pC
     unsigned int i;
 
     av_dict_set(&rawdict, "video_size", "854x480", 0);
-    av_dict_set(&rawdict, "pixel_format", "uyvy422", 0);
+    av_dict_set(&rawdict, "pixel_format", "rgb24", 0);
 
     // Open video file
     if(avformat_open_input(&pFormatCtx, path, pFormatCtx->iformat, &rawdict)!=0)
@@ -152,14 +153,16 @@ int main(int argc, char **argv)
             pthread_rwlock_wrlock(&list->lock);
             struct participant_data *participant = list->first;
             while (participant != NULL) {
-                pthread_mutex_lock(&participant->lock);
-                participant->frame_length = vc_get_linesize(width, UYVY)*height;
-                memcpy(participant->frame, (char *)b1, participant->frame_length);
-                participant->new_frame = 1;
-                pthread_mutex_unlock(&participant->lock);
+                if (pthread_mutex_trylock(&participant->lock) == 0) {
+                    participant->frame_length = vc_get_linesize(width, RGB)*height;
+                    memcpy(participant->frame, (char *)b1, participant->frame_length);
+                    participant->new_frame = 1;
+                    pthread_mutex_unlock(&participant->lock);
+                }
                 participant = participant->next;
             }
             pthread_rwlock_unlock(&list->lock);
+            notify_out_manager();
             usleep(40000);
         } else {
             break;

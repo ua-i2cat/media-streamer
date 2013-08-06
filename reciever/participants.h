@@ -1,7 +1,13 @@
+/**
+ * @file participants.h
+ * @brief Participants data structures and functions.
+ *
+ */
+
 #ifndef _PARTICIPANTS_H_
 #define _PARTICIPANTS_H_
 
-#include "video.h"
+#include "../src/video.h"
 #include <semaphore.h>
 
 typedef struct participant_data participant_data_t;
@@ -39,10 +45,18 @@ typedef struct decoder_thread {
 	struct state_decompress *sd;
 } decoder_thread_t;
 
+/**
+ * @brief Wraps the data used by rtp transmitter threads
+ *
+ */
 typedef struct rtpenc_thread {
     pthread_t thread;
 } rtpenc_thread_t;
 
+/**
+ * @brief Wraps the data used by encoder threads (transmission)
+ *
+ */
 typedef struct encoder_thread {
     pthread_t   thread;
     uint8_t     run;

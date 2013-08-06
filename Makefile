@@ -180,9 +180,13 @@ $(TRANSMITTER): $(OBJS_TRANSMITTER) $(OBJS_LINK)
 	$(LINKER) $(LDFLAGS_TEST) $(INC) $+ -o $@ $(LIBS_TEST)
 
 
+doc:
+	doxygen
+
 # -------------------------------------------------------------------------------------------------
 
 clean:
 	rm -f $(OBJS_RTP) $(OBJS_DEC) $(OBJS_ENC)  $(OBJS_TEST) $(TARGETS) $(TESTS) $(OBJS_RECIEVER) $(OBJS_TRANSMITTER) $(RECIEVER) $(TRANSMITTER)
 	cd dxt_compress; make clean
 
+.PHONY: all clean doc
