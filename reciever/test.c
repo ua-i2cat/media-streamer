@@ -1,3 +1,4 @@
+#include "config.h"
 #include "participants.h"
 #include "reciever.h"
 

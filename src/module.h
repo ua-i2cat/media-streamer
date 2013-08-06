@@ -68,8 +68,10 @@ enum module_class {
         MODULE_CLASS_COMPRESS,
         MODULE_CLASS_DATA,
         MODULE_CLASS_SENDER,
+        MODULE_CLASS_RECEIVER,
         MODULE_CLASS_TX,
         MODULE_CLASS_AUDIO,
+        MODULE_CLASS_CONTROL,
 };
 
 struct module;
@@ -77,6 +79,11 @@ struct simple_linked_list;
 
 typedef void (*module_deleter_t)(struct module *);
 
+/**
+ * @struct module
+ * Only members cls, deleter, priv_data and msg_queue may be directly touched
+ * by user. The others should be considered private.
+ */
 struct module {
         uint32_t magic;
         pthread_mutex_t lock;
@@ -86,6 +93,7 @@ struct module {
         module_deleter_t deleter;
 
         /**
+         * @var msg_callback
          * Module may implement a push method that will respond synchronously to events.
          * If not, message will be enqueued to message queue.
          */
@@ -100,6 +108,27 @@ void module_register(struct module *module_data, struct module *parent);
 void module_done(struct module *module_data);
 const char *module_class_name(enum module_class cls);
 void append_message_path(char *buf, int buflen, enum module_class modules[]);
+/**
+ * IMPORTANT: returned module will be locked on return and needs to be unlocked by caller
+ * when it is done!
+ *
+ * @retval NULL if not found
+ * @retval non-NULL pointer to the module
+ */
+struct module *get_module(struct module *root, const char *path);
+/**
+ * @see get_module
+ * Caller of get_module should call this when done with module
+ */
+void unlock_module(struct module *module);
+/**
+ * Returns pointer to root module. It WON'T be locked.
+ *
+ * @retval root module
+ */
+struct module *get_root_module(struct module *node);
+
+void dump_tree(struct module *root, int indent);
 
 #define CAST_MODULE(x) ((struct module *) x)
 

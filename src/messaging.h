@@ -7,7 +7,7 @@
 #include "config_win32.h"
 #endif
 
-//#include <transmit.h>
+#include <transmit.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,23 +39,41 @@ struct message {
         void (*data_deleter)(struct message *);
 };
 
-struct msg_change_receiver_address {
+enum msg_sender_type {
+        SENDER_MSG_CHANGE_RECEIVER,
+        SENDER_MSG_CHANGE_PORT,
+        SENDER_MSG_PLAY,
+        SENDER_MSG_PAUSE
+};
+
+struct msg_sender {
         struct message m;
-        char receiver[128];
+        enum msg_sender_type type;
+        union {
+                int port;
+                char receiver[128];
+        };
+};
+
+struct msg_receiver {
+        struct message m;
+        uint16_t new_rx_port;
 };
 
 struct msg_change_fec_data {
         struct message m;
-        //enum tx_media_type media_type;
+        enum tx_media_type media_type;
         char fec[128];
+};
+
+enum compress_change_type {
+        CHANGE_COMPRESS,
+        CHANGE_PARAMS
 };
 
 struct msg_change_compress_data {
         struct message m;
-        enum {
-                CHANGE_COMPRESS,
-                CHANGE_PARAMS
-        } what;
+        enum compress_change_type what;
         char config_string[128];
 };
 
@@ -75,6 +93,7 @@ struct message *new_message(size_t length);
 void free_message(struct message *m);
 const char *response_status_to_text(int status);
 
+struct message *check_message(struct module *);
 
 #ifdef __cplusplus
 }

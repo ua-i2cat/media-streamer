@@ -59,12 +59,11 @@
 #include "video_compress/jpeg.h"
 #include "libgpujpeg/gpujpeg_encoder.h"
 #include "libgpujpeg/gpujpeg_common.h"
-#include "messaging.h"
-#include "video_codec.h"
+#include "video.h"
 #include <pthread.h>
 #include <stdlib.h>
 
-struct compress_jpeg_state {
+struct state_video_compress_jpeg {
         struct module module_data;
 
         struct gpujpeg_encoder *encoder;
@@ -80,17 +79,18 @@ struct compress_jpeg_state {
         struct video_desc saved_desc;
 
         int restart_interval;
-        void *messaging_subscription;
         platform_spin_t spin;
+
+        int encoder_input_linesize;
 };
 
-static int configure_with(struct compress_jpeg_state *s, struct video_frame *frame);
-static void cleanup_state(struct compress_jpeg_state *s);
+static int configure_with(struct state_video_compress_jpeg *s, struct video_frame *frame);
+static void cleanup_state(struct state_video_compress_jpeg *s);
 static struct response *compress_change_callback(struct module *mod, struct message *msg);
-static void parse_fmt(struct compress_jpeg_state *s, char *fmt);
+static void parse_fmt(struct state_video_compress_jpeg *s, char *fmt);
 static void jpeg_compress_done(struct module *mod);
 
-static int configure_with(struct compress_jpeg_state *s, struct video_frame *frame)
+static int configure_with(struct state_video_compress_jpeg *s, struct video_frame *frame)
 {
         unsigned int x;
         int frame_idx;
@@ -222,10 +222,11 @@ static int configure_with(struct compress_jpeg_state *s, struct video_frame *fra
         for (frame_idx = 0; frame_idx < 2; frame_idx++) {
                 for (x = 0; x < frame->tile_count; ++x) {
                                 vf_get_tile(s->out[frame_idx], x)->data = (char *) malloc(s->out[frame_idx]->tiles[0].width * s->out[frame_idx]->tiles[0].height * 3);
-                                vf_get_tile(s->out[frame_idx], x)->linesize = s->out[frame_idx]->tiles[0].width * (param_image.color_space == GPUJPEG_RGB ? 3 : 2);
 
                 }
         }
+        s->encoder_input_linesize = s->out[frame_idx]->tiles[0].width *
+                (param_image.color_space == GPUJPEG_RGB ? 3 : 2);
         
         if(!s->encoder) {
                 fprintf(stderr, "[DXT GLSL] Failed to create encoder.\n");
@@ -239,7 +240,7 @@ static int configure_with(struct compress_jpeg_state *s, struct video_frame *fra
 
 static struct response *compress_change_callback(struct module *mod, struct message *msg)
 {
-        struct compress_jpeg_state *s = (struct compress_jpeg_state *) mod->priv_data;
+        struct state_video_compress_jpeg *s = (struct state_video_compress_jpeg *) mod->priv_data;
 
         static struct response *ret;
 
@@ -257,7 +258,7 @@ static struct response *compress_change_callback(struct module *mod, struct mess
         return ret;
 }
 
-static void parse_fmt(struct compress_jpeg_state *s, char *fmt)
+static void parse_fmt(struct state_video_compress_jpeg *s, char *fmt)
 {
         if(fmt) {
                 char *tok, *save_ptr = NULL;
@@ -277,10 +278,10 @@ static void parse_fmt(struct compress_jpeg_state *s, char *fmt)
 
 struct module * jpeg_compress_init(struct module *parent, char * opts)
 {
-        struct compress_jpeg_state *s;
+        struct state_video_compress_jpeg *s;
         int frame_idx;
         
-        s = (struct compress_jpeg_state *) malloc(sizeof(struct compress_jpeg_state));
+        s = (struct state_video_compress_jpeg *) malloc(sizeof(struct state_video_compress_jpeg));
 
         for (frame_idx = 0; frame_idx < 2; frame_idx++) {
                 s->out[frame_idx] = NULL;
@@ -335,12 +336,14 @@ struct module * jpeg_compress_init(struct module *parent, char * opts)
 
 struct video_frame * jpeg_compress(struct module *mod, struct video_frame * tx, int buffer_idx)
 {
-        struct compress_jpeg_state *s = (struct compress_jpeg_state *) mod->priv_data;
+        struct state_video_compress_jpeg *s = (struct state_video_compress_jpeg *) mod->priv_data;
         int i;
         unsigned char *line1, *line2;
         struct video_frame *out;
 
         unsigned int x;
+
+        cudaSetDevice(cuda_devices[0]);
         
         if(!s->encoder) {
                 int ret;
@@ -373,20 +376,20 @@ struct video_frame * jpeg_compress(struct module *mod, struct video_frame * tx, 
                 line2 = (unsigned char *) s->decoded;
                 
                 for (i = 0; i < (int) in_tile->height; ++i) {
-                        s->decoder(line2, line1, out_tile->linesize,
+                        s->decoder(line2, line1, s->encoder_input_linesize,
                                         0, 8, 16);
                         line1 += vc_get_linesize(in_tile->width, tx->color_spec);
-                        line2 += out_tile->linesize;
+                        line2 += s->encoder_input_linesize;
                 }
                 
-                line1 = (unsigned char *) out_tile->data + (in_tile->height - 1) * out_tile->linesize;
+                line1 = (unsigned char *) out_tile->data + (in_tile->height - 1) * s->encoder_input_linesize;
                 for( ; i < (int) out->tiles[0].height; ++i) {
-                        memcpy(line2, line1, out_tile->linesize);
-                        line2 += out_tile->linesize;
+                        memcpy(line2, line1, s->encoder_input_linesize);
+                        line2 += s->encoder_input_linesize;
                 }
                 
                 /*if(s->interlaced_input)
-                        vc_deinterlace((unsigned char *) s->decoded, out_tile->linesize,
+                        vc_deinterlace((unsigned char *) s->decoded, s->encoder_input_linesize,
                                         s->out->tiles[0].height);*/
                 
                 uint8_t *compressed;
@@ -410,7 +413,7 @@ struct video_frame * jpeg_compress(struct module *mod, struct video_frame * tx, 
 
 static void jpeg_compress_done(struct module *mod)
 {
-        struct compress_jpeg_state *s = (struct compress_jpeg_state *) mod->priv_data;
+        struct state_video_compress_jpeg *s = (struct state_video_compress_jpeg *) mod->priv_data;
 
         cleanup_state(s);
 
@@ -419,7 +422,7 @@ static void jpeg_compress_done(struct module *mod)
         free(s);
 }
 
-static void cleanup_state(struct compress_jpeg_state *s)
+static void cleanup_state(struct state_video_compress_jpeg *s)
 {
         int frame_idx;
         

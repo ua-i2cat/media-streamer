@@ -63,6 +63,9 @@
 /* Build with CoreAudio support */
 #undef HAVE_COREAUDIO
 
+/* Build with OpenSSL support */
+#undef HAVE_CRYPTO
+
 /* CUDA is present on the system */
 #undef HAVE_CUDA
 
@@ -227,6 +230,9 @@
 
 /* Define to 1 if you have the <QuickTime/QuickTime.h> header file. */
 #undef HAVE_QUICKTIME_QUICKTIME_H
+
+/* RTSP capture build with curl ang glib support */
+#undef HAVE_RTSP
 
 /* Build with SAGE support */
 #undef HAVE_SAGE

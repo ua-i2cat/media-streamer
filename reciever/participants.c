@@ -1,3 +1,4 @@
+#include "config.h"
 #include "participants.h"
 #include "video_decompress/libavcodec.h"
 #include "video_decompress.h"
@@ -101,8 +102,12 @@ decoder_thread_t *init_decoder_thread(participant_data_t *src){
 	  des.interlacing = PROGRESSIVE;
 	  des.fps = 24;
         
-	  max_data = decompress_reconfigure(decoder->sd, des, 16, 8, 0, vc_get_linesize(des.width, RGB), RGB);
-	  decoder->data = malloc(max_data);
+	  if (decompress_reconfigure(decoder->sd, des, 16, 8, 0, vc_get_linesize(des.width, RGB), RGB)) {
+	    decoder->data = malloc(1920*1080*4*sizeof(char)); //TODO this is the worst case in raw data, should be the worst case for specific codec
+	  } else {
+	    //TODO: error_msg
+	  }
+	  
       } else {
 	//TODO: error_msg
       }

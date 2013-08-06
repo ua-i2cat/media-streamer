@@ -55,8 +55,7 @@
 #include "config_win32.h"
 #endif // HAVE_CONFIG_H
 
-#include "debug.h"
-
+/** @brief This macro causes that this module will be statically linked with UltraGrid. */
 #define MK_STATIC(A) A, NULL
 #define STRINGIFY(A) #A
 #define TOSTRING(x) STRINGIFY(x)
@@ -64,6 +63,8 @@
 #ifdef BUILD_LIBRARIES
 #include <dlfcn.h>
 #include <libgen.h>
+/** This macro tells that the module may be statically linked as well as
+ * a standalone module. */
 #define MK_NAME(A) NULL, #A
 
 /* defined in video_display.c */

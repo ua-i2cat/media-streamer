@@ -62,11 +62,11 @@
 #include "dxt_compress/dxt_util.h"
 //#include "host.h"
 #include "module.h"
-#include "video_codec.h"
+#include "video.h"
 #include "video_compress.h"
 #include "video_compress/dxt_glsl.h"
 
-struct video_compress {
+struct state_video_compress_rtdxt {
         struct module module_data;
 
         struct dxt_encoder **encoder;
@@ -77,14 +77,16 @@ struct video_compress {
         unsigned int configured:1;
         unsigned int interlaced_input:1;
         codec_t color_spec;
+
+        int encoder_input_linesize;
         
         struct gl_context gl_context;
 };
 
-static int configure_with(struct video_compress *s, struct video_frame *frame);
+static int configure_with(struct state_video_compress_rtdxt *s, struct video_frame *frame);
 static void dxt_glsl_compress_done(struct module *mod);
 
-static int configure_with(struct video_compress *s, struct video_frame *frame)
+static int configure_with(struct state_video_compress_rtdxt *s, struct video_frame *frame)
 {
         unsigned int x;
         enum dxt_format format;
@@ -170,7 +172,6 @@ static int configure_with(struct video_compress *s, struct video_frame *frame)
         }
         
         int data_len = 0;
-        int linesize = 0;
 
         s->encoder = malloc(frame->tile_count * sizeof(struct dxt_encoder *));
         if(s->out[0]->color_spec == DXT1) {
@@ -197,16 +198,16 @@ static int configure_with(struct video_compress *s, struct video_frame *frame)
                 }
         }
 
-        linesize = s->out[0]->tiles[0].width;
+        s->encoder_input_linesize = s->out[0]->tiles[0].width;
         switch(format) { 
                 case DXT_FORMAT_RGBA:
-                        linesize *= 4;
+                        s->encoder_input_linesize *= 4;
                         break;
                 case DXT_FORMAT_RGB:
-                        linesize *= 3;
+                        s->encoder_input_linesize *= 3;
                         break;
                 case DXT_FORMAT_YUV422:
-                        linesize *= 2;
+                        s->encoder_input_linesize *= 2;
                         break;
                 case DXT_FORMAT_YUV:
                         /* not used - just not compilator to complain */
@@ -215,11 +216,10 @@ static int configure_with(struct video_compress *s, struct video_frame *frame)
         }
 
         assert(data_len > 0);
-        assert(linesize > 0);
+        assert(s->encoder_input_linesize > 0);
 
         for (i = 0; i < 2; ++i) {
                 for (x = 0; x < frame->tile_count; ++x) {
-                        vf_get_tile(s->out[i], x)->linesize = linesize;
                         vf_get_tile(s->out[i], x)->data_len = data_len;
                         vf_get_tile(s->out[i], x)->data = (char *) malloc(data_len);
                 }
@@ -233,10 +233,10 @@ static int configure_with(struct video_compress *s, struct video_frame *frame)
 
 struct module *dxt_glsl_compress_init(struct module *parent, char * opts)
 {
-        struct video_compress *s;
+        struct state_video_compress_rtdxt *s;
         int i;
         
-        s = (struct video_compress *) malloc(sizeof(struct video_compress));
+        s = (struct state_video_compress_rtdxt *) malloc(sizeof(struct state_video_compress_rtdxt));
 
         for (i = 0; i < 2; ++i) {
                 s->out[i] = NULL;
@@ -248,7 +248,7 @@ struct module *dxt_glsl_compress_init(struct module *parent, char * opts)
                 return NULL;
         }
 
-        if(opts && strcmp(opts, "help") == 0) {
+        if(strcmp(opts, "help") == 0) {
                 printf("DXT GLSL comperssion usage:\n");
                 printf("\t-c RTDXT:DXT1\n");
                 printf("\t\tcompress with DXT1\n");
@@ -257,17 +257,15 @@ struct module *dxt_glsl_compress_init(struct module *parent, char * opts)
                 return &compress_init_noerr;
         }
         
-        if(opts) {
-                if(strcasecmp(opts, "DXT5") == 0) {
-                        s->color_spec = DXT5;
-                } else if(strcasecmp(opts, "DXT1") == 0) {
-                        s->color_spec = DXT1;
-                } else {
-                        fprintf(stderr, "Unknown compression : %s\n", opts);
-                        return NULL;
-                }
-        } else {
+        if (strcasecmp(opts, "DXT5") == 0) {
+                s->color_spec = DXT5;
+        } else if (strcasecmp(opts, "DXT1") == 0) {
                 s->color_spec = DXT1;
+        } else if (opts[0] == '\0') {
+                s->color_spec = DXT1;
+        } else {
+                fprintf(stderr, "Unknown compression: %s\n", opts);
+                return NULL;
         }
                 
         s->configured = FALSE;
@@ -285,7 +283,7 @@ struct module *dxt_glsl_compress_init(struct module *parent, char * opts)
 
 struct video_frame * dxt_glsl_compress(struct module *mod, struct video_frame * tx, int buffer_idx)
 {
-        struct video_compress *s = (struct video_compress *) mod->priv_data;
+        struct state_video_compress_rtdxt *s = (struct state_video_compress_rtdxt *) mod->priv_data;
         int i;
         unsigned char *line1, *line2;
 
@@ -311,14 +309,14 @@ struct video_frame * dxt_glsl_compress(struct module *mod, struct video_frame * 
                 line2 = (unsigned char *) s->decoded;
                 
                 for (i = 0; i < (int) in_tile->height; ++i) {
-                        s->decoder(line2, line1, out_tile->linesize,
+                        s->decoder(line2, line1, s->encoder_input_linesize,
                                         0, 8, 16);
                         line1 += vc_get_linesize(in_tile->width, tx->color_spec);
-                        line2 += out_tile->linesize;
+                        line2 += s->encoder_input_linesize;
                 }
                 
                 if(s->interlaced_input)
-                        vc_deinterlace((unsigned char *) s->decoded, out_tile->linesize,
+                        vc_deinterlace((unsigned char *) s->decoded, s->encoder_input_linesize,
                                         in_tile->height);
                 
                 dxt_encoder_compress(s->encoder[x],
@@ -333,7 +331,7 @@ struct video_frame * dxt_glsl_compress(struct module *mod, struct video_frame * 
 
 static void dxt_glsl_compress_done(struct module *mod)
 {
-        struct video_compress *s = (struct video_compress *) mod->priv_data;
+        struct state_video_compress_rtdxt *s = (struct state_video_compress_rtdxt *) mod->priv_data;
         int i, x;
         
         if(s->out[0]) {

@@ -56,6 +56,7 @@
 #include "debug.h"
 #include "libavcodec_common.h"
 #include "utils/resource_manager.h"
+#include "video.h"
 #include "video_decompress.h"
 
 struct state_libavcodec_decompress {
@@ -232,13 +233,7 @@ int libavcodec_decompress_reconfigure(void *state, struct video_desc desc,
         s->height = desc.height;
 
         deconfigure(s);
-        if(!configure_with(s, desc)) {
-                return 0;
-        }
-
-        s->max_compressed_len = 4 * desc.width * desc.height;
-
-        return s->max_compressed_len;
+        return configure_with(s, desc);
 }
 
 
@@ -540,13 +535,13 @@ int libavcodec_decompress_get_property(void *state, int property, void *val, siz
         switch(property) {
                 case DECOMPRESS_PROPERTY_ACCEPTS_CORRUPTED_FRAME:
                         if(*len >= sizeof(int)) {
-                                *(int *) val = FALSE;
-                                *len = sizeof(int);
 #ifdef LAVD_ACCEPT_CORRUPTED
-                                ret = TRUE;
+                                *(int *) val = TRUE;
 #else
-                                ret = FALSE;
+                                *(int *) val = FALSE;
 #endif
+                                *len = sizeof(int);
+                                ret = TRUE;
                         }
                         break;
                 default:

@@ -63,7 +63,6 @@
 #include "debug.h"
 //#include "host.h"
 #include "video.h"
-#include "video_codec.h"
 #include "video_decompress.h"
 #include "video_decompress/jpeg.h"
 
@@ -253,7 +252,7 @@ int jpeg_to_dxt_decompress_reconfigure(void *state, struct video_desc desc,
         }
         pthread_mutex_unlock(&s->lock);
 
-        return desc.width * desc.height;
+        return TRUE;
 }
 
 /**

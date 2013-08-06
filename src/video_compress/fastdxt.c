@@ -1,5 +1,5 @@
 /*
- * FILE:    video_compress.c
+ * FILE:    video_compress/fastdxt.c
  * AUTHORS: Martin Benes     <martinbenesh@gmail.com>
  *          Lukas Hejtmanek  <xhejtman@ics.muni.cz>
  *          Petr Holub       <hopet@ics.muni.cz>
@@ -67,6 +67,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "module.h"
+#include "video.h"
 #include "video_compress.h"
 #include "libdxt.h"
 
@@ -92,7 +93,7 @@ static volatile int fastdxt_should_exit = FALSE;
  * 3. Compress 8 bit RGB -> DXT
  */
 
-struct video_compress {
+struct state_video_compress_fastdxt {
         struct module module_data;
 
         int num_threads;
@@ -116,14 +117,16 @@ struct video_compress {
         struct tile *tile[2];
 
         volatile int buffer_idx;
+
+        int encoder_input_linesize;
 };
 
 static void *compress_thread(void *args);
-static int reconfigure_compress(struct video_compress *compress, int width,
+static int reconfigure_compress(struct state_video_compress_fastdxt *compress, int width,
                 int height, codec_t codec, enum interlacing_t, double fps);
 static void fastdxt_done(struct module *mod);
 
-static int reconfigure_compress(struct video_compress *compress, int width,
+static int reconfigure_compress(struct state_video_compress_fastdxt *compress, int width,
                 int height, codec_t codec, enum interlacing_t interlacing, double fps)
 {
         int x;
@@ -201,7 +204,7 @@ static int reconfigure_compress(struct video_compress *compress, int width,
         assert(h_align != 0);
 
         for(i = 0; i < 2; ++i) {
-                compress->tile[i]->linesize = vf_get_tile(compress->out[i], 0)->width * 
+                compress->encoder_input_linesize = vf_get_tile(compress->out[i], 0)->width * 
                         (compress->rgb ? 4 /*RGBA*/: 2/*YUV 422*/);
 
                 if(compress->rgb) {
@@ -254,7 +257,7 @@ struct module *fastdxt_init(struct module *parent, char *num_threads_str)
          */
         int x;
         int i;
-        struct video_compress *compress;
+        struct state_video_compress_fastdxt *compress;
 
         if(num_threads_str && strcmp(num_threads_str, "help") == 0) {
                 printf("FastDXT usage:\n");
@@ -263,7 +266,7 @@ struct module *fastdxt_init(struct module *parent, char *num_threads_str)
                 return &compress_init_noerr;
         }
 
-        compress = calloc(1, sizeof(struct video_compress));
+        compress = calloc(1, sizeof(struct state_video_compress_fastdxt));
         /* initial values */
         compress->num_threads = 0;
         if(num_threads_str == NULL)
@@ -322,7 +325,8 @@ struct module *fastdxt_init(struct module *parent, char *num_threads_str)
 struct tile * fastdxt_compress_tile(struct module *mod, struct tile *tx, struct video_desc *desc, int buffer_idx)
 {
         /* This thread will be called from main.c and handle the compress_threads */
-        struct video_compress *compress = (struct video_compress *) mod->priv_data;
+        struct state_video_compress_fastdxt *compress =
+                (struct state_video_compress_fastdxt *) mod->priv_data;
         unsigned int x;
         unsigned char *line1, *line2;
         struct video_frame *out = compress->out[buffer_idx];
@@ -348,10 +352,10 @@ struct tile * fastdxt_compress_tile(struct module *mod, struct tile *tx, struct 
 
         for (x = 0; x < out_tile->height; ++x) {
                 int src_linesize = vc_get_linesize(out_tile->width, compress->tx_color_spec);
-                compress->decoder(line2, line1, out_tile->linesize,
+                compress->decoder(line2, line1, compress->encoder_input_linesize,
                                 0, 8, 16);
                 line1 += src_linesize;
-                line2 += out_tile->linesize;
+                line2 += compress->encoder_input_linesize;
         }
 
         if(desc->interlacing != INTERLACED_MERGED && desc->interlacing != PROGRESSIVE) {
@@ -360,7 +364,7 @@ struct tile * fastdxt_compress_tile(struct module *mod, struct tile *tx, struct 
         }
 
         if(desc->interlacing == INTERLACED_MERGED) {
-                vc_deinterlace(compress->output_data, out_tile->linesize,
+                vc_deinterlace(compress->output_data, compress->encoder_input_linesize,
                                 out_tile->height);
         }
 
@@ -384,7 +388,8 @@ struct tile * fastdxt_compress_tile(struct module *mod, struct tile *tx, struct 
 
 static void *compress_thread(void *args)
 {
-        struct video_compress *compress = (struct video_compress *)args;
+        struct state_video_compress_fastdxt *compress =
+                (struct state_video_compress_fastdxt *)args;
         int myId, range, my_range, x;
         int my_height;
         unsigned char *retv;
@@ -444,7 +449,8 @@ static void *compress_thread(void *args)
 
 static void fastdxt_done(struct module *mod)
 {
-        struct video_compress *compress = (struct video_compress *) mod->priv_data;
+        struct state_video_compress_fastdxt *compress =
+                (struct state_video_compress_fastdxt *) mod->priv_data;
         int x;
         
         pthread_mutex_lock(&(compress->lock)); /* wait for fastdxt_compress if running */
