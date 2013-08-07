@@ -1,6 +1,6 @@
 #include "config.h"
 #include "participants.h"
-#include "reciever.h"
+#include "receiver.h"
 #include "rtp/rtp.h"
 #include "rtp/rtp_callback.h"
 #include "rtp/rtpdec.h"
@@ -46,42 +46,42 @@ void init_decoder(participant_data_t *src){
 
 }
 
-reciever_t *init_reciever(participant_list_t *list, int port){
-    reciever_t *reciever;
+receiver_t *init_receiver(participant_list_t *list, int port){
+    receiver_t *receiver;
     double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
     int ttl = 255; //TODO: get rid of magic numbers!
     
-    reciever = malloc(sizeof(reciever_t));
+    receiver = malloc(sizeof(receiver_t));
     
-    reciever->session = (struct rtp *) malloc(sizeof(struct rtp *));
-    reciever->part_db = pdb_init();
-    reciever->run = FALSE;
-    reciever->port = port;
-    reciever->list = list;
+    receiver->session = (struct rtp *) malloc(sizeof(struct rtp *));
+    receiver->part_db = pdb_init();
+    receiver->run = FALSE;
+    receiver->port = port;
+    receiver->list = list;
     
     //TODO: this shouldn't open this ports and addr should be NULL
-    reciever->session = rtp_init_if("127.0.0.1", NULL, reciever->port, 2*reciever->port, ttl, rtcp_bw, 0, rtp_recv_callback, (void *)reciever->part_db, 0);
+    receiver->session = rtp_init_if("127.0.0.1", NULL, receiver->port, 2*receiver->port, ttl, rtcp_bw, 0, rtp_recv_callback, (void *)receiver->part_db, 0);
       
-    if (reciever->session != NULL) {
-      if (!rtp_set_option(reciever->session, RTP_OPT_WEAK_VALIDATION, 1)) {
+    if (receiver->session != NULL) {
+      if (!rtp_set_option(receiver->session, RTP_OPT_WEAK_VALIDATION, 1)) {
 	return NULL;
       }
       
-      if (!rtp_set_sdes(reciever->session, rtp_my_ssrc(reciever->session),
+      if (!rtp_set_sdes(receiver->session, rtp_my_ssrc(receiver->session),
 	RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING))) { //TODO: is this needed?
 	return NULL;
       }
 
-      if (!rtp_set_recv_buf(reciever->session, INITIAL_VIDEO_RECV_BUFFER_SIZE)) {
+      if (!rtp_set_recv_buf(receiver->session, INITIAL_VIDEO_RECV_BUFFER_SIZE)) {
 	return NULL;
       }
 
     }
     
-    return reciever;
+    return receiver;
 }
 
-void *reciever_thread(reciever_t *reciever) {
+void *receiver_thread(receiver_t *receiver) {
     struct pdb_e *cp;
     participant_data_t *src;
 
@@ -97,24 +97,24 @@ void *reciever_thread(reciever_t *reciever) {
     struct recieved_data *rx_data = calloc(1, sizeof(struct recieved_data));
     rx_data->frame_buffer[0] = malloc(1920*1080*4*sizeof(char));
 
-    while(reciever->run){
+    while(receiver->run){
         gettimeofday(&curr_time, NULL);
         timestamp = tv_diff(curr_time, start_time) * 90000;
-        rtp_update(reciever->session, curr_time);
-        //rtp_send_ctrl(reciever->session, timestamp, 0, curr_time); //TODO: why is this used?
+        rtp_update(receiver->session, curr_time);
+        //rtp_send_ctrl(receiver->session, timestamp, 0, curr_time); //TODO: why is this used?
 
         timeout.tv_sec = 0;
         timeout.tv_usec = 10000;
 	
-        if (!rtp_recv_r(reciever->session, &timeout, timestamp)){
+        if (!rtp_recv_r(receiver->session, &timeout, timestamp)){
 	    pdb_iter_t it;
-	    cp = pdb_iter_init(reciever->part_db, &it);
+	    cp = pdb_iter_init(receiver->part_db, &it);
 	    
      	    while (cp != NULL) {
 	      
-	      pthread_rwlock_rdlock(&reciever->list->lock);
-	      src = get_participant_ssrc(reciever->list, cp->ssrc);
-	      pthread_rwlock_unlock(&reciever->list->lock);
+	      pthread_rwlock_rdlock(&receiver->list->lock);
+	      src = get_participant_ssrc(receiver->list, cp->ssrc);
+	      pthread_rwlock_unlock(&receiver->list->lock);
     
 	      if (src != NULL && src->proc.decoder == NULL) {
 		
@@ -148,24 +148,24 @@ void *reciever_thread(reciever_t *reciever) {
         }
     }
   
-    destroy_participant_list(reciever->list);
-    rtp_done(reciever->session);
-    free(reciever);
+    destroy_participant_list(receiver->list);
+    rtp_done(receiver->session);
+    free(receiver);
 }
 
-int start_reciever(reciever_t *reciever){
-  reciever->run = TRUE;
+int start_receiver(receiver_t *receiver){
+  receiver->run = TRUE;
   
-  if (pthread_create(&reciever->th_id, NULL, (void *) reciever_thread, reciever) != 0)
-    reciever->run = FALSE;
+  if (pthread_create(&receiver->th_id, NULL, (void *) receiver_thread, receiver) != 0)
+    receiver->run = FALSE;
   
-  return reciever->run;
+  return receiver->run;
 }
 
-int stop_reciever(reciever_t *reciever){
-  reciever->run = FALSE;
+int stop_receiver(receiver_t *receiver){
+  receiver->run = FALSE;
   
-  pthread_join(reciever->th_id, NULL); //TODO: add some timeout
+  pthread_join(receiver->th_id, NULL); //TODO: add some timeout
   
   return TRUE;
 }

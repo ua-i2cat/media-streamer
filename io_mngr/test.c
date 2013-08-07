@@ -1,10 +1,10 @@
 #include "config.h"
 #include "participants.h"
-#include "reciever.h"
+#include "receiver.h"
 
 int main(){
   participant_list_t *list;
-  reciever_t *reciever;
+  receiver_t *receiver;
   
   list = init_participant_list();
   
@@ -14,9 +14,9 @@ int main(){
   add_participant(list, 4, 1280, 720, H264, NULL, 0, INPUT);
   add_participant(list, 5, 1280, 720, H264, NULL, 0, INPUT);
 
-  reciever = init_reciever(list, 5004);
+  receiver = init_receiver(list, 5004);
   
-  if (start_reciever(reciever)) {
+  if (start_receiver(receiver)) {
   
     /*sleep(10);
   
@@ -39,8 +39,8 @@ int main(){
   
     sleep(3);
   
-    stop_reciever(reciever);*/
+    stop_receiver(receiver);*/
   
-    pthread_join(reciever->th_id, NULL);
+    pthread_join(receiver->th_id, NULL);
   }
 }

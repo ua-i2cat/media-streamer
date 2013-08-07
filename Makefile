@@ -125,9 +125,9 @@ OBJS_DEC	= $(filter-out $(OBJS_DEC_EX), $(OBJS_DEC_PRE))
 
 OBJS_TEST     = $(patsubst %.c, %.o,	$(wildcard tests/*.c) $(wildcard tests/*/*.c))
 
-OBJS_RECIEVER = $(addprefix reciever/, participants.o reciever.o test.o)
+OBJS_RECIEVER = $(addprefix io_mngr/, participants.o receiver.o test.o)
 
-OBJS_TRANSMITTER = $(addprefix reciever/, participants.o transmitter.o test_transmitter.o)
+OBJS_TRANSMITTER = $(addprefix io_mngr/, participants.o transmitter.o test_transmitter.o)
 
 # -------------------------------------------------------------------------------------------------
 
@@ -146,7 +146,7 @@ tests: test
 
 transmitter: dxt build $(TARGET_RTP) $(TARGET_DEC) $(TARGET_ENC) $(OBJS_TRANSMITTER) $(TRANSMITTER)
 
-reciever: dxt build $(TARGET_DEC) $(TARGET_ENC) $(TARGET_RTP) $(OBJS_RECIEVER) $(RECIEVER)
+receiver: dxt build $(TARGET_DEC) $(TARGET_ENC) $(TARGET_RTP) $(OBJS_RECIEVER) $(RECIEVER)
 
 test: build $(TARGETS) $(TESTS)
 
