@@ -4,6 +4,7 @@
 #include "pdb.h"
 #include "video_codec.h"
 #include "video_compress.h"
+#include "module.h"
 #include "debug.h"
 #include "tv.h"
 
@@ -13,6 +14,7 @@
 #define DEFAULT_TTL 255
 #define DEFAULT_SEND_BUFFER_SIZE 1920 * 1080 * 4 * sizeof(char)
 #define PIXEL_FORMAT RGB
+#define MTU 1400
 
 void *transmitter_encoder_routine(void *arg);
 void *transmitter_rtpenc_routine(void *arg);
@@ -34,23 +36,22 @@ void notify_out_manager()
 void *transmitter_encoder_routine(void *arg)
 {
     struct participant_data *participant = (struct participant_data *)arg;
-    struct module *cmod;
+    struct module cmod;
 
     encoder_thread_t *encoder = participant->proc.encoder;
 
     encoder->input_frame_length = vc_get_linesize(participant->width, PIXEL_FORMAT)*participant->height;
     encoder->input_frame = malloc(encoder->input_frame_length); // TODO error handling
 
-    module_init_default(cmod);
+    module_init_default(&cmod);
 
-    compress_init(cmod, "libavcodec:codec=H.264", &encoder->sc);
+    compress_init(&cmod, "libavcodec:codec=H.264", &encoder->sc);
 
     struct video_frame *frame = vf_alloc(1);
     int width = participant->width;
     int height = participant->height;
     vf_get_tile(frame, 0)->width=width;
     vf_get_tile(frame, 0)->height=height;
-    vf_get_tile(frame, 0)->linesize=vc_get_linesize(width, PIXEL_FORMAT);
     frame->color_spec = PIXEL_FORMAT;
     frame->fps = DEFAULT_FPS; // FIXME: if it's not set -> core dump.
     frame->interlacing=PROGRESSIVE;
@@ -81,9 +82,8 @@ void *transmitter_encoder_routine(void *arg)
 
     debug_msg(" encoder routine END\n");
     int ret = 0;
-    compress_done(&encoder->sc);
+    module_done(CAST_MODULE(&cmod));
     free(encoder->input_frame);
-    module_done(cmod);
     pthread_exit((void *)&ret);
 }
 
@@ -103,6 +103,11 @@ void *transmitter_rtpenc_routine(void *arg)
     double rtcp_bw = DEFAULT_RTCP_BW;
     int ttl = DEFAULT_TTL;
     int recv_port = DEFAULT_RECV_PORT;
+    
+    struct module tmod;
+    struct tx *tx_session;
+    
+    module_init_default(&tmod);
 
     struct rtp *rtp  = rtp_init_if(session->addr, mcast_if,
                                    recv_port, session->port, ttl,
@@ -113,7 +118,7 @@ void *transmitter_rtpenc_routine(void *arg)
     rtp_set_sdes(rtp, rtp_my_ssrc(rtp), RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING));
     rtp_set_send_buf(rtp, DEFAULT_SEND_BUFFER_SIZE);
 
-    tx_init();
+    tx_session = tx_init_h264(&tmod, MTU, TX_MEDIA_VIDEO, NULL, NULL);
     
     struct timeval curr_time;
     struct timeval start_time;
@@ -132,14 +137,13 @@ void *transmitter_rtpenc_routine(void *arg)
         rtp_update(rtp, curr_time);
         timestamp = tv_diff(curr_time, start_time)*90000;
         rtp_send_ctrl(rtp, timestamp, 0, curr_time);
-        tx_send_base_h264(vf_get_tile(encoder->frame, 0),
-                          rtp, get_local_mediatime(), 1, participant->codec,
-                          encoder->frame->fps,
-                          encoder->frame->interlacing, 0, 0);
+        tx_send_h264(tx_session, encoder->frame, rtp);
     }   
 
     rtp_send_bye(rtp);
     rtp_done(rtp);
+    module_done(CAST_MODULE(&tmod));
+    
     pthread_exit(NULL);
 }
 

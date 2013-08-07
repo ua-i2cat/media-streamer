@@ -109,8 +109,6 @@ struct rtp_nal_t {
 	int size;
 };
 
-unsigned int mtu = 1400;
-
 int rtpenc_h264_nals_recv;
 int rtpenc_h264_nals_sent_nofrag;
 int rtpenc_h264_nals_sent_frag;
@@ -973,7 +971,7 @@ void tx_send_base_h264(struct tx *tx, struct tile *tile, struct rtp *rtp_session
 		struct rtp_nal_t nal = nals[i];
 
 		int fragmentation = 0;
-		int nal_max_size = mtu - 40;
+		int nal_max_size = tx->mtu - 40;
 		if (nal.size > nal_max_size) {
 			debug_msg("RTP packet size exceeds the MTU size\n");
 			fragmentation = 1;
@@ -1108,5 +1106,48 @@ void tx_send_base_h264(struct tx *tx, struct tile *tile, struct rtp *rtp_session
 			}
 		}
 	}
+}
+
+/*
+ * sends one or more frames (tiles) with same TS in one RTP stream. Only one m-bit is set.
+ */
+void
+tx_send_h264(struct tx *tx, struct video_frame *frame, struct rtp *rtp_session)
+{
+        unsigned int i;
+        uint32_t ts = 0;
+
+        assert(!frame->fragment || tx->fec_scheme == FEC_NONE); // currently no support for FEC with fragments
+        assert(!frame->fragment || frame->tile_count); // multiple tile are not currently supported for fragmented send
+
+        platform_spin_lock(&tx->spin);
+
+        ts = get_local_mediatime();
+        if(frame->fragment &&
+                        tx->last_frame_fragment_id == frame->frame_fragment_id) {
+                ts = tx->last_ts;
+        } else {
+                tx->last_frame_fragment_id = frame->frame_fragment_id;
+                tx->last_ts = ts;
+        }
+
+        for(i = 0; i < frame->tile_count; ++i)
+        {
+                int last = FALSE;
+                int fragment_offset = 0;
+                
+                if (i == frame->tile_count - 1) {
+                        if(!frame->fragment || frame->last_fragment)
+                                last = TRUE;
+                }
+                if(frame->fragment)
+                        fragment_offset = vf_get_tile(frame, i)->offset;
+
+                tx_send_base_h264(tx, vf_get_tile(frame, i), rtp_session, ts, last,
+                                frame->color_spec, frame->fps, frame->interlacing,
+                                i, fragment_offset);
+                tx->buffer ++;
+        }
+        platform_spin_unlock(&tx->spin);
 }
 
