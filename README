@@ -1,0 +1,24 @@
+To get ug-modules form original ultragrid source:
+
+1- Get original code
+
+git clone http://seth.ics.muni.cz/git/ultragrid.git
+
+cd ultragrid
+
+git checkout -b ugmodules db1b851f6848c4fd60e2b673781dec9e6e08bddb
+
+2- copy original files from ultragrid directory
+
+xargs -a files cp --parents -frvt ../ug-modules
+
+3- test patch in ug-modules directory
+
+patch --dry-run  -p1 -i patch 
+
+4- aply patch in ug-modules directory
+
+patch  -p1 -i patch
+
+
+
