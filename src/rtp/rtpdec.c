@@ -20,6 +20,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 
 	uint8_t nal;
 	uint8_t type;
+	uint8_t nri;
 
 	int pass;
 	int total_length = 0;
@@ -35,6 +36,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 			cdata = orig;
 			buffers->buffer_len[substream] = total_length;
 			dst = buffers->frame_buffer[substream] + total_length;
+			buffers->discard = TRUE;
 		}
 
 		while (cdata != NULL) {
@@ -47,8 +49,12 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 
 			nal = (uint8_t) pckt->data[0];
 			type = nal & 0x1f;
-
+			nri = nal & 0x60;
+			
 			if (type >= 1 && type <= 23) {
+				if (buffers->discard && !(type == 1 && nri == 0)){
+					buffers->discard = FALSE;
+				}
 				type = 1;
 			}
 
@@ -132,6 +138,10 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 					uint8_t nal_type = fu_header & 0x1f;
 					uint8_t reconstructed_nal;
 
+					if (buffers->discard && !(nal_type == 1 && nri == 0)){
+						buffers->discard = FALSE;
+					}
+					
 					// Reconstruct this packet's true nal; only the data follows.
 					/* The original nal forbidden bit and NRI are stored in this
 					 * packet's nal. */
@@ -195,7 +205,7 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
         uint32_t tmp;
         uint32_t substream;
 
-        int i;
+        //int i;
         //struct linked_list *pckt_list[MAX_SUBSTREAMS];
         // the following is just LDGM related optimalization - normally we fill up
         // allocated buffers when we have compressed data. But in case of LDGM, there

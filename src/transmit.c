@@ -442,7 +442,7 @@ tx_send_base(struct tx *tx, struct tile *tile, struct rtp *rtp_session,
         uint32_t hdr_data[100];
         uint32_t *ldgm_payload_hdr = hdr_data;
         uint32_t *video_hdr = ldgm_payload_hdr + 1;
-        uint32_t *ldgm_hdr = video_hdr + sizeof(video_payload_hdr_t)/sizeof(uint32_t);
+        //uint32_t *ldgm_hdr = video_hdr + sizeof(video_payload_hdr_t)/sizeof(uint32_t);
         uint32_t *encryption_hdr;
         int pt = PT_VIDEO;            /* A value specified in our packet format */
         char *data;
@@ -933,7 +933,7 @@ int rtpenc_h264_parse_nal_units(uint8_t *buf_in, int size,
 	return size;
 }
 
-void tx_send_base_h264(struct tx *tx, struct tile *tile, struct rtp *rtp_session, uint32_t ts,
+static void tx_send_base_h264(struct tx *tx, struct tile *tile, struct rtp *rtp_session, uint32_t ts,
 		int send_m, codec_t color_spec, double input_fps,
 		enum interlacing_t interlacing, unsigned int substream,
 		int fragment_offset)

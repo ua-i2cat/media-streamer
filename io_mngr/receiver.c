@@ -5,7 +5,9 @@
 #include "rtp/rtp_callback.h"
 #include "rtp/rtpdec.h"
 #include "pdb.h"
+#include "video_decompress.h"
 #include "tv.h"
+#include "debug.h"
 
 #define INITIAL_VIDEO_RECV_BUFFER_SIZE  ((4*1920*1080)*110/100) //command line net.core setup: sysctl -w net.core.rmem_max=9123840
 
@@ -31,6 +33,7 @@ void *decoder_th(void* participant){
       }
 
       pthread_mutex_unlock(&src->proc.decoder->lock);
+      pthread_exit((void *)NULL);    
 }
 
 void init_decoder(participant_data_t *src){
@@ -60,7 +63,7 @@ receiver_t *init_receiver(participant_list_t *list, int port){
     receiver->list = list;
     
     //TODO: this shouldn't open this ports and addr should be NULL
-    receiver->session = rtp_init_if("127.0.0.1", NULL, receiver->port, 2*receiver->port, ttl, rtcp_bw, 0, rtp_recv_callback, (void *)receiver->part_db, 0);
+    receiver->session = rtp_init_if(NULL, NULL, receiver->port, 0, ttl, rtcp_bw, 0, rtp_recv_callback, (void *)receiver->part_db, 0);
       
     if (receiver->session != NULL) {
       if (!rtp_set_option(receiver->session, RTP_OPT_WEAK_VALIDATION, 1)) {
@@ -127,16 +130,32 @@ void *receiver_thread(receiver_t *receiver) {
 		if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data)) {	  
  		  gettimeofday(&curr_time, NULL);
  
- 		  pthread_mutex_lock(&src->lock);
- 		  pthread_mutex_lock(&src->proc.decoder->lock); 
+ 		  if (pthread_mutex_trylock(&src->lock) == 0) {
+		    pthread_mutex_lock(&src->proc.decoder->lock); 
  		  
-		  memcpy(src->proc.decoder->data, rx_data->frame_buffer[0], rx_data->buffer_len[0]); //TODO: get rid of this magic number
- 		  src->proc.decoder->data_len = rx_data->buffer_len[0];
- 		  src->proc.decoder->new_frame = TRUE;
- 		  pthread_cond_signal(&src->proc.decoder->notify_frame);
+		    memcpy(src->proc.decoder->data, rx_data->frame_buffer[0], rx_data->buffer_len[0]); //TODO: get rid of this magic number
+		    src->proc.decoder->data_len = rx_data->buffer_len[0];
+		    src->proc.decoder->new_frame = TRUE;
+		    pthread_cond_signal(&src->proc.decoder->notify_frame);
  		  
- 		  pthread_mutex_unlock(&src->proc.decoder->lock);
- 		  pthread_mutex_unlock(&src->lock);
+		    pthread_mutex_unlock(&src->proc.decoder->lock);
+		    pthread_mutex_unlock(&src->lock);
+		    
+		  } else if (! rx_data->discard){
+		    
+		    pthread_mutex_lock(&src->lock);
+		    pthread_mutex_lock(&src->proc.decoder->lock); 
+ 		  
+		    memcpy(src->proc.decoder->data, rx_data->frame_buffer[0], rx_data->buffer_len[0]); //TODO: get rid of this magic number
+		    src->proc.decoder->data_len = rx_data->buffer_len[0];
+		    src->proc.decoder->new_frame = TRUE;
+		    pthread_cond_signal(&src->proc.decoder->notify_frame);
+ 		  
+		    pthread_mutex_unlock(&src->proc.decoder->lock);
+		    pthread_mutex_unlock(&src->lock);
+		  } else {
+		    debug_msg("Warning: Frame missed!\n"); //TODO: test it properly, it should not cause decoding damage
+		  }
 		}
 	      } else {
 		//TODO: delete cp form pdb or ignore it
@@ -151,6 +170,7 @@ void *receiver_thread(receiver_t *receiver) {
     destroy_participant_list(receiver->list);
     rtp_done(receiver->session);
     free(receiver);
+    pthread_exit((void *)NULL);   
 }
 
 int start_receiver(receiver_t *receiver){

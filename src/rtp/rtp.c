@@ -1076,14 +1076,18 @@ struct rtp *rtp_init_if(const char *addr, const char *iface,
         session->magic = 0xfeedface;
         session->opt = (options *) malloc(sizeof(options));
         session->userdata = userdata;
-        session->addr = strdup(addr);
+	if (addr != NULL) {
+		session->addr = strdup(addr);
+	} else {
+		session->addr = NULL;
+	}
         session->rx_port = rx_port;
         session->tx_port = tx_port;
         session->ttl = min(ttl, 127);
         session->rtp_socket = udp_init_if(addr, iface, rx_port, tx_port, ttl, use_ipv6);
         session->rtcp_socket =
             udp_init_if(addr, iface, (uint16_t) (rx_port + (rx_port ? 1 : 0)),
-                        (uint16_t) (tx_port + 1), ttl, use_ipv6);
+                        (uint16_t) (tx_port + (tx_port ? 1 : 0)), ttl, use_ipv6);
 
         init_opt(session);
 

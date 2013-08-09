@@ -2,6 +2,10 @@
 #include "participants.h"
 #include "receiver.h"
 
+FILE *F_video_rx=NULL;
+char *OUTPUT_PATH = "rx_frame.yuv";
+
+
 int main(){
   participant_list_t *list;
   receiver_t *receiver;
@@ -18,7 +22,22 @@ int main(){
   
   if (start_receiver(receiver)) {
   
-    /*sleep(10);
+    /*
+    while(1){
+      usleep(10*1000);
+      if (list->first->new_frame){
+	pthread_mutex_lock(&list->first->lock);
+	if (F_video_rx == NULL) {
+	    printf("recording rx frame...\n");
+	    F_video_rx = fopen(OUTPUT_PATH, "wb");
+	}
+
+	fwrite(list->first->frame, list->first->frame_length, 1,F_video_rx);
+	pthread_mutex_unlock(&list->first->lock);
+      }
+    }
+    
+    sleep(10);
   
     pthread_rwlock_wrlock(&list->lock);
     if (remove_participant(list,3))
