@@ -6,6 +6,7 @@ doc/
 
 *.mp4
 *.yuv
+*.yuv420p
 *.uyvy
 *.uyvy422
 *.h264
