@@ -248,11 +248,13 @@ void *transmitter_master_routine(void *arg)
     }
 
     debug_msg(" terminating pairs of threads\n");
+    pthread_rwlock_rdlock(&list->lock);
     participant = list->first;
     while (participant != NULL) {
-        //transmitter_destroy_encoder_thread(&participant->proc.encoder);
+        transmitter_destroy_encoder_thread(&participant->proc.encoder);
         participant = participant->next;
     }
+    pthread_rwlock_unlock(&list->lock);
     pthread_exit((void *)NULL);
 }
 
