@@ -1,6 +1,6 @@
 #include "config.h"
-#include "participants.h"
-#include "receiver.h"
+#include "io_mngr/participants.h"
+#include "io_mngr/receiver.h"
 
 FILE *F_video_rx=NULL;
 char *OUTPUT_PATH = "rx_frame.yuv";

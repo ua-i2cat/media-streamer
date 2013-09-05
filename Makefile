@@ -4,25 +4,21 @@ LINKER        = g++
 CFLAGS        = -g -lm -DHAVE_CONFIG_H -g -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
 CPPFLAGS      = -I. 
 CXXFLAGS      = -g -lm -DHAVE_CONFIG_H -g -fPIC -Wno-multichar -Wno-deprecated -msse2
-LDFLAGS       = -shared -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname
+LDFLAGS       = -shared -Wl,--dynamic-list-data,--as-needed,-gc-sections
 LDFLAGS_RTP   =-shared  -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname,librtp.so
 LDFLAGS_ENC   =-shared  -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname,libvcompress.so
 LDFLAGS_DEC   =-shared  -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname,libvdecompress.so
 LDFLAGS_IOM   =-shared  -Wl,--dynamic-list-data,--as-needed,-gc-sections,-soname,libiomanager.so
 LDFLAGS_TEST  = -Wl,--dynamic-list-data,--as-needed
 
-LIBS_RTP      += -lrt -ldl -lieee -lm -lcrypto
-LIBS_ENC      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut
-LIBS_DEC      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut
-LIBS	      += -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut
+LIBS_RTP      = -lrt -ldl -lieee -lm -lcrypto
+LIBS_ENC      = -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut
+LIBS_DEC      = -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut
+LIBS	      = -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut
 
-LIBS_IOM      += -lrt -lpthread -L./lib -lvcompress -lvdecompress
+LIBS_IOM      = -lpthread -L./lib -lrtp -lvcompress -lvdecompress
 
-LIBS_RTP_TEST += $(LIBS_RTP) -L./lib -lrtp
-LIBS_ENC_TEST += $(LIBS_ENC) -L./lib -lvcompress
-LIBS_DEC_TEST += $(LIBS_DEC) -L./lib -lvdecompress
-
-LIBS_TEST     += $(LIBS) -L./lib -lrtp -lvcompress -lvdecompress -liomanager -lavformat
+LIBS_TEST     = $(LIBS) -L./lib -lrtp -lvcompress -lvdecompress -liomanager -lavformat
 
 INC           = -I./src -I./
 	  
@@ -33,6 +29,7 @@ TARGET_IOM    = lib/libiomanager.so
 TARGETS       = $(TARGET_RTP) $(TARGET_ENC) $(TARGET_DEC) $(TARGET_IOM)
 
 TESTS = $(addprefix bin/, rtp encoder decoder ug_ug vlc_vlc vlc_ug ug_vlc enc_tx rx_dec enc_dec 2in2out)
+TESTS_IOM = $(addprefix bin/, test_transmitter test_receiver)
 
 DOCS 	      = COPYRIGHT README REPORTING-BUGS
 
@@ -154,6 +151,7 @@ rtp: $(TARGET_RTP)
 encoder: $(TARGET_ENC)
 decoder: $(TARGET_DEC)
 iomanager: dxt rtp encoder decoder $(TARGET_IOM)
+iomanager-test: iomanager $(TESTS_IOM)
 
 dxt:
 	cd dxt_compress; make
@@ -179,7 +177,7 @@ doc:
 # -------------------------------------------------------------------------------------------------
 
 clean:
-	rm -f $(OBJS_RTP) $(OBJS_DEC) $(OBJS_ENC)  $(OBJS_TEST) $(TARGETS) $(TESTS) $(OBJS_IOM)
+	rm -f $(OBJS_RTP) $(OBJS_DEC) $(OBJS_ENC) $(OBJS_IOM) $(OBJS_TEST) $(TARGETS) $(TESTS) $(TESTS_IOM)
 	cd dxt_compress; make clean
 
 .PHONY: all clean doc
