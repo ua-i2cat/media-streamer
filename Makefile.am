@@ -1,17 +1,20 @@
-noinst_LTLIBRARIES = librtp.la libvcompress.la libvdecompress.la libiomanager.la
+lib_LTLIBRARIES = librtp.la libvcompress.la libvdecompress.la libiomanager.la
 
 
-AM_CFLAGS = -std=gnu99
-AM_CXXFLAGS = -g -DHAVE_CONFIG_H -g -fPIC -Wno-multichar -Wno-deprecated -msse2
+AM_CFLAGS = -std=gnu99 -g -lm -DHAVE_CONFIG_H -g -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
+AM_CXXFLAGS = -O2 -g -DHAVE_CONFIG_H -g -fPIC -Wno-multichar -Wno-deprecated -msse2
+
 
 librtp_la_LDFLAGS = -version-info 0:1:0 -lrt -ldl -lieee -lm -lcrypto
+librtp_la_CFLAGS = $(AM_CFLAGS) -Isrc -Isrc/rtp -Isrc/compat -Isrc/crypto
+librtp_la_CXXFLAGS = $(AM_CXXFLAGS) -Isrc -Isrc/rtp -Isrc/compat -Isrc/crypto
 librtp_la_SOURCES = src/rtp/net_udp.c \
 					src/rtp/pbuf.c \
 					src/rtp/ptime.c \
 					src/rtp/rtp.c \
 					src/rtp/rtp_callback.c \
 					src/rtp/rtpdec.c \
-					src/crypto/crc32.c \
+					src/crypto/crc_32.c \
 					src/crypto/crypt_aes.c \
 					src/crypto/crypt_aes_impl.c \
 					src/crypto/crypt_des.c \
@@ -32,10 +35,12 @@ librtp_la_SOURCES = src/rtp/net_udp.c \
 					src/compat/drand48.c \
 					src/utils/list.c \
 					src/transmit.c \
-					src/modullse.c \
-					src/messaging.c
+					src/module.c \
+					src/messaging.cpp
 
 libvcompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut
+libvcompress_la_CFLAGS = $(AM_CFLAGS) -Isrc -Isrc/video_compress -Isrc/utils -Isrc/compat
+libvcompress_la_CXXFLAGS = $(AM_CXXFLAGS) -Isrc -Isrc/video_compress -Isrc/utils -Isrc/compat
 libvcompress_la_SOURCES = src/video_frame.c \
 						  src/gl_context.c \
 						  src/glx_common.c \
@@ -43,7 +48,7 @@ libvcompress_la_SOURCES = src/video_frame.c \
 						  src/debug.c \
 						  src/video_codec.c \
 						  src/module.c \
-						  src/messaging.c \
+						  src/messaging.cpp \
 						  src/compat/platform_spin.c \
 						  src/compat/platform_semaphore.c \
 						  src/x11_common.c \
@@ -56,6 +61,8 @@ libvcompress_la_SOURCES = src/video_frame.c \
 						  src/utils/worker.cpp
 
 libvdecompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut
+libvdecompress_la_CFLAGS = $(AM_CFLAGS) -Isrc -Isrc/video_decompress -Isrc/utils -Isrc/compat
+libvdecompress_la_CXXFLAGS = $(AM_CXXFLAGS) -Isrc -Isrc/video_decompress -Isrc/utils -Isrc/compat
 libvdecompress_la_SOURCES =  src/video_frame.c \
 							 src/gl_context.c \
 							 src/glx_common.c \
@@ -63,7 +70,7 @@ libvdecompress_la_SOURCES =  src/video_frame.c \
 							 src/debug.c \
 							 src/video_codec.c \
 							 src/module.c \
-							 src/messaging.c \
+							 src/messaging.cpp \
 							 src/compat/platform_spin.c \
 							 src/compat/platform_semaphore.c \
 							 src/x11_common.c \
@@ -75,6 +82,8 @@ libvdecompress_la_SOURCES =  src/video_frame.c \
 							 src/utils/worker.cpp
 
 libiomanager_la_LDFLAGS = -version-info 0:1:0 -lpthread -L./lib -lrtp -lvcompress -lvdecompress
+libiomanager_la_CFLAGS = -O2 $(AM_CFLAGS) -Isrc -Iio_mngr -Idxt_compress
+libiomanager_la_CXXFLAGS = -O2 $(AM_CXXFLAGS) -Isrc -Iio_mngr -Idxt_compress
 libiomanager_la_SOURCES = io_mngr/participants.c \
 						  io_mngr/receiver.c \
 						  io_mngr/transmitter.c \

@@ -3,8 +3,9 @@
 
 AC_PREREQ([2.68])
 AC_INIT([ug-modules], [0.1.0], [BUG-REPORT-ADDRESS])
-AC_CONFIG_SRCDIR([cuda_dxt/cuda_dxt.h])
-AC_CONFIG_HEADERS([config.h])
+#AC_CONFIG_SRCDIR([cuda_dxt/cuda_dxt.h])
+
+LT_INIT
 
 AM_INIT_AUTOMAKE([ug-modules], [0.1.0])
 
@@ -53,7 +54,7 @@ AC_CHECK_FUNCS([gethostbyname gethostname gettimeofday inet_ntoa memset select s
 
 AC_CONFIG_FILES([Makefile])
 #AC_CONFIG_FILES([Makefile
-                 cuda_dxt/Makefile
-                 dxt_compress/makefile])
+#                 cuda_dxt/Makefile
+#                 dxt_compress/makefile])
 AC_CONFIG_SUBDIRS([gpujpeg])
 AC_OUTPUT
