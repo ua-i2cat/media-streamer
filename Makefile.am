@@ -82,8 +82,8 @@ libvdecompress_la_SOURCES =  src/video_frame.c \
 							 src/utils/worker.cpp
 
 libiomanager_la_LDFLAGS = -version-info 0:1:0 -lpthread -L./lib -lrtp -lvcompress -lvdecompress
-libiomanager_la_CFLAGS = -O2 $(AM_CFLAGS) -Isrc -Iio_mngr -Idxt_compress
-libiomanager_la_CXXFLAGS = -O2 $(AM_CXXFLAGS) -Isrc -Iio_mngr -Idxt_compress
+libiomanager_la_CFLAGS = $(AM_CFLAGS) -Isrc -Iio_mngr -Idxt_compress
+libiomanager_la_CXXFLAGS = $(AM_CXXFLAGS) -Isrc -Iio_mngr -Idxt_compress
 libiomanager_la_SOURCES = io_mngr/participants.c \
 						  io_mngr/receiver.c \
 						  io_mngr/transmitter.c \
@@ -92,3 +92,15 @@ libiomanager_la_SOURCES = io_mngr/participants.c \
 						  dxt_compress/dxt_encoder.c
 
 libiomanager_la_DEPENDENCIES = librtp.la libvcompress.la libvdecompress.la
+
+bin_PROGRAMS = receiver transmitter
+
+receiver_SOURCES = tests/test_receiver.c
+receiver_CFLAGS = $(AM_CFLAGS) -Isrc -Iio_mngr
+receiver_LDFLAGS = -lvcompress -lvdecompress -liomanager -lavcodec
+receiver_DEPENDENCIES = librtp.la libvcompress.la libvdecompress.la libiomanager.la
+
+transmitter_SOURCES = tests/test_transmitter.c
+transmitter_CFLAGS = $(AM_CFLAGS) -Isrc -Iio_mngr
+transmitter_LDFLAGS = -lvcompress -lvdecompress -liomanager -lavcodec
+transmitter_DEPENDENCIES = librtp.la libvcompress.la libvdecompress.la libiomanager.la
