@@ -81,7 +81,7 @@ libvdecompress_la_SOURCES =  video_frame.c \
 							 utils/resource_manager.cpp \
 							 utils/worker.cpp
 
-libiomanager_la_LDFLAGS = -version-info 0:1:0 -lpthread -L./lib -lrtp -lvcompress -lvdecompress
+libiomanager_la_LDFLAGS = -version-info 0:1:0 -lpthread -lrtp -lvcompress -lvdecompress
 libiomanager_la_CFLAGS = $(AM_CFLAGS) -I. -Iio_mngr -Idxt_compress
 libiomanager_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Iio_mngr -Idxt_compress
 libiomanager_la_SOURCES = io_mngr/participants.c \
