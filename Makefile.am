@@ -93,6 +93,10 @@ libiomanager_la_SOURCES = io_mngr/participants.c \
 
 libiomanager_la_DEPENDENCIES = librtp.la libvcompress.la libvdecompress.la
 
+nobase_include_HEADERS = io_mngr/participants.h \
+				         io_mngr/transmitter.h \
+						 io_mngr/receiver.h
+
 bin_PROGRAMS = receiver transmitter
 
 receiver_SOURCES = tests/test_receiver.c
