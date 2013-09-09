@@ -52,7 +52,8 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([gethostbyname gethostname gettimeofday inet_ntoa memset select socket sqrt strcasecmp strchr strcspn strdup strncasecmp strrchr strspn strstr strtoul uname])
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile
+                 src/Makefile])
 #AC_CONFIG_FILES([Makefile
 #                 cuda_dxt/Makefile
 #                 dxt_compress/makefile])
