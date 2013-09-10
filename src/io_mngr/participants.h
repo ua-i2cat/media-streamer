@@ -8,7 +8,7 @@
 #define _PARTICIPANTS_H_
 
 #include "config.h"
-#include "../src/video.h"
+#include "../video.h"
 #include <semaphore.h>
 
 typedef struct participant_data participant_data_t;
