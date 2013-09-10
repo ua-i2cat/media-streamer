@@ -16,6 +16,9 @@ depcomp
 libtool
 missing
 
+receiver
+transmitter
+
 doc/
 
 *.mp4
