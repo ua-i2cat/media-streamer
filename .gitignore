@@ -9,6 +9,13 @@ bin
 Makefile
 Makefile.in
 
+autom4te.cache/
+config.log
+config.status
+depcomp
+libtool
+missing
+
 doc/
 
 *.mp4
