@@ -92,19 +92,3 @@ libiomanager_la_SOURCES = io_mngr/participants.c \
 						  dxt_compress/dxt_encoder.c
 
 libiomanager_la_DEPENDENCIES = librtp.la libvcompress.la libvdecompress.la
-
-nobase_include_HEADERS = io_mngr/participants.h \
-				         io_mngr/transmitter.h \
-						 io_mngr/receiver.h
-
-bin_PROGRAMS = receiver transmitter
-
-receiver_SOURCES = tests/test_receiver.c
-receiver_CFLAGS = $(AM_CFLAGS) -I. -Iio_mngr
-receiver_LDFLAGS = -lvcompress -lvdecompress -liomanager -lavcodec
-receiver_DEPENDENCIES = librtp.la libvcompress.la libvdecompress.la libiomanager.la
-
-transmitter_SOURCES = tests/test_transmitter.c
-transmitter_CFLAGS = $(AM_CFLAGS) -I. -Iio_mngr
-transmitter_LDFLAGS = -lvcompress -lvdecompress -liomanager -lavcodec
-transmitter_DEPENDENCIES = librtp.la libvcompress.la libvdecompress.la libiomanager.la
