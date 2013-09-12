@@ -163,7 +163,7 @@ int main(int argc, char **argv)
             }
             pthread_rwlock_unlock(&list->lock);
             notify_out_manager();
-            usleep(40000);
+            usleep(200000);
         } else {
             break;
         }

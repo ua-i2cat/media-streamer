@@ -130,7 +130,7 @@ void *receiver_thread(receiver_t *receiver) {
 		if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data)) {	  
  		  gettimeofday(&curr_time, NULL);
  
- 		  if (pthread_mutex_trylock(&src->lock) == 0) {
+ 		  /*if (pthread_mutex_trylock(&src->lock) == 0) {
 		    pthread_mutex_lock(&src->proc.decoder->lock); 
  		  
 		    memcpy(src->proc.decoder->data, rx_data->frame_buffer[0], rx_data->buffer_len[0]); //TODO: get rid of this magic number
@@ -141,7 +141,7 @@ void *receiver_thread(receiver_t *receiver) {
 		    pthread_mutex_unlock(&src->proc.decoder->lock);
 		    pthread_mutex_unlock(&src->lock);
 		    
-		  } else if (! rx_data->discard){
+		  } else if (! rx_data->discard){*/
 		    
 		    pthread_mutex_lock(&src->lock);
 		    pthread_mutex_lock(&src->proc.decoder->lock); 
@@ -153,9 +153,9 @@ void *receiver_thread(receiver_t *receiver) {
  		  
 		    pthread_mutex_unlock(&src->proc.decoder->lock);
 		    pthread_mutex_unlock(&src->lock);
-		  } else {
-		    debug_msg("Warning: Frame missed!\n"); //TODO: test it properly, it should not cause decoding damage
-		  }
+		  //} else {
+		  //  debug_msg("Warning: Frame missed!\n"); //TODO: test it properly, it should not cause decoding damage
+		  //}
 		}
 	      } else {
 		//TODO: delete cp form pdb or ignore it

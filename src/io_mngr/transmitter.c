@@ -10,11 +10,11 @@
 
 #define DEFAULT_FPS 24
 #define DEFAULT_RECV_PORT 12006 // just trying to not interfere with anything
-#define DEFAULT_RTCP_BW 5 * 1024 * 1024
+#define DEFAULT_RTCP_BW 5 * 1024 * 1024 * 10
 #define DEFAULT_TTL 255
-#define DEFAULT_SEND_BUFFER_SIZE 1920 * 1080 * 4 * sizeof(char)
+#define DEFAULT_SEND_BUFFER_SIZE 1920 * 1080 * 4 * sizeof(char) * 10
 #define PIXEL_FORMAT RGB
-#define MTU 1400
+#define MTU 1300 // 1400
 
 void *transmitter_encoder_routine(void *arg);
 void *transmitter_rtpenc_routine(void *arg);
@@ -69,13 +69,26 @@ void *transmitter_encoder_routine(void *arg)
         frame->tiles[0].data_len = participant->frame_length;
         struct video_frame *tx_frame;
         int i = encoder->index;
+
         tx_frame = compress_frame(encoder->sc, frame, i);
-        
+
         pthread_mutex_unlock(&participant->lock);
         
         i = (i + 1)%2;
         encoder->index = i;
+        
+        while(1) {
+            pthread_mutex_lock(&encoder->lock);     
+            if (encoder->rtpenc->ready) {
+                pthread_mutex_unlock(&encoder->lock);
+                break;
+            }
+            pthread_mutex_unlock(&encoder->lock);
+        }
+
+        pthread_mutex_lock(&encoder->lock);     
         encoder->frame = tx_frame;
+        pthread_mutex_unlock(&encoder->lock);
         
         sem_post(&encoder->output_sem);    
     }
@@ -133,11 +146,22 @@ void *transmitter_rtpenc_routine(void *arg)
         if (!RUN) {
             break;
         }
+
+        pthread_mutex_lock(&encoder->lock);
+        encoder->rtpenc->ready = 0;
+        pthread_mutex_unlock(&encoder->lock);
+
+        pthread_mutex_lock(&encoder->lock);
         gettimeofday(&curr_time, NULL);
         rtp_update(rtp, curr_time);
         timestamp = tv_diff(curr_time, start_time)*90000;
         rtp_send_ctrl(rtp, timestamp, 0, curr_time);
         tx_send_h264(tx_session, encoder->frame, rtp);
+        pthread_mutex_unlock(&encoder->lock);
+
+        pthread_mutex_lock(&encoder->lock);
+        encoder->rtpenc->ready = 1;
+        pthread_mutex_unlock(&encoder->lock);
     }   
 
     rtp_send_bye(rtp);
@@ -168,6 +192,8 @@ void transmitter_destroy_encoder_thread(encoder_thread_t **encoder)
     sem_destroy(&encoder[0]->input_sem);
     sem_destroy(&encoder[0]->output_sem);
 
+    pthread_mutex_destroy(&encoder[0]->lock);
+
     free(encoder[0]->rtpenc);
     free(encoder[0]);
 
@@ -192,8 +218,11 @@ int transmitter_init_threads(struct participant_data *participant)
         return -1;
     }
 
+    pthread_mutex_init(&encoder->lock, NULL);
     sem_init(&encoder->input_sem, 1, 0);
     sem_init(&encoder->output_sem, 1, 0);
+
+    encoder->rtpenc->ready = 1;
 
     int ret = 0;
     ret = pthread_create(&encoder->thread, NULL,

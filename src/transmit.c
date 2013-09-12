@@ -101,7 +101,7 @@ enum fec_scheme_t {
 #endif
 
 
-#define RTPENC_H264_MAX_NALS 1024*2*2
+#define RTPENC_H264_MAX_NALS 1024*2*2*2
 #define RTPENC_H264_PT 96
 
 struct rtp_nal_t {
