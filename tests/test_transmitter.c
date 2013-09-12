@@ -19,7 +19,7 @@ int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pC
     pFormatCtx->iformat = av_find_input_format("rawvideo");
     unsigned int i;
 
-    av_dict_set(&rawdict, "video_size", "854x480", 0);
+    av_dict_set(&rawdict, "video_size", "1920x1080", 0);
     av_dict_set(&rawdict, "pixel_format", "rgb24", 0);
 
     // Open video file
@@ -110,18 +110,18 @@ int main(int argc, char **argv)
         error_msg(" could not initialize a participant list\n");
     }
     int ret = 0;
-    ret = add_participant(list, 0, 854, 480, H264, "127.0.0.1", 5004, OUTPUT);
+    ret = add_participant(list, 0, 1920, 1080, H264, "127.0.0.1", 5004, OUTPUT);
     if (ret < 0) {
         error_msg(" could not add a new participant\n");
         destroy_participant_list(list);
         return -1;
     }
-    ret = add_participant(list, 0, 854, 480, H264, "127.0.0.1", 6004, OUTPUT);
+    /*ret = add_participant(list, 0, 854, 480, H264, "127.0.0.1", 6004, OUTPUT);
     if (ret < 0) {
         error_msg(" could not add a new participant\n");
         destroy_participant_list(list);
         return -1;
-    }
+    }*/
 
 
     AVFormatContext *pformat_ctx = avformat_alloc_context();
@@ -129,8 +129,8 @@ int main(int argc, char **argv)
     int video_stream = -1;
     av_register_all();
 
-    int width = 854;
-    int height = 480;
+    int width = 1920;
+    int height = 1080;
 
     load_video(yuv_path, pformat_ctx, &codec_ctx, &video_stream);
 
