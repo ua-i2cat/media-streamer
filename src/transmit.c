@@ -993,7 +993,7 @@ static void tx_send_base_h264(struct tx *tx, struct tile *tile, struct rtp *rtp_
 		uint8_t *nal_payload = nal.data + nal_header_size + startcode_size; // nal.data + nal_header_size;
 		int nal_payload_size = nal.size - (int)(nal_header_size + startcode_size); //nal.size - nal_header_size;
 
-		rtpenc_h264_debug_print_nal_recv_info(nal_header, nal_header_size + nal_payload_size);
+		//rtpenc_h264_debug_print_nal_recv_info(nal_header, nal_header_size + nal_payload_size);
 
 		const char type = (char) (*nal_header & 0x1f);
 		const char nri = (char) ((*nal_header & 0x60) >> 5);
@@ -1045,7 +1045,7 @@ static void tx_send_base_h264(struct tx *tx, struct tile *tile, struct rtp *rtp_
 			else {
 				rtpenc_h264_nals_sent_nofrag++;
 				rtpenc_h264_nals_sent++;
-				rtpenc_h264_debug_print_nal_sent_info(nal_header, nal_payload_size + nal_header_size);
+				//rtpenc_h264_debug_print_nal_sent_info(nal_header, nal_payload_size + nal_header_size);
 			}
 		}
 		else {
@@ -1063,7 +1063,7 @@ static void tx_send_base_h264(struct tx *tx, struct tile *tile, struct rtp *rtp_
 
 			while (remaining_payload_size + 2 > nal_max_size) {
 
-				rtpenc_h264_debug_print_payload_bytes(frag_payload);
+				//rtpenc_h264_debug_print_payload_bytes(frag_payload);
 
 				int err = rtp_send_data_hdr(rtp_session, ts, pt, m, cc, &csrc,
 							(char *)frag_header, frag_header_size,
@@ -1074,7 +1074,7 @@ static void tx_send_base_h264(struct tx *tx, struct tile *tile, struct rtp *rtp_
 				}
 				else {
 					rtpenc_h264_nals_sent++;
-					rtpenc_h264_debug_print_fragment_sent_info(frag_header, frag_payload_size + frag_header_size);
+					//rtpenc_h264_debug_print_fragment_sent_info(frag_header, frag_payload_size + frag_header_size);
 				}
 
 				remaining_payload_size -= frag_payload_size;
@@ -1090,7 +1090,7 @@ static void tx_send_base_h264(struct tx *tx, struct tile *tile, struct rtp *rtp_
 
 			frag_header[1] = type | (1 << 6); // end
 
-			rtpenc_h264_debug_print_payload_bytes(frag_payload);
+			//rtpenc_h264_debug_print_payload_bytes(frag_payload);
 
 			int err = rtp_send_data_hdr(rtp_session, ts, pt, m, cc, &csrc,
 					(char *)frag_header, frag_header_size,
@@ -1102,7 +1102,7 @@ static void tx_send_base_h264(struct tx *tx, struct tile *tile, struct rtp *rtp_
 			else {
 				rtpenc_h264_nals_sent_frag++; // Each fragmented NAL has one E (end) NAL fragment
 				rtpenc_h264_nals_sent++;
-				rtpenc_h264_debug_print_fragment_sent_info(frag_header, remaining_payload_size + frag_header_size);
+			    //rtpenc_h264_debug_print_fragment_sent_info(frag_header, remaining_payload_size + frag_header_size);
 			}
 		}
 	}
@@ -1122,7 +1122,8 @@ tx_send_h264(struct tx *tx, struct video_frame *frame, struct rtp *rtp_session)
 
         platform_spin_lock(&tx->spin);
 
-        ts = get_local_mediatime();
+        //ts = get_local_mediatime();
+        ts = tx->last_ts + 6000; // TODO!!
         if(frame->fragment &&
                         tx->last_frame_fragment_id == frame->frame_fragment_id) {
                 ts = tx->last_ts;

@@ -137,7 +137,7 @@ int main(int argc, char **argv)
     uint8_t *b1 = (uint8_t *)av_malloc(avpicture_get_size(codec_ctx.pix_fmt,
                         codec_ctx.width, codec_ctx.height)*sizeof(uint8_t));
 
-    start_out_manager(list);
+    start_out_manager(list, 5);
     
     int counter = 0;
     while(1) {
@@ -162,7 +162,6 @@ int main(int argc, char **argv)
                 participant = participant->next;
             }
             pthread_rwlock_unlock(&list->lock);
-            notify_out_manager();
             usleep(200000);
         } else {
             break;

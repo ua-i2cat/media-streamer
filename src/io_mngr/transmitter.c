@@ -28,12 +28,8 @@ void transmitter_destroy_encoder_thread(encoder_thread_t **encoder);
 
 pthread_t MASTER_THREAD;
 int RUN = 1;
+float WAIT_TIME;
 sem_t FRAME_SEM;
-
-void notify_out_manager()
-{
-    sem_post(&FRAME_SEM);
-}
 
 void *transmitter_encoder_routine(void *arg)
 {
@@ -58,12 +54,12 @@ void *transmitter_encoder_routine(void *arg)
     frame->fps = DEFAULT_FPS; // FIXME: if it's not set -> core dump.
     frame->interlacing=PROGRESSIVE;
 
-    char *OUTPUT_PATH = "output.before.encoding.1920x1080.444p.rgb";
-    FILE *F_video_rx=NULL;
-    if (F_video_rx == NULL) {
-        printf("recording rx frame...\n");
-        F_video_rx = fopen(OUTPUT_PATH, "wb");
-    }
+    //char *OUTPUT_PATH = "output.before.encoding.1920x1080.444p.rgb";
+    //FILE *F_video_rx=NULL;
+    //if (F_video_rx == NULL) {
+    //    printf("recording rx frame...\n");
+    //    F_video_rx = fopen(OUTPUT_PATH, "wb");
+    //}
     
     while (RUN) {
         sem_wait(&encoder->input_sem);
@@ -79,7 +75,7 @@ void *transmitter_encoder_routine(void *arg)
         struct video_frame *tx_frame;
         int i = encoder->index;
 
-        fwrite((uint8_t*)frame->tiles[0].data, frame->tiles[0].data_len, 1, F_video_rx);
+        //fwrite((uint8_t*)frame->tiles[0].data, frame->tiles[0].data_len, 1, F_video_rx);
 
 
         tx_frame = compress_frame(encoder->sc, frame, i);
@@ -155,11 +151,11 @@ void *transmitter_rtpenc_routine(void *arg)
     //MODUL DE CAPTURA AUDIO A FITXER PER COMPROVACIONS EN TX
 //            //CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
     char *OUTPUT_PATH = "output.before.rtp.send.h264";
-    FILE *F_video_rx=NULL;
-    if (F_video_rx == NULL) {
-        printf("recording rx frame...\n");
-        F_video_rx = fopen(OUTPUT_PATH, "wb");
-    }
+    //FILE *F_video_rx=NULL;
+    //if (F_video_rx == NULL) {
+    //    printf("recording rx frame...\n");
+    //    F_video_rx = fopen(OUTPUT_PATH, "wb");
+    //}
 //
 //            fwrite((uint8_t*)layout.get_layout_bytestream(), layout.get_buffsize(), 1,F_video_rx);
 //            //FI CAPTURA
@@ -181,7 +177,7 @@ void *transmitter_rtpenc_routine(void *arg)
         timestamp = tv_diff(curr_time, start_time)*90000;
         rtp_send_ctrl(rtp, timestamp, 0, curr_time);
 
-        fwrite((uint8_t*)encoder->frame->tiles[0].data, encoder->frame->tiles[0].data_len, 1, F_video_rx);
+        //fwrite((uint8_t*)encoder->frame->tiles[0].data, encoder->frame->tiles[0].data_len, 1, F_video_rx);
 
         tx_send_h264(tx_session, encoder->frame, rtp);
         pthread_mutex_unlock(&encoder->lock);
@@ -284,7 +280,9 @@ void *transmitter_master_routine(void *arg)
     debug_msg("entering the master loop\n");
     while (RUN) {
         struct participant_data *ptc = list->first;
-        sem_wait(&FRAME_SEM);
+        //sem_wait(&FRAME_SEM);
+        usleep(WAIT_TIME);
+
         if (!RUN) {
             break;
         }
@@ -314,8 +312,9 @@ void *transmitter_master_routine(void *arg)
     pthread_exit((void *)NULL);
 }
 
-int start_out_manager(participant_list_t *list)
+int start_out_manager(participant_list_t *list, float framerate)
 {
+    WAIT_TIME = (1.0/framerate) * 1000000;
     debug_msg("creating the master thread...\n");
     sem_init(&FRAME_SEM, 1, 0);
     int ret = pthread_create(&MASTER_THREAD, NULL, transmitter_master_routine, list);
@@ -328,7 +327,6 @@ int start_out_manager(participant_list_t *list)
 int stop_out_manager()
 {
     RUN = 0;
-    notify_out_manager();
     int ret = pthread_join(MASTER_THREAD, NULL);
     return ret;
 }
