@@ -52,14 +52,7 @@ void *transmitter_encoder_routine(void *arg)
     vf_get_tile(frame, 0)->height=height;
     frame->color_spec = PIXEL_FORMAT;
     frame->fps = DEFAULT_FPS; // FIXME: if it's not set -> core dump.
-    frame->interlacing=PROGRESSIVE;
-
-    //char *OUTPUT_PATH = "output.before.encoding.1920x1080.444p.rgb";
-    //FILE *F_video_rx=NULL;
-    //if (F_video_rx == NULL) {
-    //    printf("recording rx frame...\n");
-    //    F_video_rx = fopen(OUTPUT_PATH, "wb");
-    //}
+    frame->interlacing = PROGRESSIVE;
     
     while (RUN) {
         sem_wait(&encoder->input_sem);
@@ -74,9 +67,6 @@ void *transmitter_encoder_routine(void *arg)
         frame->tiles[0].data_len = participant->frame_length;
         struct video_frame *tx_frame;
         int i = encoder->index;
-
-        //fwrite((uint8_t*)frame->tiles[0].data, frame->tiles[0].data_len, 1, F_video_rx);
-
 
         tx_frame = compress_frame(encoder->sc, frame, i);
 
@@ -148,18 +138,6 @@ void *transmitter_rtpenc_routine(void *arg)
 
     participant->proc.encoder->run = TRUE;
 
-    //MODUL DE CAPTURA AUDIO A FITXER PER COMPROVACIONS EN TX
-//            //CAPTURA FRAMES ABANS DE DESCODIFICAR PER COMPROVAR RECEPCIÓ.
-    char *OUTPUT_PATH = "output.before.rtp.send.h264";
-    //FILE *F_video_rx=NULL;
-    //if (F_video_rx == NULL) {
-    //    printf("recording rx frame...\n");
-    //    F_video_rx = fopen(OUTPUT_PATH, "wb");
-    //}
-//
-//            fwrite((uint8_t*)layout.get_layout_bytestream(), layout.get_buffsize(), 1,F_video_rx);
-//            //FI CAPTURA
-
     while (RUN) {
         encoder_thread_t *encoder = participant->proc.encoder;
         sem_wait(&encoder->output_sem);
@@ -176,8 +154,6 @@ void *transmitter_rtpenc_routine(void *arg)
         rtp_update(rtp, curr_time);
         timestamp = tv_diff(curr_time, start_time)*90000;
         rtp_send_ctrl(rtp, timestamp, 0, curr_time);
-
-        //fwrite((uint8_t*)encoder->frame->tiles[0].data, encoder->frame->tiles[0].data_len, 1, F_video_rx);
 
         tx_send_h264(tx_session, encoder->frame, rtp);
         pthread_mutex_unlock(&encoder->lock);
@@ -280,7 +256,6 @@ void *transmitter_master_routine(void *arg)
     debug_msg("entering the master loop\n");
     while (RUN) {
         struct participant_data *ptc = list->first;
-        //sem_wait(&FRAME_SEM);
         usleep(WAIT_TIME);
 
         if (!RUN) {
