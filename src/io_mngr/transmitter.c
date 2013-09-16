@@ -29,6 +29,7 @@ void transmitter_destroy_encoder_thread(encoder_thread_t **encoder);
 pthread_t MASTER_THREAD;
 int RUN = 1;
 float WAIT_TIME;
+float FRAMERATE;
 sem_t FRAME_SEM;
 
 void *transmitter_encoder_routine(void *arg)
@@ -155,7 +156,7 @@ void *transmitter_rtpenc_routine(void *arg)
         timestamp = tv_diff(curr_time, start_time)*90000;
         rtp_send_ctrl(rtp, timestamp, 0, curr_time);
 
-        tx_send_h264(tx_session, encoder->frame, rtp);
+        tx_send_h264(tx_session, encoder->frame, rtp, FRAMERATE);
         pthread_mutex_unlock(&encoder->lock);
 
         pthread_mutex_lock(&encoder->lock);
@@ -289,6 +290,7 @@ void *transmitter_master_routine(void *arg)
 
 int start_out_manager(participant_list_t *list, float framerate)
 {
+    FRAMERATE = framerate;
     WAIT_TIME = (1.0/framerate) * 1000000;
     debug_msg("creating the master thread...\n");
     sem_init(&FRAME_SEM, 1, 0);
