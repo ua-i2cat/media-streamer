@@ -159,7 +159,7 @@ struct pbuf *pbuf_init(void)
                 /* jitter, but we use a (conservative) fixed 32ms delay for */
                 /* now (2 video frames at 60fps).                           */
                 playout_buf->deletion_delay =
-                        playout_buf->playout_delay = 0.5; //0.032;
+                        playout_buf->playout_delay = 0.032;
         } else {
                 debug_msg("Failed to allocate memory for playout buffer\n");
         }
@@ -247,8 +247,6 @@ void pbuf_insert(struct pbuf *playout_buf, rtp_packet * pkt)
                 return;
         }
 
-        int protect = 0;
-
         if (playout_buf->last->rtp_timestamp == pkt->ts) {
                 /* Packet belongs to last frame in playout_buf this is the */
                 /* most likely scenario - although...                      */
@@ -265,37 +263,16 @@ void pbuf_insert(struct pbuf *playout_buf, rtp_packet * pkt)
                         /* Packet belongs to a previous frame... */
                         if (playout_buf->frst->rtp_timestamp > pkt->ts) {
                                 debug_msg("A very old packet - discarded\n");
-                                printf("[DEBUG] old packet - ts: %u - first: %u\n", pkt->ts, playout_buf->frst->rtp_timestamp);
                         } else {
                                 debug_msg
                                     ("A packet for a previous frame, but might still be useful\n");
                                 /* Should probably insert this into the playout buffer here... */
-                                printf("[DEBUG] previous frame packet - ts: %u\n", pkt->ts);
-
-                                if (playout_buf->last != NULL && playout_buf->last->prv != NULL) {
-
-                                    if (playout_buf->last->prv->rtp_timestamp != pkt->ts) {
-                                        tmp = create_new_pnode(pkt, playout_buf->playout_delay,
-                                                playout_buf->deletion_delay);
-                                        playout_buf->last->prv->nxt = tmp;
-                                        tmp->prv = playout_buf->last->prv;
-                                        playout_buf->last->prv = tmp;
-                                        tmp->nxt = playout_buf->last;
-                                    }
-
-                                    add_coded_unit(playout_buf->last->prv, pkt);
-                                    protect = 1;
-                                }
                         }
-
                         if (pkt->m) {
                                 debug_msg
                                     ("Oops... dropped packet with M bit set\n");
-                                printf("[DEBUG] M bit packet discarded!\n");
                         }
-                        if (protect == 0) {
-                            free(pkt);
-                        }
+                        free(pkt);
                 }
         }
         pbuf_validate(playout_buf);
