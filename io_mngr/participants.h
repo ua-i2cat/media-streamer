@@ -10,23 +10,26 @@
 #include "../src/video.h"
 #include <semaphore.h>
 
+#define I_AWAIT 	2
+
 typedef struct participant_data participant_data_t;
 
 typedef enum {INPUT, OUTPUT} ptype_t;
 
 struct participant_data {
-	pthread_mutex_t    	lock;
-	uint8_t 	   	new_frame;
-	uint32_t 		ssrc;
-	uint32_t		id;
-	char			*frame;
-	int 			frame_length;
+	pthread_mutex_t 	lock;
+	uint8_t 			new_frame;
+	uint8_t 			active;
+	uint32_t 			ssrc;
+	uint32_t			id;
+	char				*frame;
+	int 				frame_length;
 	participant_data_t	*next;
 	participant_data_t	*previous;
-	uint32_t		width;
-	uint32_t		height;
-	codec_t			codec;
-	ptype_t			type;
+	uint32_t			width;
+	uint32_t			height;
+	codec_t				codec;
+	ptype_t				type;
 	struct rtp_session	*session;
 	union {
 	  struct decoder_thread	*decoder;
@@ -87,7 +90,7 @@ participant_list_t *init_participant_list(void);
 
 decoder_thread_t *init_decoder_thread(participant_data_t *src);
 
-// Returns true or false
+
 int add_participant(participant_list_t *list, int id, int width, int height, codec_t codec, char *dst, uint32_t port, ptype_t type);
 
 participant_data_t *get_participant_id(participant_list_t *list, uint32_t id);
@@ -101,6 +104,8 @@ void destroy_participant_list(participant_list_t *list);
 void destroy_participant(participant_data_t *src);
 
 void destroy_decoder_thread(decoder_thread_t *dec_th);
+
+void set_active_participant(participant_data_t *participant, uint8_t active);
 
 participant_data_t *init_participant(int id, int width, int height, codec_t codec, char *dst, uint32_t port, ptype_t type);
 

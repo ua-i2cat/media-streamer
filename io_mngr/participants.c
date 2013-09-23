@@ -4,6 +4,7 @@
 #include "video_decompress.h"
 #include "transmitter.h"
 
+
 participant_data_t *init_participant(int id, int width, int height, codec_t codec, char *dst, uint32_t port, ptype_t type);
 void destroy_decoder_thread(decoder_thread_t *dec_th);
 void destroy_participant(participant_data_t *src);
@@ -18,6 +19,7 @@ participant_data_t *init_participant(int id, int width, int height, codec_t code
   
   pthread_mutex_init(&participant->lock, NULL);
   participant->new_frame = FALSE;
+  participant->active = TRUE;
   participant->ssrc = 0;
   participant->frame = malloc(vc_get_linesize(width, RGB)*height);
   participant->height = height;
@@ -243,6 +245,20 @@ int remove_participant(participant_list_t *list, uint32_t id){
   destroy_participant(participant);
   
   return TRUE;
+}
+
+void set_active_participant(participant_data_t *participant, uint8_t active) {
+	
+	pthread_mutex_lock(&participant->lock);
+	assert(active == TRUE || active == FALSE);
+	
+	if (active == FALSE){
+		participant->active = active;
+	} else if (participant->active == FALSE) {
+		participant->active = I_AWAIT;
+	}
+	
+	pthread_mutex_unlock(&participant->lock);
 }
 
 void destroy_participant_list(participant_list_t *list){

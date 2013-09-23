@@ -29,14 +29,15 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 	int src_len;
 
 	struct recieved_data *buffers = (struct recieved_data *) rx_data;
-
+	
 	for (pass = 0; pass < 2; pass++) {
 
 		if (pass > 0) {
 			cdata = orig;
 			buffers->buffer_len[substream] = total_length;
 			dst = buffers->frame_buffer[substream] + total_length;
-			buffers->discard = TRUE;
+			buffers->bframe = TRUE;
+			buffers->iframe = FALSE;
 		}
 
 		while (cdata != NULL) {
@@ -52,8 +53,11 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 			nri = nal & 0x60;
 			
 			if (type >= 1 && type <= 23) {
-				if (buffers->discard && !(type == 1 && nri == 0)){
-					buffers->discard = FALSE;
+				if (buffers->bframe && !(type == 1 && nri == 0)){
+					buffers->bframe = FALSE;
+				}
+				if (!buffers->iframe && type == 5 ){
+					buffers->iframe =TRUE;
 				}
 				type = 1;
 			}
@@ -71,14 +75,6 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 					memcpy(dst, start_sequence, sizeof(start_sequence));
 					memcpy(dst + sizeof(start_sequence), pckt->data, pckt->data_len);
 					unsigned char *dst2 = (unsigned char *)dst;
-					debug_msg("\n\nFirst six bytes: %02x %02x %02x %02x %02x %02x\n", dst2[0], dst2[1], dst2[2], dst2[3], dst2[4], dst2[5]);
-					debug_msg("Last six bytes: %02x %02x %02x %02x %02x %02x\n", dst2[pckt->data_len + sizeof(start_sequence) - 6],
-							dst2[pckt->data_len + sizeof(start_sequence) - 5],
-							dst2[pckt->data_len + sizeof(start_sequence) - 4],
-							dst2[pckt->data_len + sizeof(start_sequence) - 3],
-							dst2[pckt->data_len + sizeof(start_sequence) - 2],
-							dst2[pckt->data_len + sizeof(start_sequence) - 1]);
-					debug_msg("NAL size: %d\n\n", pckt->data_len + sizeof(start_sequence));
 				}
 				break;
 				case 24:
@@ -90,6 +86,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 
 				while (src_len > 2) {
 					//TODO: Not properly tested
+					//TODO: bframes and iframes detection
 					uint16_t nal_size;
 					memcpy(&nal_size, src, sizeof(uint16_t));
 
@@ -138,8 +135,12 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 					uint8_t nal_type = fu_header & 0x1f;
 					uint8_t reconstructed_nal;
 
-					if (buffers->discard && !(nal_type == 1 && nri == 0)){
-						buffers->discard = FALSE;
+					if (buffers->bframe && !(nal_type == 1 && nri == 0)){
+						buffers->bframe = FALSE;
+					}
+					
+					if (!buffers->iframe && nal_type == 5){
+						buffers->iframe = TRUE;
 					}
 					
 					// Reconstruct this packet's true nal; only the data follows.
@@ -181,6 +182,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 			cdata = cdata->nxt;
 		}
 	}
+	
 	return TRUE;
 }
 
