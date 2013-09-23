@@ -1,5 +1,6 @@
 #include "rtp/rtp.h"
 #include "rtp/rtp_callback.h"
+#include "module.h"
 #include "rtp/rtpdec.h"
 //#include "rtp/rtpdec_h264.h"
 //#include "rtp/rtpenc_h264.h"
@@ -95,7 +96,13 @@ int main()
 	struct recieved_data *rx_data = calloc(1, sizeof(struct recieved_data));
     rx_data->frame_buffer[0]  = calloc(1, 4 * width * height);
 
-	tx_init_h264();
+    struct module tmod;
+    module_init_default(&tmod);
+
+    int mtu = 1500;
+
+
+	struct tx *tx = tx_init_h264(&tmod, mtu, TX_MEDIA_VIDEO, NULL, NULL);
 
 	// int xec=0;
 
@@ -128,7 +135,7 @@ int main()
 
 				//printf("[MAIN to SENDER] data len = %d and first byte = %x\n",frame->tiles[0].data_len,frame->tiles[0].data[0]);
 				if(frame->tiles[0].data_len>0)
-					tx_send_base_h264(vf_get_tile(frame, 0), devices[0], get_local_mediatime(), 1, frame->color_spec, frame->fps, frame->interlacing, 0, 0);
+					tx_send_h264(tx, frame, devices[0]);
 
 				//if (xec > 3)
 				//	exit = 0;

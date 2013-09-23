@@ -7,6 +7,7 @@
 #ifndef _PARTICIPANTS_H_
 #define _PARTICIPANTS_H_
 
+#include "config.h"
 #include "../src/video.h"
 #include <semaphore.h>
 
