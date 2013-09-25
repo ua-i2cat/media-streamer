@@ -85,87 +85,89 @@ receiver_t *init_receiver(participant_list_t *list, int port){
 }
 
 void *receiver_thread(receiver_t *receiver) {
-    struct pdb_e *cp;
-    participant_data_t *src;
+	struct pdb_e *cp;
+	participant_data_t *src;
 
-    struct timeval curr_time;
-    struct timeval timeout;
-    struct timeval start_time;
-    gettimeofday(&start_time, NULL);
+	struct timeval curr_time;
+	struct timeval timeout;
+	struct timeval start_time;
+	gettimeofday(&start_time, NULL);
     
-    timeout.tv_sec = 0;
+	timeout.tv_sec = 0;
     timeout.tv_usec = 10000;
     uint32_t timestamp; //TODO: why is this used
+    uint8_t srclck;
     
     struct recieved_data *rx_data = calloc(1, sizeof(struct recieved_data));
     rx_data->frame_buffer[0] = malloc(1920*1080*4*sizeof(char));
 
     while(receiver->run){
         gettimeofday(&curr_time, NULL);
-        timestamp = tv_diff(curr_time, start_time) * 90000;
-        rtp_update(receiver->session, curr_time);
+		timestamp = tv_diff(curr_time, start_time) * 90000;
+		rtp_update(receiver->session, curr_time);
         //rtp_send_ctrl(receiver->session, timestamp, 0, curr_time); //TODO: why is this used?
 
-        timeout.tv_sec = 0;
-        timeout.tv_usec = 10000;
+		timeout.tv_sec = 0;
+		timeout.tv_usec = 10000;
 	
-        if (!rtp_recv_r(receiver->session, &timeout, timestamp)){
-	    pdb_iter_t it;
-	    cp = pdb_iter_init(receiver->part_db, &it);
+		if (!rtp_recv_r(receiver->session, &timeout, timestamp)){
+			pdb_iter_t it;
+			cp = pdb_iter_init(receiver->part_db, &it);
 	    
-     	    while (cp != NULL) {
+			while (cp != NULL) {
 	      
-	      pthread_rwlock_rdlock(&receiver->list->lock);
-	      src = get_participant_ssrc(receiver->list, cp->ssrc);
-	      pthread_rwlock_unlock(&receiver->list->lock);
-    
-	      if (src != NULL && src->proc.decoder == NULL) {
+				pthread_rwlock_rdlock(&receiver->list->lock);
+				src = get_participant_ssrc(receiver->list, cp->ssrc);
+				pthread_rwlock_unlock(&receiver->list->lock);
+				
+				if (src != NULL && src->proc.decoder == NULL && (src->active > 0)) {
 		
-		pthread_mutex_lock(&src->lock);
-		src->ssrc = cp->ssrc;
-		pthread_mutex_unlock(&src->lock);
-		init_decoder(src);
-		
-	      } else if (src != NULL) {
-		if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data)) {	  
- 		  gettimeofday(&curr_time, NULL);
- 
- 		  if (pthread_mutex_trylock(&src->lock) == 0) {
-		    pthread_mutex_lock(&src->proc.decoder->lock); 
+					pthread_mutex_lock(&src->lock);
+					src->ssrc = cp->ssrc;
+					pthread_mutex_unlock(&src->lock);
+					init_decoder(src);
+				} else if (src != NULL && src->active > 0) {
+					if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data)) {	  
+						gettimeofday(&curr_time, NULL);
+						
+						if (src->active == I_AWAIT && rx_data->iframe){
+							src->active = TRUE;
+						}
+						
+						srclck = pthread_mutex_trylock(&src->lock);
+						
+						if (src->active == TRUE && (srclck == 0 || !rx_data->bframe)) {
+							
+							if (!rx_data->bframe && srclck != 0){
+								pthread_mutex_lock(&src->lock);
+							}
+														
+							pthread_mutex_lock(&src->proc.decoder->lock); 
  		  
-		    memcpy(src->proc.decoder->data, rx_data->frame_buffer[0], rx_data->buffer_len[0]); //TODO: get rid of this magic number
-		    src->proc.decoder->data_len = rx_data->buffer_len[0];
-		    src->proc.decoder->new_frame = TRUE;
-		    pthread_cond_signal(&src->proc.decoder->notify_frame);
- 		  
-		    pthread_mutex_unlock(&src->proc.decoder->lock);
-		    pthread_mutex_unlock(&src->lock);
+							memcpy(src->proc.decoder->data, rx_data->frame_buffer[0], rx_data->buffer_len[0]); //TODO: get rid of this magic number
+							src->proc.decoder->data_len = rx_data->buffer_len[0];
+							src->proc.decoder->new_frame = TRUE;
+							pthread_cond_signal(&src->proc.decoder->notify_frame);
+							
+							pthread_mutex_unlock(&src->proc.decoder->lock);
+							pthread_mutex_unlock(&src->lock);
 		    
-		  } else if (! rx_data->discard){
-		    
-		    pthread_mutex_lock(&src->lock);
-		    pthread_mutex_lock(&src->proc.decoder->lock); 
- 		  
-		    memcpy(src->proc.decoder->data, rx_data->frame_buffer[0], rx_data->buffer_len[0]); //TODO: get rid of this magic number
-		    src->proc.decoder->data_len = rx_data->buffer_len[0];
-		    src->proc.decoder->new_frame = TRUE;
-		    pthread_cond_signal(&src->proc.decoder->notify_frame);
- 		  
-		    pthread_mutex_unlock(&src->proc.decoder->lock);
-		    pthread_mutex_unlock(&src->lock);
-		  } else {
-		    debug_msg("Warning: Frame missed!\n"); //TODO: test it properly, it should not cause decoding damage
-		  }
+						} else {
+							if (srclck == 0){
+								pthread_mutex_unlock(&src->lock);
+							}
+							debug_msg("Warning: Frame missed!\n"); //TODO: test it properly, it should not cause decoding damage
+						}
+					}
+				} else {
+				//TODO: delete cp form pdb or ignore it
+				}
+				pbuf_remove(cp->playout_buffer, curr_time);
+				cp = pdb_iter_next(&it);
+			}
+			pdb_iter_done(&it);
 		}
-	      } else {
-		//TODO: delete cp form pdb or ignore it
-	      }
-	      pbuf_remove(cp->playout_buffer, curr_time);
-	      cp = pdb_iter_next(&it);
-	    }
-	    pdb_iter_done(&it);
-        }
-    }
+	}
   
     destroy_participant_list(receiver->list);
     rtp_done(receiver->session);
