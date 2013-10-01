@@ -81,6 +81,9 @@ libvdecompress_la_SOURCES =  video_frame.c \
 							 utils/resource_manager.cpp \
 							 utils/worker.cpp
 
+dxt_compress:
+	cd dxt_compress; make; cd ..;
+
 libiomanager_la_LDFLAGS = -version-info 0:1:0 -lpthread -lrtp -lvcompress -lvdecompress
 libiomanager_la_CFLAGS = $(AM_CFLAGS) -I. -Iio_mngr -Idxt_compress
 libiomanager_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Iio_mngr -Idxt_compress
@@ -91,7 +94,7 @@ libiomanager_la_SOURCES = io_mngr/participants.c \
 						  dxt_compress/dxt_decoder.c \
 						  dxt_compress/dxt_encoder.c
 
-libiomanager_la_DEPENDENCIES = librtp.la libvcompress.la libvdecompress.la
+libiomanager_la_DEPENDENCIES = librtp.la libvcompress.la libvdecompress.la dxt_compress
 
 ugincludedir = $(includedir)/ug-modules
 nobase_uginclude_HEADERS =	./tfrc.h \
