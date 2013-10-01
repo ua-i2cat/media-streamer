@@ -145,12 +145,12 @@ nobase_uginclude_HEADERS =	./tfrc.h \
 							./io_mngr/config.h \
 							./io_mngr/participants.h \
 							./io_mngr/transmitter.h \
-							./io_mngr/dxt_compress/dxt_encoder.h \
-							./io_mngr/dxt_compress/dxt_util.h \
-							./io_mngr/dxt_compress/dxt_common.h \
-							./io_mngr/dxt_compress/dxt_display.h \
-							./io_mngr/dxt_compress/dxt_glsl.h \
-							./io_mngr/dxt_compress/dxt_decoder.h \
+							./dxt_compress/dxt_encoder.h \
+							./dxt_compress/dxt_util.h \
+							./dxt_compress/dxt_common.h \
+							./dxt_compress/dxt_display.h \
+							./dxt_compress/dxt_glsl.h \
+							./dxt_compress/dxt_decoder.h \
 							./video.h \
 							./module.h \
 							./dxt_compress/dxt_encoder.h \
