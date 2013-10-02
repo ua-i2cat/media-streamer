@@ -182,15 +182,12 @@ void transmitter_destroy_encoder_thread(encoder_thread_t **encoder)
         return;
     }
 
-    sem_post(&encoder[0]->output_sem);
-    sem_post(&encoder[0]->input_sem);
-    
     // TODO: error control? reporting?
-    pthread_join(encoder[0]->rtpenc->thread, NULL);
-    pthread_join(encoder[0]->thread, NULL);
-
     sem_destroy(&encoder[0]->input_sem);
     sem_destroy(&encoder[0]->output_sem);
+
+    pthread_join(encoder[0]->rtpenc->thread, NULL);
+    pthread_join(encoder[0]->thread, NULL);
 
     pthread_mutex_destroy(&encoder[0]->lock);
 
@@ -199,7 +196,6 @@ void transmitter_destroy_encoder_thread(encoder_thread_t **encoder)
 
     encoder[0] = NULL;
 
-    //encoder->run = FALSE;
 }
 
 int transmitter_init_threads(struct participant_data *participant)
