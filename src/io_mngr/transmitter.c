@@ -182,6 +182,9 @@ void transmitter_destroy_encoder_thread(encoder_thread_t **encoder)
         return;
     }
 
+    sem_post(&encoder[0]->input_sem);
+    sem_post(&encoder[0]->output_sem);
+
     // TODO: error control? reporting?
     sem_destroy(&encoder[0]->input_sem);
     sem_destroy(&encoder[0]->output_sem);

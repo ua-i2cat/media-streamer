@@ -55,6 +55,44 @@ void destroy_decoder_thread(decoder_thread_t *dec_th){
     free(dec_th);
 }
 
+void destroy_encoder_thread(encoder_thread_t *encoder)
+{
+    if (encoder == NULL) {
+        return;
+    }
+
+    if (encoder->run != TRUE) {
+        return;
+    }
+
+    encoder->run = FALSE;
+
+    sem_post(&encoder->input_sem);
+    sem_post(&encoder->output_sem);
+
+
+    // TODO: error control? reporting?
+    sem_destroy(&encoder->input_sem);
+    sem_destroy(&encoder->output_sem);
+
+    printf("---- semaphores destroyed\n");
+
+    pthread_join(encoder->rtpenc->thread, NULL);
+    pthread_join(encoder->thread, NULL);
+    printf("---- threads joined\n");
+
+    pthread_mutex_destroy(&encoder->lock);
+    printf("---- mutext destroyed\n");
+
+    free(encoder->rtpenc);
+    free(encoder);
+
+    printf("---- memory unallocated\n");
+
+    encoder = NULL;
+
+}
+
 void destroy_participant(participant_data_t *src){
   free(src->frame);
   free(src->session);
