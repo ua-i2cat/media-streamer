@@ -100,19 +100,8 @@ void destroy_participant(participant_data_t *src){
   if (src->type == INPUT && src->proc.decoder != NULL){
     destroy_decoder_thread(src->proc.decoder);
   } else if (src->type == OUTPUT && src->proc.encoder != NULL){
-    encoder_thread_t **encoder = &src->proc.encoder;
-    if (encoder[0]->run == TRUE) {
-        sem_destroy(&encoder[0]->output_sem);
-        sem_destroy(&encoder[0]->input_sem);
-
-        pthread_join(encoder[0]->rtpenc->thread, NULL);
-        pthread_join(encoder[0]->thread, NULL);
-
-        free(encoder[0]->rtpenc);
-        free(encoder[0]);
-
-        encoder[0] = NULL;
-    }
+    encoder_thread_t *encoder = src->proc.encoder;
+    destroy_encoder_thread(encoder);
   }
   
   pthread_mutex_destroy(&src->lock);
@@ -238,6 +227,8 @@ int remove_participant(participant_list_t *list, uint32_t id){
   }
   
   participant = get_participant_id(list, id);
+
+  printf("-- remove_participant id: %d\n", participant->id);
   
   if (participant == NULL)
     return FALSE;
@@ -256,7 +247,7 @@ int remove_participant(participant_list_t *list, uint32_t id){
     pthread_mutex_lock(&participant->lock);
  
   } else if (participant->type == OUTPUT /*&& participant->proc.encoder->run == TRUE*/){
-    // transmitter_destroy_encoder_thread takes care of this
+    destroy_encoder_thread(participant);
   }
 
   if (participant->next == NULL && participant->previous == NULL) {

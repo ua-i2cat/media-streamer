@@ -54,10 +54,12 @@ void *transmitter_encoder_routine(void *arg)
     frame->color_spec = PIXEL_FORMAT;
     frame->fps = DEFAULT_FPS; // FIXME: if it's not set -> core dump.
     frame->interlacing = PROGRESSIVE;
+
+    encoder->run = TRUE;
     
     while (RUN) {
         sem_wait(&encoder->input_sem);
-        if (!RUN) {
+        if (!RUN || !encoder->run) {
             break;
         }
 
@@ -142,7 +144,7 @@ void *transmitter_rtpenc_routine(void *arg)
     while (RUN) {
         encoder_thread_t *encoder = participant->proc.encoder;
         sem_wait(&encoder->output_sem);
-        if (!RUN) {
+        if (!RUN || !encoder->run) {
             break;
         }
 
