@@ -29,10 +29,10 @@
 /* #undef GIT_VERSION */
 
 /* We have 32-bit Linux */
-#define HAVE_32B_LINUX 1
+/* #undef HAVE_32B_LINUX */
 
 /* We have 64-bit Linux */
-/* #undef HAVE_64B_LINUX */
+#define HAVE_64B_LINUX 1
 
 /* Build with ALSA support */
 #define HAVE_ALSA 1
@@ -339,7 +339,7 @@
 /* #undef SHARED_DECODER */
 
 /* The size of `int *', as computed by sizeof. */
-#define SIZEOF_INT_P 4
+#define SIZEOF_INT_P 8
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
