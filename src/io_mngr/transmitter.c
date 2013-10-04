@@ -291,6 +291,7 @@ void *transmitter_master_routine(void *arg)
 
 int start_out_manager(participant_list_t *list, float framerate)
 {
+    RUN = 1;
     FRAMERATE = framerate;
     WAIT_TIME = (1.0/framerate) * 1000000;
     debug_msg("creating the master thread...\n");
