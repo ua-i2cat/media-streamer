@@ -75,19 +75,13 @@ void destroy_encoder_thread(encoder_thread_t *encoder)
     sem_destroy(&encoder->input_sem);
     sem_destroy(&encoder->output_sem);
 
-    printf("---- semaphores destroyed\n");
-
     pthread_join(encoder->rtpenc->thread, NULL);
     pthread_join(encoder->thread, NULL);
-    printf("---- threads joined\n");
 
     pthread_mutex_destroy(&encoder->lock);
-    printf("---- mutext destroyed\n");
 
     free(encoder->rtpenc);
     free(encoder);
-
-    printf("---- memory unallocated\n");
 
     encoder = NULL;
 
@@ -228,8 +222,6 @@ int remove_participant(participant_list_t *list, uint32_t id){
   
   participant = get_participant_id(list, id);
 
-  printf("-- remove_participant id: %d\n", participant->id);
-  
   if (participant == NULL)
     return FALSE;
 
