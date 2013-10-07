@@ -56,6 +56,7 @@ void *transmitter_encoder_routine(void *arg)
     frame->interlacing = PROGRESSIVE;
 
     encoder->run = TRUE;
+    encoder->index = 0;
     
     while (RUN) {
         sem_wait(&encoder->input_sem);
