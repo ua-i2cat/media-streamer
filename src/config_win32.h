@@ -43,13 +43,9 @@
  * $Revision: 1.1 $
  * $Date: 2007/11/08 09:48:59 $
  */
-#define _WIN32_WINNT 0x0600
 #ifdef WIN32
 #ifndef _CONFIG_WIN32_H
 #define _CONFIG_WIN32_H
-
-// define compatibility version
-#define __MSVCRT_VERSION__ 0x7000
 
 #include <assert.h>
 #include <process.h>
@@ -60,37 +56,32 @@
 #include <math.h>
 #include <stdlib.h>   /* abs() */
 #include <string.h>
-
-// 0x0501 is Win XP, 0x0502 2003 Server, 0x0600 Win Vista and Win 7 is 0x0601
-#ifndef WINVER
-#define WINVER 0x0600
-#endif /* WINVER */
-#ifndef _WIN32_WINNT
-#define _WIN32_WINNT 0x0600
-#endif /* _WIN32_WINNT */
-
-#define WIN32_LEAN_AND_MEAN
-
-#include <crtdefs.h>
-
+#ifndef MUSICA_IPV6
 #include <winsock2.h>
+#endif
+
+#ifdef HAVE_IPv6
+#ifdef MUSICA_IPV6
+#include <winsock6.h>
+#else
+#ifdef WIN2K_IPV6
 #include <ws2tcpip.h>
-#include <naptypes.h>
-#include <ntddndis.h>
-#include <Iphlpapi.h> // if_nametoindex
+#include <tpipv6.h>
+#else
+#include <ws2ip6.h>
+#include <ws2tcpip.h>
+#endif
+#endif
+#endif
 
 #include <mmreg.h>
+#include <msacm.h>
 #include <mmsystem.h>
 #include <windows.h>
 #include <io.h>
 #include <process.h>
 #include <fcntl.h>
 #include <time.h>
-
-#include <amstream.h>
-
-EXTERN_C const CLSID CLSID_NullRenderer;
-EXTERN_C const CLSID CLSID_SampleGrabber;
 
 typedef int		ttl_t;
 typedef unsigned	fd_t;
@@ -103,6 +94,13 @@ typedef unsigned int    fd_t;
  * the definitions below are valid for 32-bit architectures and will have to
  * be adjusted for 16- or 64-bit architectures
  */
+typedef u_char		uint8_t;
+typedef u_short		uint16_t;
+typedef u_long		uint32_t;
+typedef char		int8_t;
+typedef short		int16_t;
+typedef int		int32_t;
+typedef __int64		int64_t;
 typedef unsigned int	in_addr_t;
 
 #ifndef TRUE
@@ -116,12 +114,16 @@ typedef unsigned int	in_addr_t;
 #define NEED_INET_ATON
 
 #include <time.h>		/* For clock_t */
-#include "compat/usleep.h"
+#include "usleep.h"
 
 #define srand48	lbl_srandom
 #define lrand48 lbl_random
 
+#define IN_CLASSD(i)	(((int)(i) & 0xf0000000) == 0xe0000000)
+#define IN_MULTICAST(i)	IN_CLASSD(i)
+
 typedef char	*caddr_t;
+typedef int	ssize_t;
 
 typedef struct iovec {
 	caddr_t	iov_base;
@@ -148,8 +150,12 @@ struct utsname {
 	char machine[SYS_NMLN];
 };
 
-struct timezone;
+struct timezone {
+	int tz_minuteswest;
+	int tz_dsttime;
+};
 
+typedef DWORD pid_t;
 typedef DWORD uid_t;
 typedef DWORD gid_t;
     
@@ -157,39 +163,9 @@ typedef DWORD gid_t;
 extern "C" {
 #endif
 
-// MinGW-w64 defines some broken macro for strtok_r in pthread.h
-// which can be accidently included before this resulting in compilation
-// error
-#undef strtok_r
-
-#ifndef HAVE_STRTOK_R
-static inline char * strtok_r(char *str, const char *delim, char **save);
-
-/*
- * Public domain licensed code taken from:
- * http://en.wikibooks.org/wiki/C_Programming/Strings#The_strtok_function
- */
-static inline char *strtok_r(char *s, const char *delimiters, char **lasts)
-{
-     char *sbegin, *send;
-     sbegin = s ? s : *lasts;
-     sbegin += strspn(sbegin, delimiters);
-     if (*sbegin == '\0') {
-         /* *lasts = ""; */
-         *lasts = sbegin;
-         return NULL;
-     }
-     send = sbegin + strcspn(sbegin, delimiters);
-     if (*send != '\0')
-         *send++ = '\0';
-     *lasts = send;
-     return sbegin;
-}
-#endif
-
 int uname(struct utsname *);
 int getopt(int, char * const *, const char *);
-//int strncasecmp(const char *, const char*, int len);
+int strncasecmp(const char *, const char*, int len);
 int srandom(int);
 int random(void);
 double drand48();
@@ -207,6 +183,7 @@ const char * w32_make_version_info(char * rat_verion);
 #define strcasecmp  _stricmp
 #define strncasecmp _strnicmp
 
+int  RegGetValue(HKEY *, char *, char*, char*, int);
 void ShowMessage(int level, char *msg);
 
 #define bcopy(from,to,len) memcpy(to,from,len)
@@ -215,61 +192,12 @@ void ShowMessage(int level, char *msg);
 }
 #endif
 
-#ifndef ECONNREFUSED
 #define ECONNREFUSED	WSAECONNREFUSED
-#endif
-#ifndef ENETUNREACH
 #define ENETUNREACH	WSAENETUNREACH
-#endif
-#ifndef EHOSTUNREACH
 #define EHOSTUNREACH	WSAEHOSTUNREACH
-#endif
-#ifndef EWOULDBLOCK
 #define EWOULDBLOCK	WSAEWOULDBLOCK
-#endif
-#ifndef EAFNOSUPPORT
-#define EAFNOSUPPORT	WSAEAFNOSUPPORT
-#endif
 
 #define M_PI		3.14159265358979323846
-
-#include <malloc.h>
-
-#ifndef HAVE_ALIGNED_ALLOC
-#define aligned_malloc _aligned_malloc
-#define aligned_free _aligned_free
-#endif
-
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
-
-// MinGW has this
-#include <pthread.h>
-#include <sys/stat.h>
-
-// MinGW-w64 defines some broken macro for strtok_r in pthread.h
-#undef strtok_r
-
-#include "compat/inet_ntop.h"
-#include "compat/inet_pton.h"
-#include "compat/gettimeofday.h"
-#define gettimeofday gettimeofday_replacement
-
-#include <direct.h>
-#define platform_mkdir _mkdir
-
-// sysconf(_SC_NPROCESSORS_ONLN) substitution
-#ifndef _SC_NPROCESSORS_ONLN
-#define _SC_NPROCESSORS_ONLN 123456
-static inline long sysconf_replacement(int name) {
-        assert(name == _SC_NPROCESSORS_ONLN);
-        SYSTEM_INFO info;
-        GetSystemInfo(&info);
-        return info.dwNumberOfProcessors;
-}
-#define sysconf sysconf_replacement
-#endif
 
 #endif 
 #endif
