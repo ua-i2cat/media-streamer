@@ -1714,7 +1714,7 @@ static int validate_rtcp(uint8_t * packet, int len)
         }
 
         if (!is_okay) {
-                debug_dump(packet, len);
+               // debug_dump(packet, len);
         }
 
         return is_okay;
