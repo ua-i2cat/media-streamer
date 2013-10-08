@@ -7,6 +7,7 @@
 #include "rtp/rtp.h"
 #include "rtp/rtp_callback.h"
 #include "rtp/rtpdec.h"
+#include "utils/h264_stream.h"
 
 
 static const uint8_t start_sequence[] = { 0, 0, 0, 1 };
@@ -51,6 +52,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 			nal = (uint8_t) pckt->data[0];
 			type = nal & 0x1f;
 			nri = nal & 0x60;
+            printf("Type: %d\n", type);
 			
 			if (type >= 1 && type <= 23) {
 				if (buffers->bframe && !(type == 1 && nri == 0)){
@@ -59,6 +61,29 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 				if (!buffers->iframe && type == 5 ){
 					buffers->iframe =TRUE;
 				}
+                if (type == 7){ //SPS
+                    h264_stream_t* h = h264_new();
+                    uint8_t* rbsp_buf = (uint8_t*)malloc(pckt->data_len);
+                    if (nal_to_rbsp(pckt->data, &pckt->data_len, rbsp_buf, &pckt->data_len)<0){
+                        free (rbsp_buf);
+                        break;
+                    }
+                    bs_t* b = bs_new(rbsp_buf, pckt->data_len);
+                    read_seq_parameter_set_rbsp(h,b); //TODO: cal canviar l'estructura h on es guarden els sps
+                    buffers->width = (h->sps->pic_width_in_mbs_minus1 + 1) * 16;
+                    buffers->height = (2 - h->sps->frame_mbs_only_flag) * (h->sps->pic_height_in_map_units_minus1 + 1) * 16; 
+                    //frame_mbs_only_flag = 1 --> only progressive frames 
+                    //frame_mbs_only_flag = 0 --> some type of interlacing (there are 3 types contemplated in the standard)
+                    if (h->sps->frame_cropping_flag){
+                        buffers->width -= (h->sps->frame_crop_left_offset*2 + h->sps->frame_crop_right_offset*2);
+                        buffers->height -= (h->sps->frame_crop_top_offset*2 + h->sps->frame_crop_bottom_offset*2);
+                        buffers->sps = 1;
+                    }
+                    bs_free(b);
+                } else {
+                    buffers->sps = 0;
+                }
+
 				type = 1;
 			}
 
@@ -77,7 +102,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 					unsigned char *dst2 = (unsigned char *)dst;
 				}
 				break;
-				case 24:
+			case 24:
 				src = (const uint8_t *) pckt->data;
 				src_len = pckt->data_len;
 
@@ -115,13 +140,13 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 				}
 				break;
 
-				case 25:
-				case 26:
-				case 27:
-				case 29:
+			case 25:
+			case 26:
+			case 27:
+			case 29:
 				error_msg("Unhandled NAL type\n");
 				return FALSE;
-				case 28:
+			case 28:
 				src = (const uint8_t *) pckt->data;
 				src_len = pckt->data_len;
 
@@ -175,7 +200,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 					return FALSE;
 				}
 				break;
-				default:
+			default:
 				error_msg("Unknown NAL type\n");
 				return FALSE;
 			}

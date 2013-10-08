@@ -133,6 +133,10 @@ void *receiver_thread(receiver_t *receiver) {
 						if (src->active == I_AWAIT && rx_data->iframe){
 							src->active = TRUE;
 						}
+
+						if (rx_data->sps){
+							printf("Width = %lu Height = %lu\n", rx_data->width, rx_data->height);
+						}
 						
 						srclck = pthread_mutex_trylock(&src->lock);
 						

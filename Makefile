@@ -59,6 +59,7 @@ OBJS_RTP 	 += src/tv.o \
 				src/transmit.o \
 				src/module.o \
 				src/messaging.o \
+				src/utils/h264_stream.o \
 
 
 OBJS_RTP	+= $(patsubst %.c, %.o,	$(wildcard src/crypto/*.c))

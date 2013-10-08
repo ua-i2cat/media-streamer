@@ -8,6 +8,9 @@ struct recieved_data{
     char *frame_buffer[MAX_SUBSTREAMS];
     uint8_t bframe;
 	uint8_t iframe;
+	uint8_t sps;
+	uint32_t width;
+	uint32_t height;
 };
 
 int decode_frame(struct coded_data *cdata, void *decode_data);
