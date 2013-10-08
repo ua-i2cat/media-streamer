@@ -1,5 +1,5 @@
 #include "config.h"
-#include "io_mngr/transmitter.h"
+#include "transmitter.h"
 #include "video_compress.h"
 #include "debug.h"
 #include <libavcodec/avcodec.h>
