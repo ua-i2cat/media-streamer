@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = librtp.la libvcompress.la libvdecompress.la libiomanager.la
+lib_LTLIBRARIES = librtp.la libvcompress.la libvdecompress.la
 
 
 AM_CFLAGS = -std=gnu99 -g -lm -DHAVE_CONFIG_H -g -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
@@ -81,21 +81,6 @@ libvdecompress_la_SOURCES =  video_frame.c \
 							 utils/resource_manager.cpp \
 							 utils/worker.cpp
 
-dxt_compress:
-	cd dxt_compress; make; cd ..;
-
-libiomanager_la_LDFLAGS = -version-info 0:1:0 -lpthread -lrtp -lvcompress -lvdecompress
-libiomanager_la_CFLAGS = $(AM_CFLAGS) -I. -Iio_mngr -Idxt_compress
-libiomanager_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Iio_mngr -Idxt_compress
-libiomanager_la_SOURCES = io_mngr/participants.c \
-						  io_mngr/receiver.c \
-						  io_mngr/transmitter.c \
-						  dxt_compress/dxt_util.c \
-						  dxt_compress/dxt_decoder.c \
-						  dxt_compress/dxt_encoder.c
-
-libiomanager_la_DEPENDENCIES = librtp.la libvcompress.la libvdecompress.la dxt_compress
-
 ugincludedir = $(includedir)/ug-modules
 nobase_uginclude_HEADERS =	./tfrc.h \
 							./utils/worker.h \
@@ -144,16 +129,6 @@ nobase_uginclude_HEADERS =	./tfrc.h \
 							./video_frame.h \
 							./gl_context.h \
 							./pdb.h \
-							./io_mngr/receiver.h \
-							./io_mngr/config.h \
-							./io_mngr/participants.h \
-							./io_mngr/transmitter.h \
-							./dxt_compress/dxt_encoder.h \
-							./dxt_compress/dxt_util.h \
-							./dxt_compress/dxt_common.h \
-							./dxt_compress/dxt_display.h \
-							./dxt_compress/dxt_glsl.h \
-							./dxt_compress/dxt_decoder.h \
 							./video.h \
 							./module.h \
 							./x11_common.h \
