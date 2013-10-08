@@ -17,6 +17,9 @@ endif
 ################################################################################
 # Build compressor
 #
+
+all: build
+
 build: $(TARGET) 
 
 $(TARGET): main.c.o dxt_glsl.h $(OBJECTS)
@@ -183,6 +186,9 @@ dxt_glsl.h:compress_vp.glsl \
 #
 clean:
 	rm -f *.o $(TARGET) dxt_glsl.h
+
+distclean: clean
+
 #
 ################################################################################
 
