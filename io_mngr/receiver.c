@@ -1,4 +1,4 @@
-#include "config.h"
+#include "config_unix.h"
 #include "participants.h"
 #include "receiver.h"
 #include "rtp/rtp.h"

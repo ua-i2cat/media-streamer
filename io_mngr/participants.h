@@ -7,7 +7,7 @@
 #ifndef _PARTICIPANTS_H_
 #define _PARTICIPANTS_H_
 
-#include "config.h"
+#include "config_unix.h"
 #include "video.h"
 #include <semaphore.h>
 

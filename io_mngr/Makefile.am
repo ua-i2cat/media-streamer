@@ -5,7 +5,7 @@ AM_CFLAGS = -std=gnu99 -g -lm -DHAVE_CONFIG_H -g -fPIC -pipe -W -Wall -Wcast-qua
 AM_CXXFLAGS = -O2 -g -DHAVE_CONFIG_H -g -fPIC -Wno-multichar -Wno-deprecated -msse2
 
 
-libiomanager_la_LDFLAGS = -version-info 0:1:0 -lpthread -lrtp -lvcompress -lvdecompress
+libiomanager_la_LDFLAGS = -version-info 0:1:0 -L. -L.. -L../src -lpthread -lrtp -lvcompress -lvdecompress
 libiomanager_la_CFLAGS = $(AM_CFLAGS) -I. -I.. -I../src
 libiomanager_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -I.. -I../src
 libiomanager_la_SOURCES = participants.c \
@@ -14,6 +14,6 @@ libiomanager_la_SOURCES = participants.c \
 
 ugincludedir = $(includedir)/io_mngr
 nobase_uginclude_HEADERS =	receiver.h \
-							config.h \
+							config_unix.h \
 							participants.h \
 							transmitter.h

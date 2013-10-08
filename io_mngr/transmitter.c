@@ -1,4 +1,4 @@
-#include "config.h"
+#include "config_unix.h"
 #include "transmitter.h"
 #include "rtp/rtp.h"
 #include "pdb.h"
