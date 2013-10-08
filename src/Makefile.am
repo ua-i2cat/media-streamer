@@ -58,7 +58,13 @@ libvcompress_la_SOURCES = video_frame.c \
 						  video_compress/uyvy.c \
 						  utils/list.c \
 						  utils/resource_manager.cpp \
-						  utils/worker.cpp
+						  utils/worker.cpp \
+						  ../dxt_compress/dxt_common.h \
+						  ../dxt_compress/dxt_decoder.h \
+						  ../dxt_compress/dxt_display.h \
+						  ../dxt_compress/dxt_encoder.h \
+						  ../dxt_compress/dxt_glsl.h \
+						  ../dxt_compress/dxt_util.h
 
 libvdecompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut
 libvdecompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_decompress -Iutils -Icompat -I..
@@ -79,7 +85,13 @@ libvdecompress_la_SOURCES =  video_frame.c \
 							 video_decompress/null.c \
 							 utils/list.c \
 							 utils/resource_manager.cpp \
-							 utils/worker.cpp
+							 utils/worker.cpp \
+							 ../dxt_compress/dxt_common.h \
+							 ../dxt_compress/dxt_decoder.h \
+							 ../dxt_compress/dxt_display.h \
+							 ../dxt_compress/dxt_encoder.h \
+							 ../dxt_compress/dxt_glsl.h \
+							 ../dxt_compress/dxt_util.h
 
 ugincludedir = $(includedir)/ug-modules
 nobase_uginclude_HEADERS =	./tfrc.h \
@@ -140,4 +152,10 @@ nobase_uginclude_HEADERS =	./tfrc.h \
 							./rtp/rtpdec.h \
 							./rtp/ptime.h \
 							./rtp/rtp.h \
-							./video_decompress.h
+							./video_decompress.h \
+  						    ../dxt_compress/dxt_common.h \
+						    ../dxt_compress/dxt_decoder.h \
+						    ../dxt_compress/dxt_display.h \
+						    ../dxt_compress/dxt_encoder.h \
+						    ../dxt_compress/dxt_glsl.h \
+						    ../dxt_compress/dxt_util.h
