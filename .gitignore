@@ -15,6 +15,7 @@ config.status
 depcomp
 libtool
 missing
+configure
 
 receiver
 transmitter
