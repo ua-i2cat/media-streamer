@@ -8,7 +8,7 @@
 #define _PARTICIPANTS_H_
 
 #include "config.h"
-#include "../video.h"
+#include "video.h"
 #include <semaphore.h>
 
 #define I_AWAIT 	2
