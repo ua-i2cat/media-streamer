@@ -39,8 +39,8 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					messaging.cpp
 
 libvcompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut
-libvcompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_compress -Iutils -Icompat
-libvcompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Ivideo_compress -Iutils -Icompat
+libvcompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_compress -Iutils -Icompat -I..
+libvcompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Ivideo_compress -Iutils -Icompat -I..
 libvcompress_la_SOURCES = video_frame.c \
 						  gl_context.c \
 						  glx_common.c \
@@ -61,8 +61,8 @@ libvcompress_la_SOURCES = video_frame.c \
 						  utils/worker.cpp
 
 libvdecompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut
-libvdecompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_decompress -Iutils -Icompat
-libvdecompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Ivideo_decompress -Iutils -Icompat
+libvdecompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_decompress -Iutils -Icompat -I..
+libvdecompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Ivideo_decompress -Iutils -Icompat -I..
 libvdecompress_la_SOURCES =  video_frame.c \
 							 gl_context.c \
 							 glx_common.c \
