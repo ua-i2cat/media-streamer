@@ -17,6 +17,9 @@ libtool
 missing
 configure
 
+compile
+confdefs.h
+
 receiver
 transmitter
 
