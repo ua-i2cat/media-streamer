@@ -26,17 +26,7 @@
  * @param list initial list of output participants
  *
  */
-int start_out_manager(participant_list_t *list);
-
-/**
- * @brief Orders the manager to wake, compress, and send participant's frames.
- *
- * This call instructs the output manager to check for new frames (i.e. to
- * inspect each participant's <em>new_frame</em> flag) and, if there is new
- * data, to compress it and send it through RTP.
- *
- */
-void notify_out_manager(void);
+int start_out_manager(participant_list_t *list, float framerate);
 
 /**
  * @brief Stops the out manager, freeing its allocated resources.

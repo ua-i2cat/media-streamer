@@ -1,6 +1,6 @@
 #include "config.h"
-#include "participants.h"
-#include "receiver.h"
+#include "io_mngr/participants.h"
+#include "io_mngr/receiver.h"
 
 FILE *F_video_rx=NULL;
 char *OUTPUT_PATH = "rx_frame.yuv";
@@ -22,7 +22,7 @@ int main(){
 	  
     int i = 0;
 	while(i < 100){
-		usleep(10*1000);
+		usleep(100*100);
 		if (list->first->new_frame){
 			pthread_mutex_lock(&list->first->lock);
 			if (F_video_rx == NULL) {
@@ -39,14 +39,14 @@ int main(){
     
 	printf("Disabling flow\n");
     set_active_participant(list->first, FALSE);
-	sleep(15);
+	sleep(5);
 	set_active_participant(list->first, TRUE);
 	printf("Enabling flow\n");
     
-	printf("First 100 frames to disk\n");
+	printf("First 300 frames to disk\n");
 	
 	i = 0;
-	while(i < 100){
+	while(i < 300){
 		usleep(10*1000);
 		if (list->first->new_frame){
 			pthread_mutex_lock(&list->first->lock);

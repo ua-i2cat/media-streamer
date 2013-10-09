@@ -75,9 +75,8 @@ void             tx_send(struct tx *tx_session, struct video_frame *frame, struc
 struct tx *tx_init_h264(struct module *parent, unsigned mtu, enum tx_media_type media_type,
                 char *fec, const char *encryption);
 
-void tx_send_h264(struct tx *tx_session, struct video_frame *frame, struct rtp *rtp_session);
+void tx_send_h264(struct tx *tx_session, struct video_frame *frame, struct rtp *rtp_session, float framerate);
 
 void rtpenc_h264_stats_print(void);
 
 #endif // TRANSMIT_H_
-

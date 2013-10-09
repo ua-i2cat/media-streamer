@@ -2,10 +2,32 @@ lib
 bin
 *.o
 
+*.lo
+*.la
+.libs
+.deps
+Makefile
+Makefile.in
+
+autom4te.cache/
+config.log
+config.status
+depcomp
+libtool
+missing
+configure
+
+compile
+confdefs.h
+
+receiver
+transmitter
+
 doc/
 
 *.mp4
 *.yuv
+*.yuv420p
 *.uyvy
 *.uyvy422
 *.h264

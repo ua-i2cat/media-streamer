@@ -1,8 +1,8 @@
-#include "config.h"
+#include "config_unix.h"
 #include "participants.h"
+#include "transmitter.h"
 #include "video_decompress/libavcodec.h"
 #include "video_decompress.h"
-#include "transmitter.h"
 
 
 participant_data_t *init_participant(int id, int width, int height, codec_t codec, char *dst, uint32_t port, ptype_t type);
@@ -21,15 +21,19 @@ participant_data_t *init_participant(int id, int width, int height, codec_t code
   participant->new_frame = FALSE;
   participant->active = I_AWAIT;
   participant->ssrc = 0;
-  participant->frame = malloc(vc_get_linesize(width, RGB)*height);
-  participant->height = 0;
-  participant->width = 0;
+  participant->height = height;
+  participant->width = width;
   participant->codec = codec;
   participant->proc.decoder = NULL;
   participant->proc.encoder = NULL;
   participant->next = participant->previous = NULL;
   participant->type = type;
   participant->id = id;
+  if (width != 0 && height != 0){
+      participant->frame = malloc(vc_get_linesize(width, RGB)*height);
+  } else {
+    participant->frame = NULL;
+  }
   
   if (dst == NULL) {
     participant->session = NULL;
@@ -55,6 +59,38 @@ void destroy_decoder_thread(decoder_thread_t *dec_th){
     free(dec_th);
 }
 
+void destroy_encoder_thread(encoder_thread_t *encoder)
+{
+    if (encoder == NULL) {
+        return;
+    }
+
+    if (encoder->run != TRUE) {
+        return;
+    }
+
+    encoder->run = FALSE;
+
+    sem_post(&encoder->input_sem);
+    sem_post(&encoder->output_sem);
+
+
+    // TODO: error control? reporting?
+    sem_destroy(&encoder->input_sem);
+    sem_destroy(&encoder->output_sem);
+
+    pthread_join(encoder->rtpenc->thread, NULL);
+    pthread_join(encoder->thread, NULL);
+
+    pthread_mutex_destroy(&encoder->lock);
+
+    free(encoder->rtpenc);
+    free(encoder);
+
+    encoder = NULL;
+
+}
+
 void destroy_participant(participant_data_t *src){
   free(src->frame);
   free(src->session);
@@ -62,19 +98,8 @@ void destroy_participant(participant_data_t *src){
   if (src->type == INPUT && src->proc.decoder != NULL){
     destroy_decoder_thread(src->proc.decoder);
   } else if (src->type == OUTPUT && src->proc.encoder != NULL){
-    encoder_thread_t **encoder = &src->proc.encoder;
-    if (encoder[0]->run == TRUE) {
-        sem_destroy(&encoder[0]->output_sem);
-        sem_destroy(&encoder[0]->input_sem);
-
-        pthread_join(encoder[0]->rtpenc->thread, NULL);
-        pthread_join(encoder[0]->thread, NULL);
-
-        free(encoder[0]->rtpenc);
-        free(encoder[0]);
-
-        encoder[0] = NULL;
-    }
+    encoder_thread_t *encoder = src->proc.encoder;
+    destroy_encoder_thread(encoder);
   }
   
   pthread_mutex_destroy(&src->lock);
@@ -200,7 +225,7 @@ int remove_participant(participant_list_t *list, uint32_t id){
   }
   
   participant = get_participant_id(list, id);
-  
+
   if (participant == NULL)
     return FALSE;
 
@@ -218,7 +243,7 @@ int remove_participant(participant_list_t *list, uint32_t id){
     pthread_mutex_lock(&participant->lock);
  
   } else if (participant->type == OUTPUT /*&& participant->proc.encoder->run == TRUE*/){
-    // transmitter_destroy_encoder_thread takes care of this
+    destroy_encoder_thread(participant);
   }
 
   if (participant->next == NULL && participant->previous == NULL) {

@@ -67,7 +67,6 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/select.h>
 #include <sys/types.h>
 
 #ifdef HAVE_SYS_WAIT_H
@@ -186,30 +185,6 @@ typedef int     fd_t;
 
 #define max(a, b)	(((a) > (b))? (a): (b))
 #define min(a, b)	(((a) < (b))? (a): (b))
-
-#ifndef HAVE_ALIGNED_ALLOC
-static inline void *aligned_malloc(size_t size, size_t alignment);
-
-static inline void *aligned_malloc(size_t size, size_t alignment)
-{
-	void *ptr = NULL;
-	int ret;
-	ret = posix_memalign(&ptr, alignment, size);
-	if(ret) {
-		errno = ret;
-	}
-
-	if(ret == 0) {
-		return ptr;
-	} else {
-		return NULL;
-	}
-}
-
-#define aligned_free free
-#endif // HAVE_ALIGNED_ALLOC
-
-#define platform_mkdir(a) mkdir(a, 0777)
 
 #endif /* _CONFIG_UNIX_H */
 #endif /* NDEF WIN32 */

@@ -1,4 +1,4 @@
-#include "config.h"
+#include "config_unix.h"
 #include "transmitter.h"
 #include "rtp/rtp.h"
 #include "pdb.h"
@@ -8,13 +8,15 @@
 #include "debug.h"
 #include "tv.h"
 
+#include <stdlib.h>
+
 #define DEFAULT_FPS 24
 #define DEFAULT_RECV_PORT 12006 // just trying to not interfere with anything
-#define DEFAULT_RTCP_BW 5 * 1024 * 1024
+#define DEFAULT_RTCP_BW 5 * 1024 * 1024 * 10
 #define DEFAULT_TTL 255
-#define DEFAULT_SEND_BUFFER_SIZE 1920 * 1080 * 4 * sizeof(char)
+#define DEFAULT_SEND_BUFFER_SIZE 1920 * 1080 * 4 * sizeof(char) * 10
 #define PIXEL_FORMAT RGB
-#define MTU 1400
+#define MTU 1300 // 1400
 
 void *transmitter_encoder_routine(void *arg);
 void *transmitter_rtpenc_routine(void *arg);
@@ -26,12 +28,9 @@ void transmitter_destroy_encoder_thread(encoder_thread_t **encoder);
 
 pthread_t MASTER_THREAD;
 int RUN = 1;
+float WAIT_TIME;
+float FRAMERATE;
 sem_t FRAME_SEM;
-
-void notify_out_manager()
-{
-    sem_post(&FRAME_SEM);
-}
 
 void *transmitter_encoder_routine(void *arg)
 {
@@ -54,11 +53,14 @@ void *transmitter_encoder_routine(void *arg)
     vf_get_tile(frame, 0)->height=height;
     frame->color_spec = PIXEL_FORMAT;
     frame->fps = DEFAULT_FPS; // FIXME: if it's not set -> core dump.
-    frame->interlacing=PROGRESSIVE;
+    frame->interlacing = PROGRESSIVE;
+
+    encoder->run = TRUE;
+    encoder->index = 0;
     
     while (RUN) {
         sem_wait(&encoder->input_sem);
-        if (!RUN) {
+        if (!RUN || !encoder->run) {
             break;
         }
 
@@ -69,13 +71,26 @@ void *transmitter_encoder_routine(void *arg)
         frame->tiles[0].data_len = participant->frame_length;
         struct video_frame *tx_frame;
         int i = encoder->index;
+
         tx_frame = compress_frame(encoder->sc, frame, i);
-        
+
         pthread_mutex_unlock(&participant->lock);
         
         i = (i + 1)%2;
         encoder->index = i;
+        
+        while(1) {
+            pthread_mutex_lock(&encoder->lock);     
+            if (encoder->rtpenc->ready) {
+                pthread_mutex_unlock(&encoder->lock);
+                break;
+            }
+            pthread_mutex_unlock(&encoder->lock);
+        }
+
+        pthread_mutex_lock(&encoder->lock);     
         encoder->frame = tx_frame;
+        pthread_mutex_unlock(&encoder->lock);
         
         sem_post(&encoder->output_sem);    
     }
@@ -130,14 +145,26 @@ void *transmitter_rtpenc_routine(void *arg)
     while (RUN) {
         encoder_thread_t *encoder = participant->proc.encoder;
         sem_wait(&encoder->output_sem);
-        if (!RUN) {
+        if (!RUN || !encoder->run) {
             break;
         }
+
+        pthread_mutex_lock(&encoder->lock);
+        encoder->rtpenc->ready = 0;
+        pthread_mutex_unlock(&encoder->lock);
+
+        pthread_mutex_lock(&encoder->lock);
         gettimeofday(&curr_time, NULL);
         rtp_update(rtp, curr_time);
         timestamp = tv_diff(curr_time, start_time)*90000;
         rtp_send_ctrl(rtp, timestamp, 0, curr_time);
-        tx_send_h264(tx_session, encoder->frame, rtp);
+
+        tx_send_h264(tx_session, encoder->frame, rtp, FRAMERATE);
+        pthread_mutex_unlock(&encoder->lock);
+
+        pthread_mutex_lock(&encoder->lock);
+        encoder->rtpenc->ready = 1;
+        pthread_mutex_unlock(&encoder->lock);
     }   
 
     rtp_send_bye(rtp);
@@ -158,22 +185,23 @@ void transmitter_destroy_encoder_thread(encoder_thread_t **encoder)
         return;
     }
 
-    sem_post(&encoder[0]->output_sem);
     sem_post(&encoder[0]->input_sem);
-    
+    sem_post(&encoder[0]->output_sem);
+
     // TODO: error control? reporting?
+    sem_destroy(&encoder[0]->input_sem);
+    sem_destroy(&encoder[0]->output_sem);
+
     pthread_join(encoder[0]->rtpenc->thread, NULL);
     pthread_join(encoder[0]->thread, NULL);
 
-    sem_destroy(&encoder[0]->input_sem);
-    sem_destroy(&encoder[0]->output_sem);
+    pthread_mutex_destroy(&encoder[0]->lock);
 
     free(encoder[0]->rtpenc);
     free(encoder[0]);
 
     encoder[0] = NULL;
 
-    //encoder->run = FALSE;
 }
 
 int transmitter_init_threads(struct participant_data *participant)
@@ -192,8 +220,11 @@ int transmitter_init_threads(struct participant_data *participant)
         return -1;
     }
 
+    pthread_mutex_init(&encoder->lock, NULL);
     sem_init(&encoder->input_sem, 1, 0);
     sem_init(&encoder->output_sem, 1, 0);
+
+    encoder->rtpenc->ready = 1;
 
     int ret = 0;
     ret = pthread_create(&encoder->thread, NULL,
@@ -228,7 +259,8 @@ void *transmitter_master_routine(void *arg)
     debug_msg("entering the master loop\n");
     while (RUN) {
         struct participant_data *ptc = list->first;
-        sem_wait(&FRAME_SEM);
+        usleep(WAIT_TIME);
+
         if (!RUN) {
             break;
         }
@@ -248,16 +280,21 @@ void *transmitter_master_routine(void *arg)
     }
 
     debug_msg(" terminating pairs of threads\n");
+    pthread_rwlock_rdlock(&list->lock);
     participant = list->first;
     while (participant != NULL) {
-        //transmitter_destroy_encoder_thread(&participant->proc.encoder);
+        transmitter_destroy_encoder_thread(&participant->proc.encoder);
         participant = participant->next;
     }
+    pthread_rwlock_unlock(&list->lock);
     pthread_exit((void *)NULL);
 }
 
-int start_out_manager(participant_list_t *list)
+int start_out_manager(participant_list_t *list, float framerate)
 {
+    RUN = 1;
+    FRAMERATE = framerate;
+    WAIT_TIME = (1.0/framerate) * 1000000;
     debug_msg("creating the master thread...\n");
     sem_init(&FRAME_SEM, 1, 0);
     int ret = pthread_create(&MASTER_THREAD, NULL, transmitter_master_routine, list);
@@ -270,7 +307,6 @@ int start_out_manager(participant_list_t *list)
 int stop_out_manager()
 {
     RUN = 0;
-    notify_out_manager();
     int ret = pthread_join(MASTER_THREAD, NULL);
     return ret;
 }

@@ -7,7 +7,8 @@
 #ifndef _PARTICIPANTS_H_
 #define _PARTICIPANTS_H_
 
-#include "../src/video.h"
+#include "config_unix.h"
+#include "video.h"
 #include <semaphore.h>
 
 #define I_AWAIT 	2
@@ -54,6 +55,7 @@ typedef struct decoder_thread {
  */
 typedef struct rtpenc_thread {
     pthread_t thread;
+    uint8_t   ready;
 } rtpenc_thread_t;
 
 /**
@@ -62,6 +64,7 @@ typedef struct rtpenc_thread {
  */
 typedef struct encoder_thread {
     pthread_t   thread;
+    pthread_mutex_t lock;
     uint8_t     run;
     rtpenc_thread_t *rtpenc;
     struct compress_state *sc;
