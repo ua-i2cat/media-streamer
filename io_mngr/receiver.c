@@ -130,18 +130,18 @@ void *receiver_thread(receiver_t *receiver) {
 					if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data)) {	  
 						gettimeofday(&curr_time, NULL);
 						
-						if (src->active == I_AWAIT && rx_data->iframe){
+						if (src->active == I_AWAIT && rx_data->frame_type == INTRA){
 							src->active = TRUE;
 						}
-						if (rx_data->width != NULL && rx_data->height != NULL){
-							printf("Width = %lu Height = %lu\n", rx_data->width, rx_data->height);
-						}
+						// if (rx_data->width != NULL && rx_data->height != NULL){
+						// 	printf("Width = %lu Height = %lu\n", rx_data->width, rx_data->height);
+						// }
 						
 						srclck = pthread_mutex_trylock(&src->lock);
 						
-						if (src->active == TRUE && (srclck == 0 || !rx_data->bframe)) {
+						if (src->active == TRUE && (srclck == 0 || rx_data->frame_type == INTRA)) {
 							
-							if (!rx_data->bframe && srclck != 0){
+							if (rx_data->frame_type = INTRA && srclck != 0){
 								pthread_mutex_lock(&src->lock);
 							}
 														

@@ -9,7 +9,6 @@
 #include "rtp/rtpdec.h"
 #include "utils/h264_stream.h"
 
-
 static const uint8_t start_sequence[] = { 0, 0, 0, 1 };
 
 //TODO if no need of tiles then no need of vectors
@@ -37,8 +36,9 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 			cdata = orig;
 			buffers->buffer_len[substream] = total_length;
 			dst = buffers->frame_buffer[substream] + total_length;
-			buffers->bframe = TRUE;
-			buffers->iframe = FALSE;
+            buffers->frame_type = PFRAME;
+			// buffers->bframe = TRUE;
+			// buffers->iframe = FALSE;
 		}
 
 		while (cdata != NULL) {
@@ -54,32 +54,35 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 			nri = nal & 0x60;
 			
 			if (type >= 1 && type <= 23) {
-				if (buffers->bframe && !(type == 1 && nri == 0)){
-					buffers->bframe = FALSE;
-				}
-				if (!buffers->iframe && type == 5 ){
-					buffers->iframe =TRUE;
-				}
-                if (type == 7){ //SPS
-                    h264_stream_t* h = h264_new();
-                    uint8_t* rbsp_buf = (uint8_t*)malloc(pckt->data_len);
-                    if (nal_to_rbsp(pckt->data, &pckt->data_len, rbsp_buf, &pckt->data_len)<0){
-                        free (rbsp_buf);
-                        break;
-                    }
-                    bs_t* b = bs_new(rbsp_buf, pckt->data_len);
-                    read_seq_parameter_set_rbsp(h,b); //TODO: cal canviar l'estructura h on es guarden els sps
-                    buffers->width = (h->sps->pic_width_in_mbs_minus1 + 1) * 16;
-                    buffers->height = (2 - h->sps->frame_mbs_only_flag) * (h->sps->pic_height_in_map_units_minus1 + 1) * 16; 
-                    //frame_mbs_only_flag = 1 --> only progressive frames 
-                    //frame_mbs_only_flag = 0 --> some type of interlacing (there are 3 types contemplated in the standard)
-                    if (h->sps->frame_cropping_flag){
-                        buffers->width -= (h->sps->frame_crop_left_offset*2 + h->sps->frame_crop_right_offset*2);
-                        buffers->height -= (h->sps->frame_crop_top_offset*2 + h->sps->frame_crop_bottom_offset*2);
-                        buffers->sps = 1;
-                    }
-                    bs_free(b);
+                if(buffers->frame_type != INTRA && type == 5){
+                    buffers->frame_type = INTRA;
                 }
+				// if (buffers->bframe && !(type == 1 && nri == 0)){
+				// 	buffers->bframe = FALSE;
+				// }
+				// if (!buffers->iframe && type == 5 ){
+				// 	buffers->iframe =TRUE;
+				// }
+                // if (type == 7){ //SPS
+                //     h264_stream_t* h = h264_new();
+                //     uint8_t* rbsp_buf = (uint8_t*)malloc(pckt->data_len);
+                //     if (nal_to_rbsp(pckt->data, &pckt->data_len, rbsp_buf, &pckt->data_len)<0){
+                //         free (rbsp_buf);
+                //         break;
+                //     }
+                //     bs_t* b = bs_new(rbsp_buf, pckt->data_len);
+                //     read_seq_parameter_set_rbsp(h,b); //TODO: cal canviar l'estructura h on es guarden els sps
+                //     buffers->width = (h->sps->pic_width_in_mbs_minus1 + 1) * 16;
+                //     buffers->height = (2 - h->sps->frame_mbs_only_flag) * (h->sps->pic_height_in_map_units_minus1 + 1) * 16; 
+                //     //frame_mbs_only_flag = 1 --> only progressive frames 
+                //     //frame_mbs_only_flag = 0 --> some type of interlacing (there are 3 types contemplated in the standard)
+                //     if (h->sps->frame_cropping_flag){
+                //         buffers->width -= (h->sps->frame_crop_left_offset*2 + h->sps->frame_crop_right_offset*2);
+                //         buffers->height -= (h->sps->frame_crop_top_offset*2 + h->sps->frame_crop_bottom_offset*2);
+                //         buffers->sps = 1;
+                //     }
+                //     bs_free(b);
+                // }
 
 				type = 1;
 			}
@@ -157,13 +160,17 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 					uint8_t nal_type = fu_header & 0x1f;
 					uint8_t reconstructed_nal;
 
-					if (buffers->bframe && !(nal_type == 1 && nri == 0)){
-						buffers->bframe = FALSE;
-					}
+                    if(buffers->frame_type != INTRA && type == 5){
+                        buffers->frame_type = INTRA;
+                    }
+
+					// if (buffers->bframe && !(nal_type == 1 && nri == 0)){
+					// 	buffers->bframe = FALSE;
+					// }
 					
-					if (!buffers->iframe && nal_type == 5){
-						buffers->iframe = TRUE;
-					}
+					// if (!buffers->iframe && nal_type == 5){
+					// 	buffers->iframe = TRUE;
+					// }
 					
 					// Reconstruct this packet's true nal; only the data follows.
 					/* The original nal forbidden bit and NRI are stored in this
@@ -431,4 +438,10 @@ cleanup:
         }*/
 
         return ret;
+}
+
+int init_rx_data(struct recieved_data *rx_data){
+    rx_data->frame_type = PFRAME;
+    rx_data->info.width = 0;
+    rx_data->info.height = 0;
 }
