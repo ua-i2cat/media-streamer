@@ -44,7 +44,7 @@
 /* #undef HAVE_COREAUDIO */
 
 /* CUDA is present on the system */
-/* #undef HAVE_CUDA */
+#undef HAVE_CUDA
 
 /* Build with DeckLink support */
 #define HAVE_DECKLINK 1
@@ -62,7 +62,7 @@
 #define HAVE_DXT_GLSL 1
 
 /* Build with support for FastDXT */
-#define HAVE_FASTDXT 1
+/* #define HAVE_FASTDXT 1 */
 
 /* We have Firewire DV */
 /* #undef HAVE_FIREWIRE_DV_FREEBSD */
@@ -231,27 +231,6 @@
 
 /* OS kernel minor version */
 #define OS_VERSION_MINOR 2
-
-/* Name of package */
-#define PACKAGE "ultragrid"
-
-/* Define to the address where bug reports for this package should be sent. */
-#define PACKAGE_BUGREPORT "ultragrid-dev@cesnet.cz"
-
-/* Define to the full name of this package. */
-#define PACKAGE_NAME "UltraGrid"
-
-/* Define to the full name and version of this package. */
-#define PACKAGE_STRING "UltraGrid 1.1"
-
-/* Define to the one symbol short name of this package. */
-#define PACKAGE_TARNAME "ultragrid"
-
-/* Define to the home page for this package. */
-#define PACKAGE_URL ""
-
-/* Define to the version of this package. */
-#define PACKAGE_VERSION "1.1"
 
 /* The size of `int *', as computed by sizeof. */
 #define SIZEOF_INT_P 4
