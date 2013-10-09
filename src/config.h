@@ -7,11 +7,14 @@
 /* Specifies ABI version for audio capture */
 #define AUDIO_CAPTURE_ABI_VERSION 3
 
+/* Specifies ABI version for audio codec */
+#define AUDIO_CODEC_ABI_VERSION 1
+
 /* Specifies ABI version for audio playback */
-#define AUDIO_PLAYBACK_ABI_VERSION 3
+#define AUDIO_PLAYBACK_ABI_VERSION 4
 
 /* Autoconf result */
-#define AUTOCONF_RESULT "  Target ...................... i686-pc-linux-gnu\n  Debug output ................ no\n  Profiling support ........... no\n  IPv6 support ................ yes\n  RT priority ................. no\n  Standalone modules .......... no\n\n  DeckLink .................... yes\n  DELTACAST ................... no\n  DVS ......................... no\n  Linsys capture .............. yes\n  OpenGL ...................... yes\n  Quicktime ................... no\n  SAGE ........................ no\n  SDL ......................... yes\n  screen capture .............. yes\n\n  Portaudio ................... no\n  ALSA ........................ yes\n  CoreAudio ................... no\n  JACK  ....................... no\n  JACK transport .............. no\n\n  FastDXT ..................... yes\n  Realtime DXT (OpenGL) ....... yes\n  JPEG ........................ no (static: no)\n\n  scale postprocessor ......... yes\n  testcard extras ............. no\n  \n"
+#define AUTOCONF_RESULT "  Target ...................... x86_64-unknown-linux-gnu\n  Debug output ................ no\n  Profiling support ........... no\n  IPv6 support ................ yes\n  RT priority ................. no\n  Standalone modules .......... no\n  License ..................... unredistributeable\n  iHDTV support ............... no\n\n  Bluefish444 ................. no (audio: no)\n  DeckLink .................... yes\n  DirectShow .................. no\n  DELTACAST ................... no\n  DVS ......................... no\n  Linsys capture .............. yes\n  OpenGL ...................... yes\n  Quicktime ................... no\n  SAGE ........................ no\n  SDL ......................... yes\n  Screen Capture .............. yes\n  V4L2 ........................ no\n  SW Video Mix ................ yes\n\n  Portaudio ................... no\n  ALSA ........................ yes\n  CoreAudio ................... no\n  JACK  ....................... no\n  JACK transport .............. no\n\n  FastDXT ..................... no\n  Realtime DXT (OpenGL) ....... yes\n  JPEG ........................ no (static: yes)\n  UYVY dummy compression ...... yes\n  Libavcodec .................. yes (audio: yes)\n\n  scale postprocessor ......... yes\n  testcard extras ............. no\n  \n"
 
 /* Build drivers as a standalone libraries */
 /* #undef BUILD_LIBRARIES */
@@ -23,13 +26,13 @@
 /* #undef DEBUG */
 
 /* Current GIT revision */
-/* #undef GIT_VERSION */
+#define GIT_VERSION "v1.1-378-g2fa33fa"
 
 /* We have 32-bit Linux */
-#define HAVE_32B_LINUX 1
+/* #undef HAVE_32B_LINUX */
 
 /* We have 64-bit Linux */
-/* #undef HAVE_64B_LINUX */
+#define HAVE_64B_LINUX 1
 
 /* Build with ALSA support */
 #define HAVE_ALSA 1
@@ -37,20 +40,47 @@
 /* Define to 1 if you have the <AudioUnit/AudioUnit.h> header file. */
 /* #undef HAVE_AUDIOUNIT_AUDIOUNIT_H */
 
+/* Define to 1 if you have the `avcodec_encode_video2' function. */
+#define HAVE_AVCODEC_ENCODE_VIDEO2 1
+
+/* Build with Bluefish444 support */
+/* #undef HAVE_BLUEFISH444 */
+
+/* Define to 1 if you have the <BlueVelvetC_UltraGrid.h> header file. */
+/* #undef HAVE_BLUEVELVETC_ULTRAGRID_H */
+
+/* Define to 1 if you have the <BlueVelvet.h> header file. */
+/* #undef HAVE_BLUEVELVET_H */
+
+/* Build with Bluefish444 audio support */
+/* #undef HAVE_BLUE_AUDIO */
+
 /* Define to 1 if you have the <Carbon/Carbon.h> header file. */
 /* #undef HAVE_CARBON_CARBON_H */
+
+/* Build with dummy UYVY compression */
+#define HAVE_COMPRESS_UYVY 1
 
 /* Build with CoreAudio support */
 /* #undef HAVE_COREAUDIO */
 
 /* CUDA is present on the system */
-#undef HAVE_CUDA
+/* #undef HAVE_CUDA */
 
 /* Build with DeckLink support */
 #define HAVE_DECKLINK 1
 
 /* Build with DELTACAST support */
 /* #undef HAVE_DELTACAST */
+
+/* Define to 1 if you have the <dlfcn.h> header file. */
+#define HAVE_DLFCN_H 1
+
+/* Define to 1 if you have the `drand48' function. */
+#define HAVE_DRAND48 1
+
+/* Build with DirectShow support */
+/* #undef HAVE_DSHOW */
 
 /* Build with DVS support */
 /* #undef HAVE_DVS */
@@ -62,7 +92,7 @@
 #define HAVE_DXT_GLSL 1
 
 /* Build with support for FastDXT */
-/* #define HAVE_FASTDXT 1 */
+/* #undef HAVE_FASTDXT */
 
 /* We have Firewire DV */
 /* #undef HAVE_FIREWIRE_DV_FREEBSD */
@@ -73,6 +103,9 @@
 /* Define to 1 if you have the <GLUT/glut.h> header file. */
 /* #undef HAVE_GLUT_GLUT_H */
 
+/* Define to 1 if you have the <GL/glew.h> header file. */
+#define HAVE_GL_GLEW_H 1
+
 /* Define to 1 if you have the <GL/glut.h> header file. */
 #define HAVE_GL_GLUT_H 1
 
@@ -81,6 +114,18 @@
 
 /* Define to 1 if you have the <GL/gl.h> header file. */
 #define HAVE_GL_GL_H 1
+
+/* We can link with GPL software */
+#define HAVE_GPL 1
+
+/* Build with iHDTV support */
+/* #undef HAVE_IHDTV */
+
+/* Define to 1 if you have the `inet_ntop' function. */
+#define HAVE_INET_NTOP 1
+
+/* Define to 1 if you have the `inet_pton' function. */
+#define HAVE_INET_PTON 1
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
@@ -97,14 +142,35 @@
 /* Build with JPEG support */
 /* #undef HAVE_JPEG */
 
+/* Build with JPEG to DXT transcode support */
+/* #undef HAVE_JPEG_TO_DXT */
+
+/* Build with LAVC support */
+#define HAVE_LAVC 1
+
+/* Build with LAVC audio support */
+#define HAVE_LAVC_AUDIO 1
+
 /* Define to 1 if you have the `asound' library (-lasound). */
 #define HAVE_LIBASOUND 1
 
-/* Define to 1 if you have the `GL' library (-lGL). */
-#define HAVE_LIBGL 1
+/* Define to 1 if you have the `avcodec' library (-lavcodec). */
+/* #undef HAVE_LIBAVCODEC */
 
-/* Define to 1 if you have the `GLEW' library (-lGLEW). */
-#define HAVE_LIBGLEW 1
+/* Define to 1 if you have the <libavcodec/avcodec.h> header file. */
+/* #undef HAVE_LIBAVCODEC_AVCODEC_H */
+
+/* Define to 1 if you have the `avutil' library (-lavutil). */
+/* #undef HAVE_LIBAVUTIL */
+
+/* Define to 1 if you have the <libavutil/imgutils.h> header file. */
+/* #undef HAVE_LIBAVUTIL_IMGUTILS_H */
+
+/* Define to 1 if you have the <libavutil/opt.h> header file. */
+/* #undef HAVE_LIBAVUTIL_OPT_H */
+
+/* We use GL libraries */
+#define HAVE_LIBGL 1
 
 /* Define to 1 if you have the `gpujpeg' library (-lgpujpeg). */
 /* #undef HAVE_LIBGPUJPEG */
@@ -121,11 +187,17 @@
 /* Define to 1 if you have the `SDL_ttf' library (-lSDL_ttf). */
 /* #undef HAVE_LIBSDL_TTF */
 
-/* Define to 1 if you have the `videomasterhd' library (-lvideomasterhd). */
-/* #undef HAVE_LIBVIDEOMASTERHD */
+/* Define to 1 if you have the `v4l2' library (-lv4l2). */
+/* #undef HAVE_LIBV4L2 */
+
+/* Define to 1 if you have the `v4lconvert' library (-lv4lconvert). */
+/* #undef HAVE_LIBV4LCONVERT */
 
 /* Define to 1 if you have the `X11' library (-lX11). */
 #define HAVE_LIBX11 1
+
+/* Define to 1 if you have the `Xfixes' library (-lXfixes). */
+#define HAVE_LIBXFIXES 1
 
 /* Build with Linsys support */
 #define HAVE_LINSYS 1
@@ -141,6 +213,9 @@
 
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
+
+/* Build with ncurses support */
+#define HAVE_NCURSES 1
 
 /* Define to 1 if you have the <OpenGL/glext.h> header file. */
 /* #undef HAVE_OPENGL_GLEXT_H */
@@ -196,6 +271,12 @@
 /* Define to 1 if you have the <stropts.h> header file. */
 #define HAVE_STROPTS_H 1
 
+/* Define to 1 if you have the `strtok_r' function. */
+#define HAVE_STRTOK_R 1
+
+/* Build SW mix capture */
+#define HAVE_SWMIX 1
+
 /* Define to 1 if you have the <sys/filio.h> header file. */
 /* #undef HAVE_SYS_FILIO_H */
 
@@ -214,6 +295,9 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
 
+/* Build with V4L2 support */
+/* #undef HAVE_V4L2 */
+
 /* Define to 1 if you have the <VideoMasterHD_Core.h> header file. */
 /* #undef HAVE_VIDEOMASTERHD_CORE_H */
 
@@ -223,17 +307,54 @@
 /* Define to 1 if you have the <VideoMasterHD_Sdi.h> header file. */
 /* #undef HAVE_VIDEOMASTERHD_SDI_H */
 
+/* Build with XFixes support */
+#define HAVE_XFIXES 1
+
 /* Define to 1 if the system has the type `_Bool'. */
 #define HAVE__BOOL 1
+
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
+#define LT_OBJDIR ".libs/"
+
+/* We need custom implementation of drand48. */
+/* #undef NEED_DRAND48 */
 
 /* OS kernel major version */
 #define OS_VERSION_MAJOR 3
 
 /* OS kernel minor version */
-#define OS_VERSION_MINOR 2
+#define OS_VERSION_MINOR 5
+
+/* Name of package */
+#define PACKAGE "ultragrid"
+
+/* Define to the address where bug reports for this package should be sent. */
+#define PACKAGE_BUGREPORT "ultragrid-dev@cesnet.cz"
+
+/* Define to the full name of this package. */
+#define PACKAGE_NAME "UltraGrid"
+
+/* Define to the full name and version of this package. */
+#define PACKAGE_STRING "UltraGrid 1.1"
+
+/* Define to the one symbol short name of this package. */
+#define PACKAGE_TARNAME "ultragrid"
+
+/* Define to the home page for this package. */
+#define PACKAGE_URL ""
+
+/* Define to the version of this package. */
+#define PACKAGE_VERSION "1.1"
+
+/* Assume that SAGE supports native DXT5 YCoCg */
+/* #undef SAGE_NATIVE_DXT5YCOCG */
+
+/* use shared decoder for all participants */
+/* #undef SHARED_DECODER */
 
 /* The size of `int *', as computed by sizeof. */
-#define SIZEOF_INT_P 4
+#define SIZEOF_INT_P 8
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
@@ -251,16 +372,19 @@
 #define VIDEO_CAPTURE_ABI_VERSION 2
 
 /* Specifies ABI version for video compression */
-#define VIDEO_COMPRESS_ABI_VERSION 1
+#define VIDEO_COMPRESS_ABI_VERSION 2
 
 /* Specifies ABI version for video decompression */
-#define VIDEO_DECOMPRESS_ABI_VERSION 2
+#define VIDEO_DECOMPRESS_ABI_VERSION 3
 
 /* Specifies ABI version for video displays */
-#define VIDEO_DISPLAY_ABI_VERSION 2
+#define VIDEO_DISPLAY_ABI_VERSION 5
 
 /* Specifies ABI version for video postprocess */
-#define VO_PP_ABI_VERSION 1
+#define VO_PP_ABI_VERSION 3
+
+/* This is an Windows OS */
+/* #undef WIN32 */
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
