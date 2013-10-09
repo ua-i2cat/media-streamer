@@ -62,7 +62,6 @@ receiver_t *init_receiver(participant_list_t *list, int port){
     receiver->port = port;
     receiver->list = list;
     
-    //TODO: this shouldn't open this ports and addr should be NULL
     receiver->session = rtp_init_if(NULL, NULL, receiver->port, 0, ttl, rtcp_bw, 0, rtp_recv_callback, (void *)receiver->part_db, 0);
       
     if (receiver->session != NULL) {
@@ -128,7 +127,6 @@ void *receiver_thread(receiver_t *receiver) {
 					init_decoder(src);
 				} else if (src != NULL && src->active > 0) {
 					if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data)) {	  
-						gettimeofday(&curr_time, NULL);
 						
 						if (src->active == I_AWAIT && rx_data->iframe){
 							src->active = TRUE;
@@ -158,11 +156,13 @@ void *receiver_thread(receiver_t *receiver) {
 							}
 							debug_msg("Warning: Frame missed!\n"); //TODO: test it properly, it should not cause decoding damage
 						}
+						
+						pbuf_remove_first(cp->playout_buffer);
 					}
 				} else {
 				//TODO: delete cp form pdb or ignore it
 				}
-				pbuf_remove(cp->playout_buffer, curr_time);
+				//pbuf_remove(cp->playout_buffer, curr_time);
 				cp = pdb_iter_next(&it);
 			}
 			pdb_iter_done(&it);
