@@ -38,9 +38,9 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					module.c \
 					messaging.cpp
 
-libvcompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut
-libvcompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_compress -Iutils -Icompat -I..
-libvcompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Ivideo_compress -Iutils -Icompat -I..
+libvcompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut -lGLU
+libvcompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_compress -Iutils -Icompat -I.. -I../dxt_compress
+libvcompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Ivideo_compress -Iutils -Icompat -I.. -I../dxt_compress
 libvcompress_la_SOURCES = video_frame.c \
 						  gl_context.c \
 						  glx_common.c \
@@ -58,17 +58,16 @@ libvcompress_la_SOURCES = video_frame.c \
 						  video_compress/uyvy.c \
 						  utils/list.c \
 						  utils/resource_manager.cpp \
-						  utils/worker.cpp \
-						  ../dxt_compress/dxt_common.h \
-						  ../dxt_compress/dxt_decoder.h \
-						  ../dxt_compress/dxt_display.h \
-						  ../dxt_compress/dxt_encoder.h \
-						  ../dxt_compress/dxt_glsl.h \
-						  ../dxt_compress/dxt_util.h
+						  utils/worker.cpp
+						  ../dxt_compress/dxt_common.c \
+						  ../dxt_compress/dxt_decoder.c \
+						  ../dxt_compress/dxt_display.c \
+						  ../dxt_compress/dxt_encoder.c \
+						  ../dxt_compress/dxt_util.c
 
-libvdecompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut
-libvdecompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_decompress -Iutils -Icompat -I..
-libvdecompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Ivideo_decompress -Iutils -Icompat -I..
+libvdecompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut -lGLU
+libvdecompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_decompress -Iutils -Icompat -I.. -I../dxt_compress
+libvdecompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Ivideo_decompress -Iutils -Icompat -I.. -I../dxt_compress
 libvdecompress_la_SOURCES =  video_frame.c \
 							 gl_context.c \
 							 glx_common.c \
@@ -85,13 +84,12 @@ libvdecompress_la_SOURCES =  video_frame.c \
 							 video_decompress/null.c \
 							 utils/list.c \
 							 utils/resource_manager.cpp \
-							 utils/worker.cpp \
-							 ../dxt_compress/dxt_common.h \
-							 ../dxt_compress/dxt_decoder.h \
-							 ../dxt_compress/dxt_display.h \
-							 ../dxt_compress/dxt_encoder.h \
-							 ../dxt_compress/dxt_glsl.h \
-							 ../dxt_compress/dxt_util.h
+							 utils/worker.cpp
+							 ../dxt_compress/dxt_common.c \
+							 ../dxt_compress/dxt_decoder.c \
+							 ../dxt_compress/dxt_display.c \
+							 ../dxt_compress/dxt_encoder.c \
+							 ../dxt_compress/dxt_util.c
 
 ugincludedir = $(includedir)/ug-modules
 nobase_uginclude_HEADERS =	./tfrc.h \
