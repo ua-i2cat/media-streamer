@@ -52,7 +52,6 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 			nal = (uint8_t) pckt->data[0];
 			type = nal & 0x1f;
 			nri = nal & 0x60;
-            printf("Type: %d\n", type);
 			
 			if (type >= 1 && type <= 23) {
 				if (buffers->bframe && !(type == 1 && nri == 0)){
@@ -80,8 +79,6 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
                         buffers->sps = 1;
                     }
                     bs_free(b);
-                } else {
-                    buffers->sps = 0;
                 }
 
 				type = 1;

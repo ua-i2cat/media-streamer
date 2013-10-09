@@ -12,7 +12,7 @@ int main(){
   
   list = init_participant_list();
   
-  add_participant(list, 1, 1280, 720, H264, NULL, 0, INPUT);
+  add_participant(list, 1, 1222, 440, H264, NULL, 0, INPUT);
   
   receiver = init_receiver(list, 5004);
   

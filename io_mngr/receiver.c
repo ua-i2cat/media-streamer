@@ -133,8 +133,7 @@ void *receiver_thread(receiver_t *receiver) {
 						if (src->active == I_AWAIT && rx_data->iframe){
 							src->active = TRUE;
 						}
-
-						if (rx_data->sps){
+						if (rx_data->width != NULL && rx_data->height != NULL){
 							printf("Width = %lu Height = %lu\n", rx_data->width, rx_data->height);
 						}
 						
