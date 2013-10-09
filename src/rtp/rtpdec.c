@@ -36,9 +36,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 			cdata = orig;
 			buffers->buffer_len[substream] = total_length;
 			dst = buffers->frame_buffer[substream] + total_length;
-            buffers->frame_type = PFRAME;
-			// buffers->bframe = TRUE;
-			// buffers->iframe = FALSE;
+            buffers->frame_type = BFRAME;
 		}
 
 		while (cdata != NULL) {
@@ -52,17 +50,24 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 			nal = (uint8_t) pckt->data[0];
 			type = nal & 0x1f;
 			nri = nal & 0x60;
+
+            if (type == 7){
+                uint8_t ret = fill_rx_data_from_sps(buffers, pckt->data, &pckt->data_len);
+                if (ret == 0){
+                    printf("Width and height succesfully found from SPS\n");
+                } else if (ret == 1){
+                    printf("We already have width and height, we don't parse the SPS\n");
+                } else{
+                    printf("Eror while filling rx_data from SPS\n");
+                }
+            }
 			
 			if (type >= 1 && type <= 23) {
                 if(buffers->frame_type != INTRA && type == 5){
                     buffers->frame_type = INTRA;
-                }
-				// if (buffers->bframe && !(type == 1 && nri == 0)){
-				// 	buffers->bframe = FALSE;
-				// }
-				// if (!buffers->iframe && type == 5 ){
-				// 	buffers->iframe =TRUE;
-				// }
+                } else if (buffers->frame_type == BFRAME && !(type == 1 && nri == 0)){
+                    buffers->frame_type = OTHER;
+                } 
                 // if (type == 7){ //SPS
                 //     h264_stream_t* h = h264_new();
                 //     uint8_t* rbsp_buf = (uint8_t*)malloc(pckt->data_len);
@@ -160,17 +165,11 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 					uint8_t nal_type = fu_header & 0x1f;
 					uint8_t reconstructed_nal;
 
-                    if(buffers->frame_type != INTRA && type == 5){
+                    if(buffers->frame_type != INTRA && nal_type == 5){
                         buffers->frame_type = INTRA;
-                    }
-
-					// if (buffers->bframe && !(nal_type == 1 && nri == 0)){
-					// 	buffers->bframe = FALSE;
-					// }
-					
-					// if (!buffers->iframe && nal_type == 5){
-					// 	buffers->iframe = TRUE;
-					// }
+                    } else if (buffers->frame_type == BFRAME && !(nal_type == 1 && nri == 0)){
+                        buffers->frame_type = OTHER;
+                    } 
 					
 					// Reconstruct this packet's true nal; only the data follows.
 					/* The original nal forbidden bit and NRI are stored in this
@@ -441,7 +440,42 @@ cleanup:
 }
 
 int init_rx_data(struct recieved_data *rx_data){
-    rx_data->frame_type = PFRAME;
+    rx_data->frame_type = BFRAME;
     rx_data->info.width = 0;
     rx_data->info.height = 0;
+    rx_data->frame_buffer[0] = malloc(1920*1080*4*sizeof(char));
+}
+
+int fill_rx_data_from_sps(struct recieved_data *rx_data, char *data, int *data_len){
+    if (rx_data->info.width == 0 && rx_data->info.height == 0){
+        sps_t* sps = (sps_t*)malloc(sizeof(sps_t));
+        uint8_t* rbsp_buf = (uint8_t*)malloc(*data_len);
+        if (nal_to_rbsp(data, data_len, rbsp_buf, data_len) < 0){
+            free(rbsp_buf);
+            free(sps);
+            return -1;
+        }
+        bs_t* b = bs_new(rbsp_buf, *data_len);
+        if(read_seq_parameter_set_rbsp(sps,b) < 0){
+            bs_free(b);
+            free(rbsp_buf);
+            free(sps);
+            return -1;
+        }
+        rx_data->info.width = (sps->pic_width_in_mbs_minus1 + 1) * 16;
+        rx_data->info.height = (2 - sps->frame_mbs_only_flag) * (sps->pic_height_in_map_units_minus1 + 1) * 16; 
+        //NOTE: frame_mbs_only_flag = 1 --> only progressive frames 
+        //      frame_mbs_only_flag = 0 --> some type of interlacing (there are 3 types contemplated in the standard)
+        if (sps->frame_cropping_flag){
+            rx_data->info.width -= (sps->frame_crop_left_offset*2 + sps->frame_crop_right_offset*2);
+            rx_data->info.height -= (sps->frame_crop_top_offset*2 + sps->frame_crop_bottom_offset*2);
+        }
+        bs_free(b);
+        free(rbsp_buf);
+        free(sps);
+
+    } else {
+        return 1; //
+    }
+
 }

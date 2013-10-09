@@ -21,7 +21,7 @@ int main(){
 	printf("First 100 frames to disk\n");
 	  
     int i = 0;
-	while(i < 200){
+	while(i < 100){
 		usleep(10*1000);
 		if (list->first->new_frame){
 			pthread_mutex_lock(&list->first->lock);

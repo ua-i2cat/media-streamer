@@ -19,11 +19,11 @@ participant_data_t *init_participant(int id, int width, int height, codec_t code
   
   pthread_mutex_init(&participant->lock, NULL);
   participant->new_frame = FALSE;
-  participant->active = TRUE;
+  participant->active = I_AWAIT;
   participant->ssrc = 0;
   participant->frame = malloc(vc_get_linesize(width, RGB)*height);
-  participant->height = height;
-  participant->width = width;
+  participant->height = 0;
+  participant->width = 0;
   participant->codec = codec;
   participant->proc.decoder = NULL;
   participant->proc.encoder = NULL;
