@@ -124,6 +124,7 @@ void *receiver_thread(receiver_t *receiver) {
 					pthread_mutex_lock(&src->lock);
 					src->ssrc = cp->ssrc;
 					pthread_mutex_unlock(&src->lock);
+					
 					init_decoder(src);
 				} else if (src != NULL && src->active > 0) {
 					if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data)) {	  
@@ -162,7 +163,6 @@ void *receiver_thread(receiver_t *receiver) {
 				} else {
 				//TODO: delete cp form pdb or ignore it
 				}
-				//pbuf_remove(cp->playout_buffer, curr_time);
 				cp = pdb_iter_next(&it);
 			}
 			pdb_iter_done(&it);

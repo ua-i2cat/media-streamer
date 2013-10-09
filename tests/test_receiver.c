@@ -22,7 +22,7 @@ int main(){
 	  
     int i = 0;
 	while(i < 100){
-		usleep(10*100);
+		usleep(100*100);
 		if (list->first->new_frame){
 			pthread_mutex_lock(&list->first->lock);
 			if (F_video_rx == NULL) {

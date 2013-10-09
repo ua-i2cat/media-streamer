@@ -219,8 +219,9 @@ static void add_coded_unit(struct pbuf_node *node, rtp_packet * pkt)
         } else {
                 /* this is bad, out of memory, drop the packet... */
                 free(pkt);
-        }
+        }      
 }
+
 
 static struct pbuf_node *create_new_pnode(rtp_packet * pkt, double playout_delay,
                 double deletion_delay)
@@ -378,7 +379,11 @@ void pbuf_remove_first(struct pbuf *playout_buf)
 			pbuf_validate(playout_buf);
 
 			curr = playout_buf->frst;
-			playout_buf->frst = curr->nxt;
+			if (curr->nxt == NULL){
+				playout_buf->frst = playout_buf->last = NULL;
+			} else {
+				playout_buf->frst = curr->nxt;
+			}
 			free_cdata(curr->cdata);
 			free(curr);
 		
