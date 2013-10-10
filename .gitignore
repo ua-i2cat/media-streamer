@@ -12,6 +12,9 @@ Makefile.in
 autom4te.cache/
 config.log
 config.status
+config.guess
+config.sub
+aclocal.m4
 depcomp
 libtool
 missing
