@@ -50,6 +50,10 @@
 #define RTP_PACKET_HEADER_SIZE	((sizeof(char *) * 2) + sizeof(uint32_t *) + (2 * sizeof(int)))
 #define RTP_MAX_PACKET_LEN 9000
 
+ #ifndef WORDS_BIGENDIAN 
+ #define WORDS_SMALLENDIAN 
+ #endif
+
 #if !defined(WORDS_BIGENDIAN) && !defined(WORDS_SMALLENDIAN)
 #error RTP library requires WORDS_BIGENDIAN or WORDS_SMALLENDIAN to be defined.
 #endif

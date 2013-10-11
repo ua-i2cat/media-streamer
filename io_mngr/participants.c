@@ -29,6 +29,9 @@ participant_data_t *init_participant(int id, int width, int height, codec_t code
   participant->next = participant->previous = NULL;
   participant->type = type;
   participant->id = id;
+  participant->rx_data = calloc(1, sizeof(struct recieved_data));
+  init_rx_data(participant->rx_data);
+
   if (width != 0 && height != 0){
       participant->frame = malloc(vc_get_linesize(width, RGB)*height);
   } else {

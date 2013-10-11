@@ -1,6 +1,6 @@
 #define MAX_SUBSTREAMS  1
 
-#include "rtp/pbuf.h"
+#include "pbuf.h"
 
 #define INTRA  1
 #define BFRAME 0

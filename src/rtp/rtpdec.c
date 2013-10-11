@@ -41,6 +41,8 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 
 		while (cdata != NULL) {
 			pckt = cdata->data;
+            if (pass > 0)
+                printf("New cdata!!\n");
 
 			if (pckt->pt != PT_H264) {
 				error_msg("Wrong Payload type: %u\n", pckt->pt);
@@ -53,41 +55,17 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 
             if (type == 7){
                 uint8_t ret = fill_rx_data_from_sps(buffers, pckt->data, &pckt->data_len);
-                if (ret == 0){
-                    printf("Width and height succesfully found from SPS\n");
-                } else if (ret == 1){
-                    printf("We already have width and height, we don't parse the SPS\n");
-                } else{
-                    printf("Eror while filling rx_data from SPS\n");
-                }
             }
 			
 			if (type >= 1 && type <= 23) {
                 if(buffers->frame_type != INTRA && type == 5){
                     buffers->frame_type = INTRA;
-                } else if (buffers->frame_type == BFRAME && !(type == 1 && nri == 0)){
+                } else if (buffers->frame_type == BFRAME && nri != 0){
                     buffers->frame_type = OTHER;
-                } 
-                // if (type == 7){ //SPS
-                //     h264_stream_t* h = h264_new();
-                //     uint8_t* rbsp_buf = (uint8_t*)malloc(pckt->data_len);
-                //     if (nal_to_rbsp(pckt->data, &pckt->data_len, rbsp_buf, &pckt->data_len)<0){
-                //         free (rbsp_buf);
-                //         break;
-                //     }
-                //     bs_t* b = bs_new(rbsp_buf, pckt->data_len);
-                //     read_seq_parameter_set_rbsp(h,b); //TODO: cal canviar l'estructura h on es guarden els sps
-                //     buffers->width = (h->sps->pic_width_in_mbs_minus1 + 1) * 16;
-                //     buffers->height = (2 - h->sps->frame_mbs_only_flag) * (h->sps->pic_height_in_map_units_minus1 + 1) * 16; 
-                //     //frame_mbs_only_flag = 1 --> only progressive frames 
-                //     //frame_mbs_only_flag = 0 --> some type of interlacing (there are 3 types contemplated in the standard)
-                //     if (h->sps->frame_cropping_flag){
-                //         buffers->width -= (h->sps->frame_crop_left_offset*2 + h->sps->frame_crop_right_offset*2);
-                //         buffers->height -= (h->sps->frame_crop_top_offset*2 + h->sps->frame_crop_bottom_offset*2);
-                //         buffers->sps = 1;
-                //     }
-                //     bs_free(b);
-                // }
+                }
+
+                if(pass > 0)
+                    printf("Frame_type: %d Type: %d nri: %u\n", buffers->frame_type, type, nri);
 
 				type = 1;
 			}
@@ -167,9 +145,12 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 
                     if(buffers->frame_type != INTRA && nal_type == 5){
                         buffers->frame_type = INTRA;
-                    } else if (buffers->frame_type == BFRAME && !(nal_type == 1 && nri == 0)){
+                    } else if (buffers->frame_type == BFRAME && nri != 0){
                         buffers->frame_type = OTHER;
                     } 
+
+                    if (pass > 0)
+                        printf("[FRAGMENTED NAL]Frame_type: %d Type: %d nri: %u\n", buffers->frame_type, nal_type, nri);
 					
 					// Reconstruct this packet's true nal; only the data follows.
 					/* The original nal forbidden bit and NRI are stored in this

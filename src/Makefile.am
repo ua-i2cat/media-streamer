@@ -6,8 +6,8 @@ AM_CXXFLAGS = -O2 -g -DHAVE_CONFIG_H -g -fPIC -Wno-multichar -Wno-deprecated -ms
 
 
 librtp_la_LDFLAGS = -version-info 0:1:0 -lrt -ldl -lieee -lm -lcrypto
-librtp_la_CFLAGS = $(AM_CFLAGS) -I. -Irtp -Icompat -Icrypto
-librtp_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Irtp -Icompat -Icrypto
+librtp_la_CFLAGS = $(AM_CFLAGS) -I. -Irtp -Iutils -Icompat -Icrypto
+librtp_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Irtp -Iutils -Icompat -Icrypto
 librtp_la_SOURCES = rtp/net_udp.c \
 					rtp/pbuf.c \
 					rtp/ptime.c \

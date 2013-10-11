@@ -1,9 +1,7 @@
 #include "config_unix.h"
-#include "participants.h"
 #include "receiver.h"
-#include "rtp/rtp.h"
 #include "rtp/rtp_callback.h"
-#include "rtp/rtpdec.h"
+#include "rtp/rtp.h"
 #include "pdb.h"
 #include "video_decompress.h"
 #include "tv.h"
@@ -97,10 +95,6 @@ void *receiver_thread(receiver_t *receiver) {
 	timeout.tv_sec = 0;
     timeout.tv_usec = 10000;
     uint32_t timestamp; //TODO: why is this used
-    uint8_t srclck;
-    
-    struct recieved_data *rx_data = calloc(1, sizeof(struct recieved_data));
-    init_rx_data(rx_data);
 
     while(receiver->run){
         gettimeofday(&curr_time, NULL);
@@ -124,41 +118,37 @@ void *receiver_thread(receiver_t *receiver) {
 
 				if (src != NULL && src->active > 0) {
 
-					if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data)) {	 
+					if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, src->rx_data)) {	 
 
 						gettimeofday(&curr_time, NULL);
 
-						if (src->active == I_AWAIT && rx_data->frame_type == INTRA){
-							if (src->proc.decoder == NULL && rx_data->info.width != 0 && rx_data->info.height != 0){
+						if (src->active == I_AWAIT && src->rx_data->frame_type == INTRA){
+							if (src->proc.decoder == NULL && src->rx_data->info.width != 0 && src->rx_data->info.height != 0){
 								pthread_mutex_lock(&src->lock);
 								src->ssrc = cp->ssrc;
-								src->width = rx_data->info.width;
-								src->height = rx_data->info.height;
-								src->frame = malloc(vc_get_linesize(rx_data->info.width, RGB)*rx_data->info.height);
+								src->width = src->rx_data->info.width;
+								src->height = src->rx_data->info.height;
+								src->frame = malloc(vc_get_linesize(src->rx_data->info.width, RGB)*src->rx_data->info.height);
 								pthread_mutex_unlock(&src->lock);
 								init_decoder(src);
+								printf("Decoder init with src->width = %u and src->height = %u\n", src->width, src->height);
 								src->active = TRUE;
 							} else if (src->proc.decoder != NULL) {
 								src->active = TRUE;
 							}
 						}
-					
-						if (rx_data->frame_type == INTRA){
-							printf("Width: %u  Height: %u\n", rx_data->info.width, rx_data->info.height);
+
+						if (src->rx_data->frame_type == BFRAME){
+							printf("[RECEIVER]We have BFRAME!!\n");
 						}
-						
-						srclck = pthread_mutex_trylock(&src->lock);
-						
-						if (src->active == TRUE && (srclck == 0 || rx_data->frame_type != BFRAME)) {
+
+						if (src->active == TRUE && src->rx_data->frame_type != BFRAME) {
 							
-							if (rx_data->frame_type != BFRAME && srclck != 0){
-								pthread_mutex_lock(&src->lock);
-							}
-														
+							pthread_mutex_lock(&src->lock);
 							pthread_mutex_lock(&src->proc.decoder->lock); 
  		  
-							memcpy(src->proc.decoder->data, rx_data->frame_buffer[0], rx_data->buffer_len[0]); //TODO: get rid of this magic number
-							src->proc.decoder->data_len = rx_data->buffer_len[0];
+							memcpy(src->proc.decoder->data, src->rx_data->frame_buffer[0], src->rx_data->buffer_len[0]); //TODO: get rid of this magic number
+							src->proc.decoder->data_len = src->rx_data->buffer_len[0];
 							src->proc.decoder->new_frame = TRUE;
 							pthread_cond_signal(&src->proc.decoder->notify_frame);
 							
@@ -166,10 +156,7 @@ void *receiver_thread(receiver_t *receiver) {
 							pthread_mutex_unlock(&src->lock);
 		    
 						} else {
-							if (srclck == 0){
-								pthread_mutex_unlock(&src->lock);
-							}
-							debug_msg("Warning: Frame missed!\n"); //TODO: test it properly, it should not cause decoding damage
+							debug_msg("No support for Bframes\n"); //TODO: test it properly, it should not cause decoding damage
 						}
 						
 						pbuf_remove_first(cp->playout_buffer);
