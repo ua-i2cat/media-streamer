@@ -144,7 +144,6 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
                         buffers->frame_type = OTHER;
                     } 
 
-					
 					// Reconstruct this packet's true nal; only the data follows.
 					/* The original nal forbidden bit and NRI are stored in this
 					 * packet's nal. */

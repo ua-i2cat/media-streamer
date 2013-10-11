@@ -292,17 +292,19 @@ void pbuf_insert(struct pbuf *playout_buf, rtp_packet * pkt)
 			if (curr->rtp_timestamp == pkt->ts) {
 				/* Packet belongs to a previous existing frame... */
 				add_coded_unit(curr, pkt);
-			} else if (curr->rtp_timestamp > pkt->ts){
+			} else if (curr->rtp_timestamp < pkt->ts){
 				/* Packet belongs to a new previous frame */
 				tmp = create_new_pnode(pkt, playout_buf->playout_delay,playout_buf->deletion_delay);
-				tmp->nxt = curr;
-				if (curr == playout_buf->frst){
-					playout_buf->frst = tmp;
-				} else {
-					tmp->prv = curr->prv;
-					curr->prv->nxt = tmp;
-				}
-				curr->prv = tmp;
+                tmp->nxt = curr->nxt;
+                tmp->prv = curr;
+                curr->nxt->prv = tmp;
+                curr->nxt = tmp;
+            } else if (curr == playout_buf->frst) {
+                tmp = create_new_pnode(pkt, playout_buf->playout_delay,playout_buf->deletion_delay);
+                tmp->nxt = playout_buf->frst;
+                curr->prv = tmp;
+                playout_buf->frst = tmp;
+
 			} else {
 				
 				if (pkt->m) {

@@ -137,8 +137,6 @@ void *receiver_thread(receiver_t *receiver) {
 							}
 						}
 
-						
-
 						if (src->active == TRUE && src->rx_data->frame_type != BFRAME) {
 							
 							pthread_mutex_lock(&src->lock);
