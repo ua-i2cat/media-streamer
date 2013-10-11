@@ -41,8 +41,6 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 
 		while (cdata != NULL) {
 			pckt = cdata->data;
-            if (pass > 0)
-                printf("New cdata!!\n");
 
 			if (pckt->pt != PT_H264) {
 				error_msg("Wrong Payload type: %u\n", pckt->pt);
@@ -63,9 +61,6 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
                 } else if (buffers->frame_type == BFRAME && nri != 0){
                     buffers->frame_type = OTHER;
                 }
-
-                if(pass > 0)
-                    printf("Frame_type: %d Type: %d nri: %u\n", buffers->frame_type, type, nri);
 
 				type = 1;
 			}
@@ -149,9 +144,6 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
                         buffers->frame_type = OTHER;
                     } 
 
-                    if (pass > 0)
-                        printf("[FRAGMENTED NAL]Frame_type: %d Type: %d nri: %u\n", buffers->frame_type, nal_type, nri);
-					
 					// Reconstruct this packet's true nal; only the data follows.
 					/* The original nal forbidden bit and NRI are stored in this
 					 * packet's nal. */

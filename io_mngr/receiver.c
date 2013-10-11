@@ -131,15 +131,10 @@ void *receiver_thread(receiver_t *receiver) {
 								src->frame = malloc(vc_get_linesize(src->rx_data->info.width, RGB)*src->rx_data->info.height);
 								pthread_mutex_unlock(&src->lock);
 								init_decoder(src);
-								printf("Decoder init with src->width = %u and src->height = %u\n", src->width, src->height);
 								src->active = TRUE;
 							} else if (src->proc.decoder != NULL) {
 								src->active = TRUE;
 							}
-						}
-
-						if (src->rx_data->frame_type == BFRAME){
-							printf("[RECEIVER]We have BFRAME!!\n");
 						}
 
 						if (src->active == TRUE && src->rx_data->frame_type != BFRAME) {
