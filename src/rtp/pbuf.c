@@ -196,7 +196,7 @@ static void add_coded_unit(struct pbuf_node *node, rtp_packet * pkt)
 				curr = malloc(sizeof(struct coded_data));
 				if (curr != NULL){
 					curr = node->cdata;
-					while (curr != NULL && curr->seqno > pkt->seq){
+					while (curr->nxt != NULL && curr->seqno > pkt->seq){
 						curr = curr->nxt;
 					}
 					if (curr->seqno < pkt->seq){
@@ -204,6 +204,10 @@ static void add_coded_unit(struct pbuf_node *node, rtp_packet * pkt)
 						tmp->prv = curr->prv;
 						tmp->prv->nxt = tmp;
 						curr->prv = tmp;
+                    } else if (curr->nxt == NULL) {
+                        tmp->nxt = NULL;
+                        tmp->prv = curr;
+                        curr->nxt = tmp;
 					} else {
 						/* this is bad, something went terribly wrong... */
 						free(pkt);
