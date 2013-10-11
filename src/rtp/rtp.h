@@ -40,8 +40,10 @@
 #ifndef __RTP_H__
 #define __RTP_H__
 
-#ifdef HAVE_CONFIG_H
+//TODO:si aquest fitxer s'inclou des de fora de ug-modules no funciona per falta del WORDS_BIGENDIAN o WORDS_SMALLENDIAN
+//a menys que es forci l¡include del config.h
 #include "config.h" // bool
+#ifdef HAVE_CONFIG_H
 #include "config_unix.h"
 #include "config_win32.h"
 #endif // HAVE_CONFIG_H

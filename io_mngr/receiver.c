@@ -1,9 +1,7 @@
 #include "config_unix.h"
-#include "participants.h"
 #include "receiver.h"
-#include "rtp/rtp.h"
 #include "rtp/rtp_callback.h"
-#include "rtp/rtpdec.h"
+#include "rtp/rtp.h"
 #include "pdb.h"
 #include "video_decompress.h"
 #include "tv.h"
@@ -62,6 +60,7 @@ receiver_t *init_receiver(participant_list_t *list, int port){
     receiver->port = port;
     receiver->list = list;
     
+ 
     receiver->session = rtp_init_if(NULL, NULL, receiver->port, 0, ttl, rtcp_bw, 0, rtp_recv_callback, (void *)receiver->part_db, 0);
       
     if (receiver->session != NULL) {
@@ -83,6 +82,7 @@ receiver_t *init_receiver(participant_list_t *list, int port){
     return receiver;
 }
 
+//TODO: refactor de la funció per evitar tants IF anidats
 void *receiver_thread(receiver_t *receiver) {
 	struct pdb_e *cp;
 	participant_data_t *src;
@@ -95,10 +95,6 @@ void *receiver_thread(receiver_t *receiver) {
 	timeout.tv_sec = 0;
     timeout.tv_usec = 10000;
     uint32_t timestamp; //TODO: why is this used
-    uint8_t srclck;
-    
-    struct recieved_data *rx_data = calloc(1, sizeof(struct recieved_data));
-    rx_data->frame_buffer[0] = malloc(1920*1080*4*sizeof(char));
 
     while(receiver->run){
         gettimeofday(&curr_time, NULL);
@@ -109,6 +105,7 @@ void *receiver_thread(receiver_t *receiver) {
 		timeout.tv_sec = 0;
 		timeout.tv_usec = 10000;
 	
+		//TODO: repàs dels locks en accedir a src
 		if (!rtp_recv_r(receiver->session, &timeout, timestamp)){
 			pdb_iter_t it;
 			cp = pdb_iter_init(receiver->part_db, &it);
@@ -118,33 +115,40 @@ void *receiver_thread(receiver_t *receiver) {
 				pthread_rwlock_rdlock(&receiver->list->lock);
 				src = get_participant_ssrc(receiver->list, cp->ssrc);
 				pthread_rwlock_unlock(&receiver->list->lock);
-				
-				if (src != NULL && src->proc.decoder == NULL && (src->active > 0)) {
-		
-					pthread_mutex_lock(&src->lock);
-					src->ssrc = cp->ssrc;
-					pthread_mutex_unlock(&src->lock);
-					
-					init_decoder(src);
-				} else if (src != NULL && src->active > 0) {
-					if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data)) {	  
-						
-						if (src->active == I_AWAIT && rx_data->iframe){
-							src->active = TRUE;
-						}
-						
-						srclck = pthread_mutex_trylock(&src->lock);
-						
-						if (src->active == TRUE && (srclck == 0 || !rx_data->bframe)) {
-							
-							if (!rx_data->bframe && srclck != 0){
+
+				if (src != NULL && src->active > 0) {
+
+					if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, src->rx_data)) {	 
+
+						gettimeofday(&curr_time, NULL);
+
+						if (src->active == I_AWAIT && src->rx_data->frame_type == INTRA){
+							if (src->proc.decoder == NULL && src->rx_data->info.width != 0 && src->rx_data->info.height != 0){
 								pthread_mutex_lock(&src->lock);
+								src->ssrc = cp->ssrc;
+								src->width = src->rx_data->info.width;
+								src->height = src->rx_data->info.height;
+								src->frame = malloc(vc_get_linesize(src->rx_data->info.width, RGB)*src->rx_data->info.height);
+								pthread_mutex_unlock(&src->lock);
+								init_decoder(src);
+								printf("Decoder init with src->width = %u and src->height = %u\n", src->width, src->height);
+								src->active = TRUE;
+							} else if (src->proc.decoder != NULL) {
+								src->active = TRUE;
 							}
-														
+						}
+
+						if (src->rx_data->frame_type == BFRAME){
+							printf("[RECEIVER]We have BFRAME!!\n");
+						}
+
+						if (src->active == TRUE && src->rx_data->frame_type != BFRAME) {
+							
+							pthread_mutex_lock(&src->lock);
 							pthread_mutex_lock(&src->proc.decoder->lock); 
  		  
-							memcpy(src->proc.decoder->data, rx_data->frame_buffer[0], rx_data->buffer_len[0]); //TODO: get rid of this magic number
-							src->proc.decoder->data_len = rx_data->buffer_len[0];
+							memcpy(src->proc.decoder->data, src->rx_data->frame_buffer[0], src->rx_data->buffer_len[0]); //TODO: get rid of this magic number
+							src->proc.decoder->data_len = src->rx_data->buffer_len[0];
 							src->proc.decoder->new_frame = TRUE;
 							pthread_cond_signal(&src->proc.decoder->notify_frame);
 							
@@ -152,10 +156,7 @@ void *receiver_thread(receiver_t *receiver) {
 							pthread_mutex_unlock(&src->lock);
 		    
 						} else {
-							if (srclck == 0){
-								pthread_mutex_unlock(&src->lock);
-							}
-							debug_msg("Warning: Frame missed!\n"); //TODO: test it properly, it should not cause decoding damage
+							debug_msg("No support for Bframes\n"); //TODO: test it properly, it should not cause decoding damage
 						}
 						
 						pbuf_remove_first(cp->playout_buffer);

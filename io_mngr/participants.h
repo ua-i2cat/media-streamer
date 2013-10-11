@@ -10,6 +10,7 @@
 #include "config_unix.h"
 #include "video.h"
 #include <semaphore.h>
+#include "rtpdec.h"
 
 #define I_AWAIT 	2
 
@@ -32,6 +33,7 @@ struct participant_data {
 	codec_t				codec;
 	ptype_t				type;
 	struct rtp_session	*session;
+	struct recieved_data *rx_data;
 	union {
 	  struct decoder_thread	*decoder;
 	  struct encoder_thread	*encoder;

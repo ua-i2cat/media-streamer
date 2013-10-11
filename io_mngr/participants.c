@@ -19,9 +19,8 @@ participant_data_t *init_participant(int id, int width, int height, codec_t code
   
   pthread_mutex_init(&participant->lock, NULL);
   participant->new_frame = FALSE;
-  participant->active = TRUE;
+  participant->active = I_AWAIT;
   participant->ssrc = 0;
-  participant->frame = malloc(vc_get_linesize(width, RGB)*height);
   participant->height = height;
   participant->width = width;
   participant->codec = codec;
@@ -30,6 +29,14 @@ participant_data_t *init_participant(int id, int width, int height, codec_t code
   participant->next = participant->previous = NULL;
   participant->type = type;
   participant->id = id;
+  participant->rx_data = calloc(1, sizeof(struct recieved_data));
+  init_rx_data(participant->rx_data);
+
+  if (width != 0 && height != 0){
+      participant->frame = malloc(vc_get_linesize(width, RGB)*height);
+  } else {
+    participant->frame = NULL;
+  }
   
   if (dst == NULL) {
     participant->session = NULL;
