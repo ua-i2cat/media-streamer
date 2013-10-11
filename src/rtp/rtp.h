@@ -40,8 +40,10 @@
 #ifndef __RTP_H__
 #define __RTP_H__
 
-#ifdef HAVE_CONFIG_H
+//TODO:si aquest fitxer s'inclou des de fora de ug-modules no funciona per falta del WORDS_BIGENDIAN o WORDS_SMALLENDIAN
+//a menys que es forci l¡include del config.h
 #include "config.h" // bool
+#ifdef HAVE_CONFIG_H
 #include "config_unix.h"
 #include "config_win32.h"
 #endif // HAVE_CONFIG_H
@@ -49,10 +51,6 @@
 #define RTP_VERSION 2
 #define RTP_PACKET_HEADER_SIZE	((sizeof(char *) * 2) + sizeof(uint32_t *) + (2 * sizeof(int)))
 #define RTP_MAX_PACKET_LEN 9000
-
- #ifndef WORDS_BIGENDIAN 
- #define WORDS_SMALLENDIAN 
- #endif
 
 #if !defined(WORDS_BIGENDIAN) && !defined(WORDS_SMALLENDIAN)
 #error RTP library requires WORDS_BIGENDIAN or WORDS_SMALLENDIAN to be defined.

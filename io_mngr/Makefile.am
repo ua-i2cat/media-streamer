@@ -27,4 +27,5 @@ uginclude_HEADERS =	receiver.h \
 					../src/rtp/rtpdec.h \
 					../src/rtp/pbuf.h \
 					../src/utils/list.h \
-					../src/rtp/rtp.h
+					../src/rtp/rtp.h \
+					../src/config.h 
