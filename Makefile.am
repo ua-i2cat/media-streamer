@@ -16,7 +16,7 @@ transmitter_LDFLAGS = -L./src -L./io_mngr -lvcompress -lvdecompress -liomanager 
 transmitter_DEPENDENCIES = src/librtp.la src/libvcompress.la src/libvdecompress.la io_mngr/libiomanager.la
 
 rec_trans_SOURCES = tests/test_rec_trans.c
-rec_trans_CFLAGS = $(AM_CFLAGS) -Isrc -Itests -Iio_mngr -Idxt_compress
+rec_trans_CFLAGS = $(AM_CFLAGS) -Isrc -Itests -Iio_mngr -Idxt_compress -Isrc/rtp -Isrc/utils
 rec_trans_LDFLAGS = -L. -L./src -L./io_mngr -lvcompress -lvdecompress -liomanager -lavcodec
 rec_trans_DEPENDENCIES = src/librtp.la src/libvcompress.la src/libvdecompress.la io_mngr/libiomanager.la
 
