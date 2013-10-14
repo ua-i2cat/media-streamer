@@ -23,8 +23,7 @@
 #include "tv.h"
 #include "perf.h"
 
-#define PORT_AUDIO	5006
-//#define UNUSED(x)       (x=x)
+#define PORT_AUDIO	5004
 
 
 /**************************************
@@ -46,6 +45,7 @@ struct thread_data {
 	pthread_mutex_t *wait;            // Lock for wait.
 	pthread_mutex_t *go;              // Lock to wake up our bro.
 };
+
 
 /**************************************
  *     Functions 
@@ -73,6 +73,7 @@ static void signal_handler(int signal)
 
 // Dummy callback to avoid decode anything.
 int copy_raw_frame(struct coded_data *cdata, void *data) {
+	// Do what rtp/audio_decoders.c:352 do.
 	memcpy(&data, cdata, sizeof(struct coded_data));
 	return true;
 }
@@ -119,22 +120,21 @@ static void *receiver_thread(void *arg)
 		timeout.tv_sec = 0;
 		timeout.tv_usec = 999999 / 59.94;
 		// Get packets from network.
-		if (!rtp_recv_r(d->rtp_session, &timeout, ts)) {
-			// Iterate throught participants
-			pdb_iter_t it;
-			cp = pdb_iter_init(d->participants, &it);
-			while (cp != NULL) {
-				// Get the data.
-				if (audio_pbuf_decode(cp->playout_buffer, curr_time, copy_raw_frame, data)) {
-					// Copy data on to the thread shared placeholder.
-					memcpy(&data_placeholder, data, sizeof(char)*256);
-				}
-				cp = pdb_iter_next(&it);
+		rtp_recv_r(d->rtp_session, &timeout, ts);
+		// Iterate throught participants
+		pdb_iter_t it;
+		cp = pdb_iter_init(d->participants, &it);
+		while (cp != NULL) {
+			// Get the data.
+			if (audio_pbuf_decode(cp->playout_buffer, curr_time, copy_raw_frame, data)) {
+				// Copy data on to the thread shared placeholder.
+				memcpy(&data_placeholder, data, sizeof(char)*256);
 			}
-			pdb_iter_done(&it);
+			cp = pdb_iter_next(&it);
 		}
-		pthread_mutex_unlock(d->go);
-		pthread_mutex_lock(d->wait);
+		pdb_iter_done(&it);
+		//		pthread_mutex_unlock(d->go);
+		//		pthread_mutex_lock(d->wait);
 	}
 	// Finish RTP session and exit.
 	rtp_done(d->rtp_session);
@@ -169,6 +169,7 @@ static void *sender_thread(void *arg)
 	printf(" Sender stopped.\n");
 	pthread_exit((void *)NULL);
 }
+
 
 /**************************************
  *     Main program
@@ -226,6 +227,10 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	if (remote_port == local_port) {
+		local_port = remote_port + 2;
+	}
+
 	printf("Remote host: %s\n", remote_host);
 	printf("Remote port: %i\n", remote_port);
 	printf("Local port: %i\n", local_port);
@@ -242,7 +247,6 @@ int main(int argc, char *argv[])
 	struct rtp *receiver_session;
 	struct pdb *receiver_participants;
 	receiver_participants = pdb_init();
-	//receiver_session = init_network(remote_host, remote_port, remote_port, receiver_participants, false);
 	receiver_session = init_network(remote_host, remote_port, remote_port, receiver_participants, false);
 	// Receiver thread config stuff
 	struct thread_data *receiver_data = calloc(1, sizeof(struct thread_data));
@@ -251,17 +255,17 @@ int main(int argc, char *argv[])
 	receiver_data->wait = &receiver_mutex;
 	receiver_data->go = &sender_mutex;
 
-	// Sender RTP session stuff
-	struct rtp *sender_session;
-	struct pdb *sender_participants;
-	sender_participants = pdb_init();
-	sender_session = init_network(local_host, local_port, local_port, sender_participants, false);
-	// Sender thread creation stuff
-	struct thread_data *sender_data = calloc(1, sizeof(struct thread_data));
-	sender_data->rtp_session = sender_session;
-	sender_data->participants = sender_participants;
-	sender_data->wait = &sender_mutex;
-	sender_data->go = &receiver_mutex;
+	//	// Sender RTP session stuff
+	//	struct rtp *sender_session;
+	//	struct pdb *sender_participants;
+	//	sender_participants = pdb_init();
+	//	sender_session = init_network(local_host, local_port, local_port, sender_participants, false);
+	//	// Sender thread creation stuff
+	//	struct thread_data *sender_data = calloc(1, sizeof(struct thread_data));
+	//	sender_data->rtp_session = sender_session;
+	//	sender_data->participants = sender_participants;
+	//	sender_data->wait = &sender_mutex;
+	//	sender_data->go = &receiver_mutex;
 
 	// Launch them
 	gettimeofday(&receiver_data->start_time, NULL);
@@ -269,15 +273,16 @@ int main(int argc, char *argv[])
 		printf("Error creating receiver thread.\n");
 		exit(-1); // Ugly exit...
 	}
-	gettimeofday(&sender_data->start_time, NULL);
-	if (pthread_create(&sender_data->id, NULL, sender_thread, (void *)sender_data) != 0) {
-		printf("Error creating sender thread.\n");
-		exit(-1); // Ugly exit...
-	}
+	//	gettimeofday(&sender_data->start_time, NULL);
+	//	if (pthread_create(&sender_data->id, NULL, sender_thread, (void *)sender_data) != 0) {
+	//		printf("Error creating sender thread.\n");
+	//		exit(-1); // Ugly exit...
+	//	}
 
 	// Wait for them
 	pthread_join(receiver_data->id, NULL);
-	pthread_join(sender_data->id, NULL);
+	//	pthread_join(sender_data->id, NULL);
 	printf("Done!\n");
+
 }
 
