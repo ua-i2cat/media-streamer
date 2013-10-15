@@ -63,9 +63,10 @@
 #include "perf.h"
 //#include "tv.h"
 //#include "rtp/rtp.h"
-//#include "rtp/rtp_callback.h"
+#include "rtp/rtp_callback.h"
 //#include "rtp/ptime.h"
 #include "rtp/pbuf.h"
+#include "rtp/audio_rtpdec.h"
 //#include "rtp/audio_decoders.h"
 //#include "audio/audio.h"
 //#include "audio/codec.h"
@@ -123,6 +124,24 @@
 
 //static int validate_mapping(struct channel_map *map);
 //static void compute_scale(struct scale_data *scale_data, float vol_avg, int samples, int sample_rate);
+
+void audio_simple_frame_allocate(struct audio_simple_frame *frame, int nr_channels, int max_size)
+{
+    assert(nr_channels <= MAX_AUDIO_CHANNELS);
+
+    frame->max_size = max_size;
+    frame->ch_count = nr_channels;
+
+    for(int i = 0; i < MAX_AUDIO_CHANNELS; ++i) {
+        free(frame->data[i]);
+        frame->data[i] = NULL;
+        frame->data_len[i] = 0;
+    }
+
+    for(int i = 0; i < nr_channels; ++i) {
+        frame->data[i] = malloc(max_size);
+    }
+}
 
 //static int validate_mapping(struct channel_map *map)
 //{
@@ -335,233 +354,236 @@
 
 int decode_audio_frame(struct coded_data *cdata, void *data)
 {
-        struct pbuf_audio_data *s = (struct pbuf_audio_data *) data;
-        struct state_audio_decoder *decoder = s->decoder;
+    //    struct pbuf_audio_data *s = (struct pbuf_audio_data *) data;
+    //    struct state_audio_decoder *decoder = s->decoder;
+    struct audio_simple_frame *frame = (struct audio_simple_frame *) data;
 
-        int input_channels = 0;
-        int output_channels = 0;
-        int bps, sample_rate, channel;
-        static int prints = 0;
-        int ret = TRUE;
+    int input_channels = 0;
+    //	  int output_channels = 0;
+    int bps, sample_rate, channel;
+    //    static int prints = 0;
+    int ret = TRUE;
 
-        if(!cdata) {
-                ret = FALSE;
-                goto cleanup;
+    if(!cdata) {
+        ret = FALSE;
+        goto cleanup;
+    }
+
+    while (cdata != NULL) {
+        char *data;
+        // for definition see rtp_callbacks.h
+        uint32_t *audio_hdr = (uint32_t *)(void *) cdata->data->data;
+        //                const int pt = cdata->data->pt;
+
+        //                if(pt == PT_ENCRYPT_AUDIO) {
+        //                        if(!decoder->decrypt) {
+        //                                fprintf(stderr, "Receiving encrypted audio data but "
+        //                                                "no decryption key entered!\n");
+        //                                ret = false; goto cleanup;
+        //                        }
+        //                } else if(pt == PT_AUDIO) {
+        //                        if(decoder->decrypt) {
+        //                                fprintf(stderr, "Receiving unencrypted audio data "
+        //                                                "while expecting encrypted.\n");
+        //                                ret = false; goto cleanup;
+        //                        }
+        //                } else {
+        //                        fprintf(stderr, "Unknown audio packet type: %d\n", pt);
+        //                        abort();
+        //                }
+
+        unsigned int length;
+        //        char plaintext[cdata->data->data_len]; // plaintext will be actually shorter
+        //                if(pt == PT_AUDIO) {
+        length = cdata->data->data_len - sizeof(audio_payload_hdr_t);
+        data = cdata->data->data + sizeof(audio_payload_hdr_t);
+        //                } else {
+        //                        assert(pt == PT_ENCRYPT_AUDIO);
+        //                        char *ciphertext = cdata->data->data + sizeof(crypto_payload_hdr_t) +
+        //                                sizeof(audio_payload_hdr_t);
+        //                        int ciphertext_len = cdata->data->data_len - sizeof(audio_payload_hdr_t) -
+        //                                sizeof(crypto_payload_hdr_t);
+        //
+        //                        if((length = openssl_decrypt(decoder->decrypt,
+        //                                        ciphertext, ciphertext_len,
+        //                                        (char *) audio_hdr, sizeof(audio_payload_hdr_t),
+        //                                        plaintext
+        //                                        )) == 0) {
+        //                                fprintf(stderr, "Warning: Packet dropped AES - wrong CRC!\n");
+        //                                ret = false;
+        //                                goto cleanup;
+        //                        }
+        //                        data = plaintext;
+        //                }
+
+        /* we receive last channel first (with m bit, last packet) */
+        /* thus can be set only with m-bit packet */
+        if(cdata->data->m) {
+            input_channels = ((ntohl(audio_hdr[0]) >> 22) & 0x3ff) + 1;
         }
 
-        while (cdata != NULL) {
-                char *data;
-                // for definition see rtp_callbacks.h
-                uint32_t *audio_hdr = (uint32_t *)(void *) cdata->data->data;
-//                const int pt = cdata->data->pt;
+        // we have:
+        // 1) last packet, then we have just set total channels
+        // 2) not last, but the last one was processed at first
+        //		assert(input_channels > 0);
 
-//                if(pt == PT_ENCRYPT_AUDIO) {
-//                        if(!decoder->decrypt) {
-//                                fprintf(stderr, "Receiving encrypted audio data but "
-//                                                "no decryption key entered!\n");
-//                                ret = false; goto cleanup;
-//                        }
-//                } else if(pt == PT_AUDIO) {
-//                        if(decoder->decrypt) {
-//                                fprintf(stderr, "Receiving unencrypted audio data "
-//                                                "while expecting encrypted.\n");
-//                                ret = false; goto cleanup;
-//                        }
-//                } else {
-//                        fprintf(stderr, "Unknown audio packet type: %d\n", pt);
-//                        abort();
-//                }
+        channel = (ntohl(audio_hdr[0]) >> 22) & 0x3ff;
+        //int bufnum = ntohl(audio_hdr[0]) & 0x3fffff;
+        sample_rate = ntohl(audio_hdr[3]) & 0x3fffff;
+        bps = (ntohl(audio_hdr[3]) >> 26) / 8;
+        //uint32_t audio_tag = ntohl(audio_hdr[4]);
 
-                unsigned int length;
-                char plaintext[cdata->data->data_len]; // plaintext will be actually shorter
-//                if(pt == PT_AUDIO) {
-                        length = cdata->data->data_len - sizeof(audio_payload_hdr_t);
-                        data = cdata->data->data + sizeof(audio_payload_hdr_t);
-//                } else {
-//                        assert(pt == PT_ENCRYPT_AUDIO);
-//                        char *ciphertext = cdata->data->data + sizeof(crypto_payload_hdr_t) +
-//                                sizeof(audio_payload_hdr_t);
-//                        int ciphertext_len = cdata->data->data_len - sizeof(audio_payload_hdr_t) -
-//                                sizeof(crypto_payload_hdr_t);
-//
-//                        if((length = openssl_decrypt(decoder->decrypt,
-//                                        ciphertext, ciphertext_len,
-//                                        (char *) audio_hdr, sizeof(audio_payload_hdr_t),
-//                                        plaintext
-//                                        )) == 0) {
-//                                fprintf(stderr, "Warning: Packet dropped AES - wrong CRC!\n");
-//                                ret = false;
-//                                goto cleanup;
-//                        }
-//                        data = plaintext;
-//                }
+        //		output_channels = decoder->channel_remapping ?
+        //			decoder->channel_map.max_output + 1: input_channels;
 
-                /* we receive last channel first (with m bit, last packet) */
-                /* thus can be set only with m-bit packet */
-                if(cdata->data->m) {
-                        input_channels = ((ntohl(audio_hdr[0]) >> 22) & 0x3ff) + 1;
-                }
-
-                // we have:
-                // 1) last packet, then we have just set total channels
-                // 2) not last, but the last one was processed at first
-                assert(input_channels > 0);
-
-                channel = (ntohl(audio_hdr[0]) >> 22) & 0x3ff;
-                int bufnum = ntohl(audio_hdr[0]) & 0x3fffff;
-                sample_rate = ntohl(audio_hdr[3]) & 0x3fffff;
-                bps = (ntohl(audio_hdr[3]) >> 26) / 8;
-                uint32_t audio_tag = ntohl(audio_hdr[4]);
-                
-                output_channels = decoder->channel_remapping ?
-                        decoder->channel_map.max_output + 1: input_channels;
-
-                /*
-                 * Reconfiguration
-                 *
-                 * @todo obtain supported rates from device
-                 */
-//                int device_sample_rate = 48000;
-//                int device_bps = 2;
-//                if(decoder->saved_desc.ch_count != input_channels ||
-//                                decoder->saved_desc.bps != bps ||
-//                                decoder->saved_desc.sample_rate != sample_rate ||
-//                                decoder->saved_audio_tag != audio_tag) {
-//                        if(device_sample_rate == sample_rate) // no resampling
-//                                device_bps = bps;
-//
-//                        printf("New incoming audio format detected: %d Hz, %d channels, %d bits per sample, codec %s\n",
-//                                        sample_rate, input_channels, bps * 8,
-//                                        get_name_to_audio_codec(get_audio_codec_to_tag(audio_tag)));
-//
-//
-//                        s->buffer.bps = device_bps;
-//                        s->buffer.ch_count = output_channels;
-//                        s->buffer.sample_rate = device_sample_rate;
-//
-//                        if(!decoder->fixed_scale) {
-//                                free(decoder->scale);
-//                                decoder->scale = (struct scale_data *) malloc(output_channels * sizeof(struct scale_data));
-//
-//                                for(int i = 0; i < output_channels; ++i) {
-//                                        decoder->scale[i].samples = 0;
-//                                        decoder->scale[i].vol_avg = 1.0;
-//                                        decoder->scale[i].scale = 1.0;
-//                                }
-//                        }
-//                        decoder->saved_desc.ch_count = input_channels;
-//                        decoder->saved_desc.bps = bps;
-//                        decoder->saved_desc.sample_rate = sample_rate;
-//                        decoder->saved_audio_tag = audio_tag;
-//                        packet_counter_destroy(decoder->packet_counter);
-//                        decoder->packet_counter = packet_counter_init(input_channels);
-//
-//                        audio_frame2_allocate(decoder->received_frame, input_channels, sample_rate * bps/* 1 sec */); 
-//                        decoder->received_frame->bps = bps;
-//                        decoder->received_frame->sample_rate = sample_rate;
-//                        audio_codec_t audio_codec = get_audio_codec_to_tag(audio_tag);
-//                        decoder->received_frame->codec = audio_codec;
-//                        decoder->audio_decompress = audio_codec_reconfigure(decoder->audio_decompress, audio_codec, AUDIO_DECODER);
-//                        if(!decoder->audio_decompress) {
-//                                fprintf(stderr, "Unable to create audio decompress!\n");
-//                                exit_uv(1);
-//                                return FALSE;
-//                        }
-//                }
-
-                unsigned int offset = ntohl(audio_hdr[1]);
-                unsigned int buffer_len = ntohl(audio_hdr[2]);
-                //fprintf(stderr, "%d-%d-%d ", length, bufnum, channel);
-
-
-                if(offset + length <= decoder->received_frame->max_size) {
-                        memcpy(decoder->received_frame->data[channel] + offset, data, length);
-                } else { /* discarding data - buffer to small */
-                        if(++prints % 100 == 0)
-                                fprintf(stdout, "Warning: "
-                                                "discarding audio data "
-                                                "- buffer too small\n");
-                }
-
-                packet_counter_register_packet(decoder->packet_counter, channel, bufnum, offset, length);
-
-                /* buffer size same for every packet of the frame */
-                if(buffer_len <= decoder->received_frame->max_size) {
-                        decoder->received_frame->data_len[channel] = buffer_len;
-                } else { /* overflow */
-                        decoder->received_frame->data_len[channel] =
-                                decoder->received_frame->max_size;
-                }
-                
-                cdata = cdata->nxt;
+        /*
+         * Reconfiguration
+         *
+         * @todo obtain supported rates from device
+         */
+        if(frame.ch_count != input_channels || frame.bps != bps || frame.sample_rate != sample_rate) {
+            //                int device_sample_rate = 48000;
+            //                int device_bps = 2;
+            //                if(decoder->saved_desc.ch_count != input_channels ||
+            //                                decoder->saved_desc.bps != bps ||
+            //                                decoder->saved_desc.sample_rate != sample_rate ||
+            //                                decoder->saved_audio_tag != audio_tag) {
+            //                        if(device_sample_rate == sample_rate) // no resampling
+            //                                device_bps = bps;
+            //
+            //                        printf("New incoming audio format detected: %d Hz, %d channels, %d bits per sample, codec %s\n",
+            //                                        sample_rate, input_channels, bps * 8,
+            //                                        get_name_to_audio_codec(get_audio_codec_to_tag(audio_tag)));
+            //
+            //
+            //                        s->buffer.bps = device_bps;
+            //                        s->buffer.ch_count = output_channels;
+            //                        s->buffer.sample_rate = device_sample_rate;
+            //
+            //                        if(!decoder->fixed_scale) {
+            //                                free(decoder->scale);
+            //                                decoder->scale = (struct scale_data *) malloc(output_channels * sizeof(struct scale_data));
+            //
+            //                                for(int i = 0; i < output_channels; ++i) {
+            //                                        decoder->scale[i].samples = 0;
+            //                                        decoder->scale[i].vol_avg = 1.0;
+            //                                        decoder->scale[i].scale = 1.0;
+            //                                }
+            //                        }
+            //                        decoder->saved_desc.ch_count = input_channels;
+            //                        decoder->saved_desc.bps = bps;
+            //                        decoder->saved_desc.sample_rate = sample_rate;
+            //                        decoder->saved_audio_tag = audio_tag;
+            //                        packet_counter_destroy(decoder->packet_counter);
+            //                        decoder->packet_counter = packet_counter_init(input_channels);
+            //
+            audio_simple_frame_allocate(frame, input_channels, sample_rate * bps/* 1 sec */); 
+            frame->bps = bps;
+            frame->sample_rate = sample_rate;
+            //                        audio_codec_t audio_codec = get_audio_codec_to_tag(audio_tag);
+            //                        decoder->received_frame->codec = audio_codec;
+            //                        decoder->audio_decompress = audio_codec_reconfigure(decoder->audio_decompress, audio_codec, AUDIO_DECODER);
+            //                        if(!decoder->audio_decompress) {
+            //                                fprintf(stderr, "Unable to create audio decompress!\n");
+            //                                exit_uv(1);
+            //                                return FALSE;
+            //                        }
         }
 
-//        audio_frame2 *decompressed = audio_codec_decompress(decoder->audio_decompress, decoder->received_frame);
-//        if(!decompressed) {
-//                ret = false;
-//                goto cleanup;
-//        }
-//
-//        audio_frame2 *resampled = resampler_resample(decoder->resampler, decompressed);
-//
-//        s->buffer.data_len = resampled->data_len[0] * output_channels;
-//        if((int) s->buffer.max_size < s->buffer.data_len) {
-//                free(s->buffer.data);
-//                s->buffer.max_size = s->buffer.data_len;
-//                s->buffer.data = (char *) malloc(s->buffer.max_size);
-//        }
-//
-//        memset(s->buffer.data, 0, s->buffer.data_len);
-//
-//        // there is a mapping for channel
-//        for(int channel = 0; channel < resampled->ch_count; ++channel) {
-//                if(decoder->channel_remapping) {
-//                        if(channel < decoder->channel_map.size) {
-//                                for(int i = 0; i < decoder->channel_map.sizes[channel]; ++i) {
-//                                        mux_and_mix_channel(s->buffer.data, resampled->data[channel],
-//                                                        resampled->bps, resampled->data_len[channel],
-//                                                        output_channels, decoder->channel_map.map[channel][i],
-//                                                        decoder->scale[decoder->fixed_scale ? 0 :
-//                                                        decoder->channel_map.map[channel][i]].scale);
-//                                }
-//                        }
-//                } else {
-//                        mux_and_mix_channel(s->buffer.data, resampled->data[channel], resampled->bps,
-//                                        resampled->data_len[channel], output_channels, channel,
-//                                        decoder->scale[decoder->fixed_scale ? 0 : input_channels].scale);
-//                }
-//        }
-//
-//        decoder->samples_decoded += decompressed->data_len[0] / decompressed->bps;
-//
-//        double seconds;
-//        struct timeval t;
-//
-//        gettimeofday(&t, 0);
-//        seconds = tv_diff(t, decoder->t0);
-//        if(seconds > 5.0) {
-//                int bytes_received = packet_counter_get_total_bytes(decoder->packet_counter);
-//                fprintf(stderr, "[Audio decoder] Received %u bytes (expected %dB), decoded %d samples in last %f seconds.\n",
-//                                bytes_received,
-//                                packet_counter_get_all_bytes(decoder->packet_counter),
-//                                decoder->samples_decoded,
-//                                seconds);
-//                decoder->t0 = t;
-//                packet_counter_clear(decoder->packet_counter);
-//                decoder->samples_decoded = 0;
-//        }
-//
-//        if(!decoder->fixed_scale) {
-//                for(int i = 0; i <= decoder->channel_map.max_output; ++i) {
-//                        double avg = get_avg_volume(s->buffer.data, bps,
-//                                        s->buffer.data_len / output_channels, output_channels, i);
-//                        compute_scale(&decoder->scale[i], avg,
-//                                        s->buffer.data_len / output_channels / bps, sample_rate);
-//                }
-//        }
-        
+        unsigned int offset = ntohl(audio_hdr[1]);
+        unsigned int buffer_len = ntohl(audio_hdr[2]);
+        //fprintf(stderr, "%d-%d-%d ", length, bufnum, channel);
+
+        if(offset + length <= frame->max_size) {
+            memcpy(frame->data[channel] + offset, data, length);
+        }
+        //		else { /* discarding data - buffer to small */
+        //			if(++prints % 100 == 0)
+        //				fprintf(stdout, "Warning: "
+        //						"discarding audio data "
+        //						"- buffer too small\n");
+        //		}
+
+        //		packet_counter_register_packet(decoder->packet_counter, channel, bufnum, offset, length);
+
+        /* buffer size same for every packet of the frame */
+        if(buffer_len <= frame->max_size) {
+            frame->data_len[channel] = buffer_len;
+        } else { /* overflow */
+            frame->data_len[channel] = frame->max_size;
+        }
+
+        cdata = cdata->nxt;
+        }
+
+        // End with a complete frame.
+        data = frame;
+        //        audio_frame2 *decompressed = audio_codec_decompress(decoder->audio_decompress, decoder->received_frame);
+        //        if(!decompressed) {
+        //                ret = false;
+        //                goto cleanup;
+        //        }
+        //
+        //        audio_frame2 *resampled = resampler_resample(decoder->resampler, decompressed);
+        //
+        //        s->buffer.data_len = resampled->data_len[0] * output_channels;
+        //        if((int) s->buffer.max_size < s->buffer.data_len) {
+        //                free(s->buffer.data);
+        //                s->buffer.max_size = s->buffer.data_len;
+        //                s->buffer.data = (char *) malloc(s->buffer.max_size);
+        //        }
+        //
+        //        memset(s->buffer.data, 0, s->buffer.data_len);
+        //
+        //        // there is a mapping for channel
+        //        for(int channel = 0; channel < resampled->ch_count; ++channel) {
+        //                if(decoder->channel_remapping) {
+        //                        if(channel < decoder->channel_map.size) {
+        //                                for(int i = 0; i < decoder->channel_map.sizes[channel]; ++i) {
+        //                                        mux_and_mix_channel(s->buffer.data, resampled->data[channel],
+        //                                                        resampled->bps, resampled->data_len[channel],
+        //                                                        output_channels, decoder->channel_map.map[channel][i],
+        //                                                        decoder->scale[decoder->fixed_scale ? 0 :
+        //                                                        decoder->channel_map.map[channel][i]].scale);
+        //                                }
+        //                        }
+        //                } else {
+        //                        mux_and_mix_channel(s->buffer.data, resampled->data[channel], resampled->bps,
+        //                                        resampled->data_len[channel], output_channels, channel,
+        //                                        decoder->scale[decoder->fixed_scale ? 0 : input_channels].scale);
+        //                }
+        //        }
+        //
+        //        decoder->samples_decoded += decompressed->data_len[0] / decompressed->bps;
+        //
+        //        double seconds;
+        //        struct timeval t;
+        //
+        //        gettimeofday(&t, 0);
+        //        seconds = tv_diff(t, decoder->t0);
+        //        if(seconds > 5.0) {
+        //                int bytes_received = packet_counter_get_total_bytes(decoder->packet_counter);
+        //                fprintf(stderr, "[Audio decoder] Received %u bytes (expected %dB), decoded %d samples in last %f seconds.\n",
+        //                                bytes_received,
+        //                                packet_counter_get_all_bytes(decoder->packet_counter),
+        //                                decoder->samples_decoded,
+        //                                seconds);
+        //                decoder->t0 = t;
+        //                packet_counter_clear(decoder->packet_counter);
+        //                decoder->samples_decoded = 0;
+        //        }
+        //
+        //        if(!decoder->fixed_scale) {
+        //                for(int i = 0; i <= decoder->channel_map.max_output; ++i) {
+        //                        double avg = get_avg_volume(s->buffer.data, bps,
+        //                                        s->buffer.data_len / output_channels, output_channels, i);
+        //                        compute_scale(&decoder->scale[i], avg,
+        //                                        s->buffer.data_len / output_channels / bps, sample_rate);
+        //                }
+        //        }
+
 cleanup:
 
         return ret;
-}
+    }
 
