@@ -267,10 +267,14 @@ void *transmitter_master_routine(void *arg)
         while (ptc != NULL) {
             if (ptc->proc.encoder != NULL) { // -> has a pair of threads
                 if (ptc->new_frame) { // -> has new data
-                    pthread_mutex_lock(&ptc->lock);
-                    ptc->new_frame = 0;
+                    /* NOTE: following lines commented. If the new_frame
+                       flag is not set to zero again, the output threads
+                       will send any frame available when they check the
+                       input buffer */
+                    //pthread_mutex_lock(&ptc->lock);
+                    //ptc->new_frame = 0;
+                    //pthread_mutex_unlock(&ptc->lock);
                     sem_post(&ptc->proc.encoder->input_sem);
-                    pthread_mutex_unlock(&ptc->lock);
                 }
             } else {
                 transmitter_init_threads(ptc);

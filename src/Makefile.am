@@ -6,8 +6,8 @@ AM_CXXFLAGS = -O2 -g -DHAVE_CONFIG_H -g -fPIC -Wno-multichar -Wno-deprecated -ms
 
 
 librtp_la_LDFLAGS = -version-info 0:1:0 -lrt -ldl -lieee -lm -lcrypto
-librtp_la_CFLAGS = $(AM_CFLAGS) -I. -Irtp -Icompat -Icrypto
-librtp_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Irtp -Icompat -Icrypto
+librtp_la_CFLAGS = $(AM_CFLAGS) -I. -Irtp -Iutils -Icompat -Icrypto
+librtp_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Irtp -Iutils -Icompat -Icrypto
 librtp_la_SOURCES = rtp/net_udp.c \
 					rtp/pbuf.c \
 					rtp/ptime.c \
@@ -39,7 +39,8 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					utils/list.c \
 					transmit.c \
 					module.c \
-					messaging.cpp
+					messaging.cpp \
+					utils/h264_stream.c
 
 libvcompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut -lGLU
 libvcompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_compress -Iutils -Icompat -I.. -I../dxt_compress
@@ -101,6 +102,8 @@ nobase_uginclude_HEADERS =	./tfrc.h \
 							./utils/resource_manager.h \
 							./utils/lock_guard.h \
 							./utils/list.h \
+							./utils/h264_stream.h \
+							./utils/bs.h \
 							./ntp.h \
 							./config.h \
 							./perf.h \
