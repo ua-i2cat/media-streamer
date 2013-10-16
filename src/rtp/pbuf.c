@@ -149,6 +149,7 @@ static void pbuf_validate(struct pbuf *playout_buf)
 #endif
 }
 
+
 struct pbuf *pbuf_init(void)
 {
         struct pbuf *playout_buf = NULL;
@@ -168,68 +169,73 @@ struct pbuf *pbuf_init(void)
         return playout_buf;
 }
 
+//TODO: move this function to somewhere else
+
+int mod (int a, int b)
+{
+   if(b < 0) //you can check for b == 0 separately and do what you want
+     return mod(-a, -b);   
+   int ret = a % b;
+   if(ret < 0)
+     ret+=b;
+   return ret;
+}
+
 static void add_coded_unit(struct pbuf_node *node, rtp_packet * pkt)
 {
-        /* Add "pkt" to the frame represented by "node". The "node" has    */
-        /* previously been created, and has some coded data already...     */
+    /* Add "pkt" to the frame represented by "node". The "node" has    */
+    /* previously been created, and has some coded data already...     */
 
-        /* New arrivals are added at the head of the list, which is stored */
-        /* in descending order of packets as they arrive (NOT necessarily  */
-        /* descending sequence number order, as the network might reorder) */
+    /* New arrivals are added at the head of the list, which is stored */
+    /* in descending order of packets as they arrive (NOT necessarily  */
+    /* descending sequence number order, as the network might reorder) */
 
-        struct coded_data *tmp, *curr, *prv, *aux;
+    struct coded_data *tmp, *curr, *aux, *prv;
 
-        assert(node->rtp_timestamp == pkt->ts);
-        assert(node->cdata != NULL);
+    assert(node->rtp_timestamp == pkt->ts);
+    assert(node->cdata != NULL);
 
-        tmp = malloc(sizeof(struct coded_data));
-        if (tmp != NULL) {
-			tmp->seqno = pkt->seq;
-            tmp->data = pkt;
-			node->mbit |= pkt->m;
-			if (node->cdata->seqno < pkt->seq){
-                tmp->prv = NULL;
-                tmp->nxt = node->cdata;
-                node->cdata->prv = tmp;
-                node->cdata = tmp;
-			} else {
-				curr = node->cdata;
-                if (curr != NULL){
-					while (curr != NULL && (curr->seqno > pkt->seq)){
-                        prv = curr;
-						curr = curr->nxt;
-					}
-                    if (curr == NULL) {
-                        tmp->nxt = NULL;
-                        tmp->prv = prv;
-                        prv->nxt = tmp;
-                    }else if (curr->seqno < pkt->seq){
-                        tmp->nxt = curr;
-                        tmp->prv = curr->prv;
-                        tmp->prv->nxt = tmp;
-                        curr->prv = tmp;
-					} else {
-						/* this is bad, something went terribly wrong... */
-						free(pkt);
-						free_cdata(tmp);
-					}
-				} else {
-					 /* this is bad, out of memory, drop the packet... */
-					free(pkt);
-					free_cdata(tmp);
-				}
-
-                aux = node->cdata;
-                while(aux != NULL){
-                    printf("curr->seqno = %u\n", aux->seqno);
-                    aux = aux->nxt;
-                }
-
-			}
+    tmp = malloc(sizeof(struct coded_data));
+    if (tmp == NULL) { 
+        /* this is bad, out of memory, drop the packet... */
+            free(pkt);
+    } else {
+        tmp->seqno = pkt->seq;
+        tmp->data = pkt;
+        node->mbit |= pkt->m;
+        if(mod(tmp->seqno - node->cdata->seqno, RTP_SEQ_MAX) < mod(node->cdata->seqno - tmp->seqno, RTP_SEQ_MAX)){
+            tmp->prv = NULL;
+            tmp->nxt = node->cdata;
+            node->cdata->prv = tmp;
+            node->cdata = tmp;
         } else {
-                /* this is bad, out of memory, drop the packet... */
+            curr = node->cdata;
+            if (curr == NULL){
+                 /* this is bad, out of memory, drop the packet... */
                 free(pkt);
-        }      
+                free_cdata(tmp);
+            } else {
+                while (curr != NULL &&  (mod(tmp->seqno - curr->seqno, RTP_SEQ_MAX) > mod(curr->seqno - tmp->seqno, RTP_SEQ_MAX))){
+                    prv = curr;
+                    curr = curr->nxt;
+                }
+                if (curr->nxt == NULL) {
+                    tmp->nxt = NULL;
+                    tmp->prv = prv;
+                    prv->nxt = tmp;
+                }else if (mod(tmp->seqno - curr->seqno, RTP_SEQ_MAX) < mod(curr->seqno - tmp->seqno, RTP_SEQ_MAX)){
+                    tmp->nxt = curr;
+                    tmp->prv = curr->prv;
+                    tmp->prv->nxt = tmp;
+                    curr->prv = tmp;
+                } else {
+                    /* this is bad, something went terribly wrong... */
+                    free(pkt);
+                    free_cdata(tmp);
+                }
+            }
+        }
+    }
 }
 
 

@@ -71,6 +71,8 @@
 #include "list.h"
 #include "rtp.h"
 
+#define RTP_SEQ_MAX 65536  //2 bytes (defined by the standard)
+
 /* The coded representation of a single frame */
 struct coded_data {
         struct coded_data       *nxt;
