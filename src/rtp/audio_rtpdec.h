@@ -51,22 +51,7 @@
  *
  */
 
-#define MAX_AUDIO_CHANNELS 6     /* Like 5.1 lol */
-
-struct audio_simple_frame
-{
-	int bps;                /* bytes per sample */
-	int sample_rate;
-	char *data[MAX_AUDIO_CHANNELS]; /* data should be at least 4B aligned */
-	int data_len[MAX_AUDIO_CHANNELS];           /* size of useful data in buffer */
-	int ch_count;           /* count of channels */
-	unsigned int max_size;  /* maximal size of data in buffer */
-//	audio_codec_t codec;
-}
-
 struct coded_data;
-
-void audio_simple_frame_allocate(struct audio_simple_frame *, int nr_channels, int max_size);
 
 int decode_audio_frame(struct coded_data *cdata, void *data);
 //void *audio_decoder_init(char *audio_channel_map, const char *audio_scale,

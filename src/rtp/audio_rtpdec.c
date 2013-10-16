@@ -62,16 +62,16 @@
 #include "debug.h"
 #include "perf.h"
 //#include "tv.h"
-//#include "rtp/rtp.h"
+#include "rtp/rtp.h"
 #include "rtp/rtp_callback.h"
 //#include "rtp/ptime.h"
 #include "rtp/pbuf.h"
 #include "rtp/audio_rtpdec.h"
 //#include "rtp/audio_decoders.h"
-//#include "audio/audio.h"
+#include "audio/audio.h"
 //#include "audio/codec.h"
 //#include "audio/resampler.h"
-//#include "audio/utils.h"
+#include "audio/utils.h"
 //#include "crypto/crc.h"
 //#include "crypto/openssl_decrypt.h"
 
@@ -124,24 +124,6 @@
 
 //static int validate_mapping(struct channel_map *map);
 //static void compute_scale(struct scale_data *scale_data, float vol_avg, int samples, int sample_rate);
-
-void audio_simple_frame_allocate(struct audio_simple_frame *frame, int nr_channels, int max_size)
-{
-    assert(nr_channels <= MAX_AUDIO_CHANNELS);
-
-    frame->max_size = max_size;
-    frame->ch_count = nr_channels;
-
-    for(int i = 0; i < MAX_AUDIO_CHANNELS; ++i) {
-        free(frame->data[i]);
-        frame->data[i] = NULL;
-        frame->data_len[i] = 0;
-    }
-
-    for(int i = 0; i < nr_channels; ++i) {
-        frame->data[i] = malloc(max_size);
-    }
-}
 
 //static int validate_mapping(struct channel_map *map)
 //{
@@ -356,7 +338,7 @@ int decode_audio_frame(struct coded_data *cdata, void *data)
 {
     //    struct pbuf_audio_data *s = (struct pbuf_audio_data *) data;
     //    struct state_audio_decoder *decoder = s->decoder;
-    struct audio_simple_frame *frame = (struct audio_simple_frame *) data;
+    audio_frame2 *frame = (audio_frame2 *) data;
 
     int input_channels = 0;
     //	  int output_channels = 0;
@@ -441,7 +423,7 @@ int decode_audio_frame(struct coded_data *cdata, void *data)
          *
          * @todo obtain supported rates from device
          */
-        if(frame.ch_count != input_channels || frame.bps != bps || frame.sample_rate != sample_rate) {
+        if(frame->ch_count != input_channels || frame->bps != bps || frame->sample_rate != sample_rate) {
             //                int device_sample_rate = 48000;
             //                int device_bps = 2;
             //                if(decoder->saved_desc.ch_count != input_channels ||
@@ -477,7 +459,7 @@ int decode_audio_frame(struct coded_data *cdata, void *data)
             //                        packet_counter_destroy(decoder->packet_counter);
             //                        decoder->packet_counter = packet_counter_init(input_channels);
             //
-            audio_simple_frame_allocate(frame, input_channels, sample_rate * bps/* 1 sec */); 
+            audio_frame2_allocate(frame, input_channels, sample_rate * bps/* 1 sec */); 
             frame->bps = bps;
             frame->sample_rate = sample_rate;
             //                        audio_codec_t audio_codec = get_audio_codec_to_tag(audio_tag);

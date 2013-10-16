@@ -52,7 +52,7 @@
 #ifndef TRANSMIT_H_
 #define TRANSMIT_H_
 
-//#include "audio/audio.h"
+#include "audio/audio.h"
 
 struct module;
 struct rtp;
@@ -68,7 +68,7 @@ struct tx *tx_init(struct module *parent, unsigned mtu, enum tx_media_type media
                 char *fec, const char *encryption);
 void		 tx_send_tile(struct tx *tx_session, struct video_frame *frame, int pos, struct rtp *rtp_session);
 void             tx_send(struct tx *tx_session, struct video_frame *frame, struct rtp *rtp_session);
-//void             audio_tx_send(struct tx *tx_session, struct rtp *rtp_session, audio_frame2 *buffer);
+void             audio_tx_send(struct tx *tx_session, struct rtp *rtp_session, audio_frame2 *buffer);
 
 // void tx_init_h264(void);
 // 

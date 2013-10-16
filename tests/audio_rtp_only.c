@@ -20,19 +20,22 @@
 #include "rtp/pbuf.h"
 #include "rtp/rtp_callback.h"
 #include "rtp/audio_rtpdec.h"
-#include "pdb.h"
-#include "tv.h"
+#include "transmit.h"
+#include "audio/audio.h"
+#include "audio/codec.h"
+#include "module.h"
 #include "perf.h"
+#include "tv.h"
+#include "pdb.h"
 
-#define PORT_AUDIO	5004
-
+#define DEFAULT_AUDIO_FEC       "mult:3"
 
 /**************************************
  *     Variables 
  */
 
 static volatile bool stop = false;
-struct audio_simple_frame data_placeholder;
+audio_frame2 data_placeholder;
 
 // Like state_audio (audio/audio.c:105)
 struct thread_data {
@@ -40,6 +43,9 @@ struct thread_data {
     struct rtp *rtp_session;
     struct pdb *participants;
     struct timeval start_time;
+
+    // Sender stuff
+    struct tx *tx_session;
 
     // Thread related stuff
     pthread_t id;
@@ -53,9 +59,7 @@ struct thread_data {
  */
 
 // Prototypes
-int copy_raw_frame(struct coded_data *cdata, void *data);
-extern int audio_pbuf_decode(struct pbuf *playout_buf, struct timeval curr_time,
-        decode_frame_t decode_func, void *data);
+extern int audio_pbuf_decode(struct pbuf *playout_buf, struct timeval curr_time, decode_frame_t decode_func, void *data);
 
 static void usage(void)
 {
@@ -103,9 +107,9 @@ static void *receiver_thread(void *arg)
     uint32_t ts;
     struct pdb_e *cp;
 
-    // Prepare an struct audio_simple_frame to place the decoded frames.
-    struct audio_simple_frame frame;
-    memset(&frame, 0, sizeof(struct audio_simple_frame));
+    // Prepare an audio_frame2 to place the decoded frames.
+    audio_frame2 frame;
+    memset(&frame, 0, sizeof(audio_frame2));
 
     printf(" Receiver started.\n");
     while (!stop) {
@@ -123,15 +127,16 @@ static void *receiver_thread(void *arg)
         cp = pdb_iter_init(d->participants, &it);
         while (cp != NULL) {
             // Get the data on pbuf and decode it on the frame using the callback.
-            if (audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame, frame)) {
+            if (audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame, &frame)) {
                 // Copy data on to the thread shared placeholder.
-                memcpy(&data_placeholder, frame, sizeof(struct audio_simple_frame));
+                memcpy(&data_placeholder, &frame, sizeof(audio_frame2));
             }
             cp = pdb_iter_next(&it);
         }
         pdb_iter_done(&it);
-        //		pthread_mutex_unlock(d->go);
-        //		pthread_mutex_lock(d->wait);
+        // Wait for sender to be ready.
+        pthread_mutex_unlock(d->go);
+        pthread_mutex_lock(d->wait);
     }
     // Finish RTP session and exit.
     rtp_done(d->rtp_session);
@@ -144,22 +149,14 @@ static void *receiver_thread(void *arg)
 static void *sender_thread(void *arg)
 {
     struct thread_data *d = arg;
-    uint32_t timestamp;
-    unsigned int m = 0u;
-    int pt = PT_AUDIO;
-
-    timestamp = get_local_mediatime();
-    perf_record(UVP_SEND, timestamp);
 
     printf(" Sender started.\n");
     while (!stop) {
-        // Send the data away.
-        rtp_send_data(d->rtp_session, timestamp, pt, m,
-                0, 0,
-                data_placeholder, sizeof(char)*256,
-                0, 0, 0);
+        // Wait for receiver to be ready.
         pthread_mutex_unlock(d->go);
         pthread_mutex_lock(d->wait);
+        // Send the data away.
+        audio_tx_send(d->tx_session, d->rtp_session, &data_placeholder);
     }
     // Finish RTP session and exit.
     rtp_done(d->rtp_session);
@@ -251,18 +248,25 @@ int main(int argc, char *argv[])
     receiver_data->participants = receiver_participants;
     receiver_data->wait = &receiver_mutex;
     receiver_data->go = &sender_mutex;
+    receiver_data->tx_session = NULL;
 
-    //	// Sender RTP session stuff
-    //	struct rtp *sender_session;
-    //	struct pdb *sender_participants;
-    //	sender_participants = pdb_init();
-    //	sender_session = init_network(local_host, local_port, local_port, sender_participants, false);
-    //	// Sender thread creation stuff
-    //	struct thread_data *sender_data = calloc(1, sizeof(struct thread_data));
-    //	sender_data->rtp_session = sender_session;
-    //	sender_data->participants = sender_participants;
-    //	sender_data->wait = &sender_mutex;
-    //	sender_data->go = &receiver_mutex;
+    // Sender RTP session stuff
+    struct rtp *sender_session;
+    struct pdb *sender_participants;
+    sender_participants = pdb_init();
+    sender_session = init_network(local_host, local_port, local_port, sender_participants, false);
+    // Sender thread creation stuff
+    struct thread_data *sender_data = calloc(1, sizeof(struct thread_data));
+    sender_data->rtp_session = sender_session;
+    sender_data->participants = sender_participants;
+    sender_data->wait = &sender_mutex;
+    sender_data->go = &receiver_mutex;
+    // Configure the dummiest tx_session.
+    struct module mod;
+    module_init_default(&mod);
+    char *audio_fec = strdup(DEFAULT_AUDIO_FEC);
+    char *encryption = "0";
+    sender_data->tx_session = tx_init(&mod, 1500, TX_MEDIA_AUDIO, audio_fec, encryption);
 
     // Launch them
     gettimeofday(&receiver_data->start_time, NULL);
@@ -270,15 +274,15 @@ int main(int argc, char *argv[])
         printf("Error creating receiver thread.\n");
         exit(-1); // Ugly exit...
     }
-    //	gettimeofday(&sender_data->start_time, NULL);
-    //	if (pthread_create(&sender_data->id, NULL, sender_thread, (void *)sender_data) != 0) {
-    //		printf("Error creating sender thread.\n");
-    //		exit(-1); // Ugly exit...
-    //	}
+    gettimeofday(&sender_data->start_time, NULL);
+    if (pthread_create(&sender_data->id, NULL, sender_thread, (void *)sender_data) != 0) {
+        printf("Error creating sender thread.\n");
+        exit(-1); // Ugly exit...
+    }
 
     // Wait for them
     pthread_join(receiver_data->id, NULL);
-    //	pthread_join(sender_data->id, NULL);
+    pthread_join(sender_data->id, NULL);
     printf("Done!\n");
 
 }

@@ -14,6 +14,7 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					rtp/rtp.c \
 					rtp/rtp_callback.c \
 					rtp/rtpdec.c \
+					rtp/audio_rtpdec.c \
 					crypto/crc_32.c \
 					crypto/crypt_aes.c \
 					crypto/crypt_aes_impl.c \
@@ -22,6 +23,8 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					crypto/openssl_decrypt.c\
 					crypto/openssl_encrypt.c \
 					crypto/random.c \
+                                        audio/utils.c \
+                                        audio/codec.c \
 					tv.c \
 					perf.c \
 					tfrc.c \
@@ -151,7 +154,10 @@ nobase_uginclude_HEADERS =	./tfrc.h \
 							./rtp/rtpdec.h \
 							./rtp/ptime.h \
 							./rtp/rtp.h \
+							./rtp/audio_rtpdec.h \
 							./video_decompress.h \
+                                                        ./audio/audio.h \
+                                                        ./audio/utils.h \
   						    ../dxt_compress/dxt_common.h \
 						    ../dxt_compress/dxt_decoder.h \
 						    ../dxt_compress/dxt_display.h \
