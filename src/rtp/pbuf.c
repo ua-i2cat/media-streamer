@@ -177,7 +177,7 @@ static void add_coded_unit(struct pbuf_node *node, rtp_packet * pkt)
         /* in descending order of packets as they arrive (NOT necessarily  */
         /* descending sequence number order, as the network might reorder) */
 
-        struct coded_data *tmp, *curr;
+        struct coded_data *tmp, *curr, *prv, *aux;
 
         assert(node->rtp_timestamp == pkt->ts);
         assert(node->cdata != NULL);
@@ -193,32 +193,38 @@ static void add_coded_unit(struct pbuf_node *node, rtp_packet * pkt)
                 node->cdata->prv = tmp;
                 node->cdata = tmp;
 			} else {
-				curr = malloc(sizeof(struct coded_data));
-				if (curr != NULL){
-					curr = node->cdata;
-					while (curr->nxt != NULL && curr->seqno > pkt->seq){
+				curr = node->cdata;
+                if (curr != NULL){
+					while (curr != NULL && (curr->seqno > pkt->seq)){
+                        prv = curr;
 						curr = curr->nxt;
 					}
-					if (curr->seqno < pkt->seq){
-						tmp->nxt = curr;
-						tmp->prv = curr->prv;
-						tmp->prv->nxt = tmp;
-						curr->prv = tmp;
-                    } else if (curr->nxt == NULL) {
+                    if (curr == NULL) {
                         tmp->nxt = NULL;
-                        tmp->prv = curr;
-                        curr->nxt = tmp;
+                        tmp->prv = prv;
+                        prv->nxt = tmp;
+                    }else if (curr->seqno < pkt->seq){
+                        tmp->nxt = curr;
+                        tmp->prv = curr->prv;
+                        tmp->prv->nxt = tmp;
+                        curr->prv = tmp;
 					} else {
 						/* this is bad, something went terribly wrong... */
 						free(pkt);
 						free_cdata(tmp);
 					}
-					free_cdata(curr);
 				} else {
 					 /* this is bad, out of memory, drop the packet... */
 					free(pkt);
 					free_cdata(tmp);
 				}
+
+                aux = node->cdata;
+                while(aux != NULL){
+                    printf("curr->seqno = %u\n", aux->seqno);
+                    aux = aux->nxt;
+                }
+
 			}
         } else {
                 /* this is bad, out of memory, drop the packet... */
