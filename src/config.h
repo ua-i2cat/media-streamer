@@ -65,7 +65,7 @@
 /* #undef HAVE_COREAUDIO */
 
 /* Build with OpenSSL support */
-#define HAVE_CRYPTO 1
+/* #define HAVE_CRYPTO 1 */
 
 /* CUDA is present on the system */
 /* #undef HAVE_CUDA */

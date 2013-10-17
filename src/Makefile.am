@@ -161,6 +161,7 @@ nobase_uginclude_HEADERS =	./tfrc.h \
 							./video_decompress.h \
                                                         ./audio/audio.h \
                                                         ./audio/utils.h \
+                                                        ./audio/codec.h \
   						    ../dxt_compress/dxt_common.h \
 						    ../dxt_compress/dxt_decoder.h \
 						    ../dxt_compress/dxt_display.h \

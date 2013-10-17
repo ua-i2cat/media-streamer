@@ -75,26 +75,26 @@ typedef enum {
 
 //struct state_audio;
 
-//struct audio_desc {
-//        int bps;                /* bytes per sample */
-//        int sample_rate;
-//        int ch_count;		/* count of channels */
-//        audio_codec_t codec;
-//};
+struct audio_desc {
+    int bps;                /* bytes per sample */
+    int sample_rate;
+    int ch_count;		/* count of channels */
+    audio_codec_t codec;
+};
 
 /**
  * @deprecated use audio_frame2 instead
  */
-//typedef struct audio_frame
-//{
-//        int bps;                /* bytes per sample */
-//        int sample_rate;
-//        char *data; /* data should be at least 4B aligned */
-//        int data_len;           /* size of useful data in buffer */
-//        int ch_count;		/* count of channels */
-//        unsigned int max_size;  /* maximal size of data in buffer */
-//}
-//audio_frame;
+typedef struct audio_frame
+{
+    int bps;                /* bytes per sample */
+    int sample_rate;
+    char *data; /* data should be at least 4B aligned */
+    int data_len;           /* size of useful data in buffer */
+    int ch_count;		/* count of channels */
+    unsigned int max_size;  /* maximal size of data in buffer */
+}
+audio_frame;
 
 typedef struct
 {
