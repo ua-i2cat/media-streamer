@@ -350,9 +350,6 @@
 /* We use RT priority */
 /* #undef USE_RT */
 
-/* Version number of package */
-#define VERSION "1.1"
-
 /* Specifies ABI version for video capture devices */
 #define VIDEO_CAPTURE_ABI_VERSION 3
 

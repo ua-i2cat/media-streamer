@@ -282,6 +282,7 @@ void set_active_participant(participant_data_t *participant, uint8_t active) {
 	
 	if (active == FALSE){
 		participant->active = active;
+    participant->new_frame = FALSE;
 	} else if (participant->active == FALSE) {
 		participant->active = I_AWAIT;
 	}

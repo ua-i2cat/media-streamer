@@ -149,6 +149,7 @@ static void pbuf_validate(struct pbuf *playout_buf)
 #endif
 }
 
+
 struct pbuf *pbuf_init(void)
 {
         struct pbuf *playout_buf = NULL;
@@ -168,62 +169,74 @@ struct pbuf *pbuf_init(void)
         return playout_buf;
 }
 
+//TODO: move this function to somewhere else
+
+int mod (int a, int b)
+{
+   if(b < 0) //you can check for b == 0 separately and do what you want
+     return mod(-a, -b);   
+   int ret = a % b;
+   if(ret < 0)
+     ret+=b;
+   return ret;
+}
+
 static void add_coded_unit(struct pbuf_node *node, rtp_packet * pkt)
 {
-        /* Add "pkt" to the frame represented by "node". The "node" has    */
-        /* previously been created, and has some coded data already...     */
+    /* Add "pkt" to the frame represented by "node". The "node" has    */
+    /* previously been created, and has some coded data already...     */
 
-        /* New arrivals are added at the head of the list, which is stored */
-        /* in descending order of packets as they arrive (NOT necessarily  */
-        /* descending sequence number order, as the network might reorder) */
+    /* New arrivals are added at the head of the list, which is stored */
+    /* in descending order of packets as they arrive (NOT necessarily  */
+    /* descending sequence number order, as the network might reorder) */
 
-        struct coded_data *tmp, *curr;
+    struct coded_data *tmp, *curr, *aux, *prv;
 
-        assert(node->rtp_timestamp == pkt->ts);
-        assert(node->cdata != NULL);
+    assert(node->rtp_timestamp == pkt->ts);
+    assert(node->cdata != NULL);
 
-        tmp = malloc(sizeof(struct coded_data));
-        if (tmp != NULL) {
-			tmp->seqno = pkt->seq;
-            tmp->data = pkt;
-			node->mbit |= pkt->m;
-			if (node->cdata->seqno < pkt->seq){
-                tmp->prv = NULL;
-                tmp->nxt = node->cdata;
-                node->cdata->prv = tmp;
-                node->cdata = tmp;
-			} else {
-				curr = malloc(sizeof(struct coded_data));
-				if (curr != NULL){
-					curr = node->cdata;
-					while (curr->nxt != NULL && curr->seqno > pkt->seq){
-						curr = curr->nxt;
-					}
-					if (curr->seqno < pkt->seq){
-						tmp->nxt = curr;
-						tmp->prv = curr->prv;
-						tmp->prv->nxt = tmp;
-						curr->prv = tmp;
-                    } else if (curr->nxt == NULL) {
-                        tmp->nxt = NULL;
-                        tmp->prv = curr;
-                        curr->nxt = tmp;
-					} else {
-						/* this is bad, something went terribly wrong... */
-						free(pkt);
-						free_cdata(tmp);
-					}
-					free_cdata(curr);
-				} else {
-					 /* this is bad, out of memory, drop the packet... */
-					free(pkt);
-					free_cdata(tmp);
-				}
-			}
+    tmp = malloc(sizeof(struct coded_data));
+    if (tmp == NULL) { 
+        /* this is bad, out of memory, drop the packet... */
+        free(pkt);
+        return;
+    }
+    
+    tmp->seqno = pkt->seq;
+    tmp->data = pkt;
+    node->mbit |= pkt->m;
+    if((int16_t)(tmp->seqno - node->cdata->seqno) > 0){
+        tmp->prv = NULL;
+        tmp->nxt = node->cdata;
+        node->cdata->prv = tmp;
+        node->cdata = tmp;
+    } else {
+        curr = node->cdata;
+        if (curr == NULL){
+             /* this is bad, out of memory, drop the packet... */
+            free(pkt);
+            free_cdata(tmp);
         } else {
-                /* this is bad, out of memory, drop the packet... */
+            while (curr != NULL &&  ((int16_t)(tmp->seqno - curr->seqno) < 0)){
+                prv = curr;
+                curr = curr->nxt;
+            }
+            if (curr == NULL) {
+                tmp->nxt = NULL;
+                tmp->prv = prv;
+                prv->nxt = tmp;
+            }else if ((int16_t)(tmp->seqno - curr->seqno) > 0){
+                tmp->nxt = curr;
+                tmp->prv = curr->prv;
+                tmp->prv->nxt = tmp;
+                curr->prv = tmp;
+            } else {
+                /* this is bad, something went terribly wrong... */
                 free(pkt);
-        }      
+                free_cdata(tmp);
+            }
+        }
+    }  
 }
 
 
@@ -236,29 +249,29 @@ static struct pbuf_node *create_new_pnode(rtp_packet * pkt, double playout_delay
 
         tmp = malloc(sizeof(struct pbuf_node));
         if (tmp != NULL) {
-                tmp->magic = PBUF_MAGIC;
-                tmp->nxt = NULL;
-                tmp->prv = NULL;
-                tmp->decoded = 0;
-                tmp->rtp_timestamp = pkt->ts;
-                tmp->mbit = pkt->m;
-                gettimeofday(&(tmp->arrival_time), NULL);
-                gettimeofday(&(tmp->playout_time), NULL);
-                tmp->deletion_time = tmp->playout_time;
-                tv_add(&(tmp->playout_time), playout_delay);
-                tv_add(&(tmp->deletion_time), deletion_delay);
+            tmp->magic = PBUF_MAGIC;
+            tmp->nxt = NULL;
+            tmp->prv = NULL;
+            tmp->decoded = 0;
+            tmp->rtp_timestamp = pkt->ts;
+            tmp->mbit = pkt->m;
+            gettimeofday(&(tmp->arrival_time), NULL);
+            gettimeofday(&(tmp->playout_time), NULL);
+            tmp->deletion_time = tmp->playout_time;
+            tv_add(&(tmp->playout_time), playout_delay);
+            tv_add(&(tmp->deletion_time), deletion_delay);
 
-                tmp->cdata = malloc(sizeof(struct coded_data));
-                if (tmp->cdata != NULL) {
-                        tmp->cdata->nxt = NULL;
-                        tmp->cdata->prv = NULL;
-                        tmp->cdata->seqno = pkt->seq;
-                        tmp->cdata->data = pkt;
-                } else {
-                        free(pkt);
-                        free(tmp);
-                        return NULL;
-                }
+            tmp->cdata = malloc(sizeof(struct coded_data));
+            if (tmp->cdata != NULL) {
+                    tmp->cdata->nxt = NULL;
+                    tmp->cdata->prv = NULL;
+                    tmp->cdata->seqno = pkt->seq;
+                    tmp->cdata->data = pkt;
+            } else {
+                    free(pkt);
+                    free(tmp);
+                    return NULL;
+            }
         } else {
                 free(pkt);
         }
