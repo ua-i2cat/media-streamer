@@ -35,7 +35,7 @@
  */
 
 static volatile bool stop = false;
-audio_frame2 data_placeholder;
+audio_frame2 *shared_frame;
 
 // Like state_audio (audio/audio.c:105)
 struct thread_data {
@@ -129,8 +129,12 @@ static void *receiver_thread(void *arg)
         while (cp != NULL) {
             // Get the data on pbuf and decode it on the frame using the callback.
             if (audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame, &pbuf_data)) {
-                // Copy data on to the thread shared placeholder.
-                //memcpy(&data_placeholder, &frame, sizeof(audio_frame2));
+                // Point shared_frame to the received frame.
+                shared_frame = get_audio_frame2_pointer(pbuf_data.decoder);
+            }
+            else {
+                // Stop sharing the old frame.
+                shared_frame = (audio_frame2 *)NULL;
             }
             pbuf_remove(cp->playout_buffer, curr_time);
             cp = pdb_iter_next(&it);
@@ -160,8 +164,10 @@ static void *sender_thread(void *arg)
         // Wait for receiver to be ready.
         pthread_mutex_unlock(d->go);
         pthread_mutex_lock(d->wait);
-        // Send the data away.
-        audio_tx_send(d->tx_session, d->rtp_session, &data_placeholder);
+        // Send the data away only if its a fresh frame.
+        if (shared_frame != (audio_frame2 *)NULL) {
+            audio_tx_send(d->tx_session, d->rtp_session, shared_frame);
+        }
     }
     // Finish RTP session and exit.
     rtp_done(d->rtp_session);

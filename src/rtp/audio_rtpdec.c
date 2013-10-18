@@ -61,7 +61,7 @@
 
 #include "debug.h"
 #include "perf.h"
-//#include "tv.h"
+#include "tv.h"
 #include "rtp/rtp.h"
 #include "rtp/rtp_callback.h"
 //#include "rtp/ptime.h"
@@ -190,7 +190,7 @@ void *audio_decoder_init(char *audio_channel_map, const char *audio_scale, const
     s->received_frame = audio_frame2_init();
     s->audio_decompress = NULL;
 
-    s->resampler = resampler_init(48000);
+    //s->resampler = resampler_init(48000);
 
     if(encryption) {
 #ifdef HAVE_CRYPTO
@@ -329,7 +329,7 @@ void audio_decoder_destroy(void *state)
     audio_codec_done(s->audio_decompress);
     //resampler_done(s->resampler);
 
-    openssl_decrypt_destroy(s->decrypt);
+    //openssl_decrypt_destroy(s->decrypt);
 
     free(s);
 }
@@ -374,28 +374,28 @@ int decode_audio_frame(struct coded_data *cdata, void *data)
         }
 
         unsigned int length;
-        char plaintext[cdata->data->data_len]; // plaintext will be actually shorter
-        if(pt == PT_AUDIO) {
+//        char plaintext[cdata->data->data_len]; // plaintext will be actually shorter
+//        if(pt == PT_AUDIO) {
             length = cdata->data->data_len - sizeof(audio_payload_hdr_t);
             data = cdata->data->data + sizeof(audio_payload_hdr_t);
-        } else {
-            assert(pt == PT_ENCRYPT_AUDIO);
-            char *ciphertext = cdata->data->data + sizeof(crypto_payload_hdr_t) +
-                sizeof(audio_payload_hdr_t);
-            int ciphertext_len = cdata->data->data_len - sizeof(audio_payload_hdr_t) -
-                sizeof(crypto_payload_hdr_t);
-
-            if((length = openssl_decrypt(decoder->decrypt,
-                            ciphertext, ciphertext_len,
-                            (char *) audio_hdr, sizeof(audio_payload_hdr_t),
-                            plaintext
-                            )) == 0) {
-                fprintf(stderr, "Warning: Packet dropped AES - wrong CRC!\n");
-                ret = false;
-                goto cleanup;
-            }
-            data = plaintext;
-        }
+//        } else {
+//            assert(pt == PT_ENCRYPT_AUDIO);
+//            char *ciphertext = cdata->data->data + sizeof(crypto_payload_hdr_t) +
+//                sizeof(audio_payload_hdr_t);
+//            int ciphertext_len = cdata->data->data_len - sizeof(audio_payload_hdr_t) -
+//                sizeof(crypto_payload_hdr_t);
+//
+//            if((length = openssl_decrypt(decoder->decrypt,
+//                            ciphertext, ciphertext_len,
+//                            (char *) audio_hdr, sizeof(audio_payload_hdr_t),
+//                            plaintext
+//                            )) == 0) {
+//                fprintf(stderr, "Warning: Packet dropped AES - wrong CRC!\n");
+//                ret = false;
+//                goto cleanup;
+//            }
+//            data = plaintext;
+//        }
 
         /* we receive last channel first (with m bit, last packet) */
         /* thus can be set only with m-bit packet */
@@ -409,7 +409,7 @@ int decode_audio_frame(struct coded_data *cdata, void *data)
         assert(input_channels > 0);
 
         channel = (ntohl(audio_hdr[0]) >> 22) & 0x3ff;
-        int bufnum = ntohl(audio_hdr[0]) & 0x3fffff;
+        //int bufnum = ntohl(audio_hdr[0]) & 0x3fffff;
         sample_rate = ntohl(audio_hdr[3]) & 0x3fffff;
         bps = (ntohl(audio_hdr[3]) >> 26) / 8;
         uint32_t audio_tag = ntohl(audio_hdr[4]);
@@ -535,11 +535,11 @@ int decode_audio_frame(struct coded_data *cdata, void *data)
 
     //    decoder->samples_decoded += decompressed->data_len[0] / decompressed->bps;
 
-    double seconds;
-    struct timeval t;
+    //double seconds;
+    //struct timeval t;
 
-    gettimeofday(&t, 0);
-    seconds = tv_diff(t, decoder->t0);
+    //gettimeofday(&t, 0);
+    //seconds = tv_diff(t, decoder->t0);
     //    if(seconds > 5.0) {
     //        int bytes_received = packet_counter_get_total_bytes(decoder->packet_counter);
     //        fprintf(stderr, "[Audio decoder] Received %u bytes (expected %dB), decoded %d samples in last %f seconds.\n",
@@ -564,5 +564,11 @@ int decode_audio_frame(struct coded_data *cdata, void *data)
 cleanup:
 
     return ret;
+}
+
+// Accessor to get the audio_frame2 in the local struct state_audio_decoder.
+audio_frame2 *get_audio_frame2_pointer(struct state_audio_decoder *s)
+{
+    return s->received_frame;
 }
 

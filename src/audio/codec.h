@@ -82,7 +82,7 @@ extern "C" {
     extern audio_codec_info_t audio_codec_info[];
     extern int audio_codec_info_len;
 
-    //struct audio_codec_state;
+    struct audio_codec_state;
 
     //struct audio_codec_state *audio_codec_init(audio_codec_t audio_codec, audio_codec_direction_t);
     //struct audio_codec_state *audio_codec_reconfigure(struct audio_codec_state *old,
@@ -90,7 +90,7 @@ extern "C" {
     //audio_frame2 *audio_codec_compress(struct audio_codec_state *, audio_frame2 *);
     //audio_frame2 *audio_codec_decompress(struct audio_codec_state *, audio_frame2 *);
     //const int *audio_codec_get_supported_bps(struct audio_codec_state *);
-    //void audio_codec_done(struct audio_codec_state *);
+    void audio_codec_done(struct audio_codec_state *);
 
     //void list_audio_codecs(void);
 
