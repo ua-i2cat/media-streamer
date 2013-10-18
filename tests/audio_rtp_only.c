@@ -1,11 +1,11 @@
 /*
  *
- * Main program to retransmit audio using only RTP to RTP.
+ * Test program to retransmit audio using only RTP to RTP.
  * Based on UltraGrid code.
  *
  * It creates two different RTP sessions managed by two different threads.
- * Each packet that arrives at the receiver RTP session is copied to the
- * sender RTP session, it is send away. 
+ * Each packet processed on the receiver thread RTP session is pointed by a global shared object.
+ * Using this the sender thread sends it throught its RTP session.
  *
  * By Txor <jordi.casas@i2cat.net>
  *
@@ -30,14 +30,17 @@
 
 #define DEFAULT_AUDIO_FEC       "mult:3"
 
+
 /**************************************
  *     Variables 
  */
 
 static volatile bool stop = false;
-audio_frame2 *shared_frame;
+static audio_frame2 *shared_frame = NULL;
+static volatile bool consumed = true;
 
 // Like state_audio (audio/audio.c:105)
+// Used to communicate data to threads.
 struct thread_data {
     // RTP related stuff
     struct rtp *rtp_session;
@@ -63,7 +66,7 @@ extern int audio_pbuf_decode(struct pbuf *playout_buf, struct timeval curr_time,
 
 static void usage(void)
 {
-    printf("Usage: audio_rtp_only -h <remote-host> [-p <receive_port>] [-l <send_port>]\n");
+    printf("Usage: audio_rtp_only [-r <receive_port>] [-h <sendto_host>] [-s <sendto_port>]\n");
     printf(" By Txor >:D\n");
 }
 
@@ -100,6 +103,11 @@ static struct rtp *init_network(char *addr, int recv_port,
 
 // Function for receiver thread.
 // Based on audio_receiver_thread (audio/audio.c:456)
+// Basically explained:
+//   It listens to UDP port and when it receivers a packet (cp != NULL)
+//   Iterate by the participants,
+//     trying to decode an audio frame from stored RTP packets. 
+//   Once it's done, update the shared audio_frame2 poniter where the frame is.
 static void *receiver_thread(void *arg)
 {
     struct thread_data *d = arg;
@@ -109,7 +117,6 @@ static void *receiver_thread(void *arg)
     struct pbuf_audio_data pbuf_data;
 
     memset(&pbuf_data.buffer, 0, sizeof(struct audio_frame));
-    //pbuf_data.decoder = audio_decoder_init(s->audio_channel_map, s->audio_scale, s->requested_encryption);
     pbuf_data.decoder = audio_decoder_init(NULL, "mixauto", NULL);
 
     printf(" Receiver started.\n");
@@ -129,16 +136,14 @@ static void *receiver_thread(void *arg)
         while (cp != NULL) {
             // Get the data on pbuf and decode it on the frame using the callback.
             if (audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame, &pbuf_data)) {
-                // Point shared_frame to the received frame.
-                shared_frame = get_audio_frame2_pointer(pbuf_data.decoder);
-            }
-            else {
-                // Stop sharing the old frame.
-                shared_frame = (audio_frame2 *)NULL;
+                // If decoded, mark it ready to consume.
+                consumed = false;
             }
             pbuf_remove(cp->playout_buffer, curr_time);
             cp = pdb_iter_next(&it);
         }
+        // Point shared_frame to the received frame.
+        shared_frame = get_audio_frame2_pointer(pbuf_data.decoder);
         pdb_iter_done(&it);
         // Wait for sender to be ready.
         pthread_mutex_unlock(d->go);
@@ -150,11 +155,15 @@ static void *receiver_thread(void *arg)
     // Finish RTP session and exit.
     rtp_done(d->rtp_session);
     printf(" Receiver stopped.\n");
+    // Don't let the bro thread gets locked.
+    pthread_mutex_unlock(d->go);
     pthread_exit((void *)NULL);
 }
 
 // Function for sender thread.
 // Based on audio_sender_thread (audio/audio.c:610)
+// Basically explained:
+//   If there's a new audio_frame2, send it throught the RTP session.
 static void *sender_thread(void *arg)
 {
     struct thread_data *d = arg;
@@ -164,14 +173,17 @@ static void *sender_thread(void *arg)
         // Wait for receiver to be ready.
         pthread_mutex_unlock(d->go);
         pthread_mutex_lock(d->wait);
-        // Send the data away only if its a fresh frame.
-        if (shared_frame != (audio_frame2 *)NULL) {
+        // Send the data away only if not consumed before.
+        if (!consumed) {
+            consumed = true;
             audio_tx_send(d->tx_session, d->rtp_session, shared_frame);
         }
     }
     // Finish RTP session and exit.
     rtp_done(d->rtp_session);
     printf(" Sender stopped.\n");
+    // Don't let the bro thread gets locked.
+    pthread_mutex_unlock(d->go);
     pthread_exit((void *)NULL);
 }
 
@@ -186,59 +198,55 @@ int main(int argc, char *argv[])
     signal(SIGINT, signal_handler);
 
     // Default network options
-    char *remote_host = "localhost";
-    char *local_host = "localhost";
-    uint16_t remote_port = PORT_AUDIO;
-    uint16_t local_port = PORT_AUDIO + 2;
+    char *sendto_host = "localhost";
+    char *receive_host = "localhost";
+    uint16_t sendto_port = PORT_AUDIO;
+    uint16_t receive_port = PORT_AUDIO + 2;
 
     // Option processing
-    if (argc == 1) {
-        usage();
-        exit(0);
-    }
-
     static struct option getopt_options[] = {
-        {"remote-host", required_argument, 0, 'h'},
-        {"remote-port", optional_argument, 0, 'p'},
-        {"local-port", optional_argument, 0, 'l'},
+        {"sendto_host", required_argument, 0, 'h'},
+        {"receive_port", required_argument, 0, 'r'},
+        {"sendto_port", required_argument, 0, 's'},
         {0, 0, 0, 0}
     };
     int ch;
     int option_index = 0;
     int tmp;
 
-    while ((ch = getopt_long(argc, argv, "h:p:l:", getopt_options, &option_index)) != -1) {
+    while ((ch = getopt_long(argc, argv, "h:s:r:", getopt_options, &option_index)) != -1) {
         switch (ch) {
             case 'h':
-                remote_host = optarg;
+                sendto_host = optarg;
                 break;
-            case 'p':
-                remote_port = atoi(optarg);
+            case 's':
+                sendto_port = atoi(optarg);
                 break;
-            case 'l':
+            case 'r':
                 tmp = atoi(optarg);
                 if (1024 <= tmp && tmp <= 65535 && tmp % 2 == 0) {
-                    local_port = tmp;
+                    receive_port = tmp;
                 }
                 else {
                     printf("I don't like %s as send_port! >:(\n", argv[2]);
                 }
                 break;
             case '?':
-            default:
                 usage();
                 exit(0);
+                break; 
+            default:
                 break; 
         }
     }
 
-    if (remote_port == local_port) {
-        local_port = remote_port + 2;
+    if (strcmp(sendto_host, "localhost") && sendto_port == receive_port) {
+        receive_port = sendto_port + 2;
     }
 
-    printf("Remote host: %s\n", remote_host);
-    printf("Remote port: %i\n", remote_port);
-    printf("Local port: %i\n", local_port);
+    printf("Host to send: %s\n", sendto_host);
+    printf("Port to send: %i\n", sendto_port);
+    printf("Port to receive: %i\n", receive_port);
 
     // We will create two threads with one different RTP session each, similar than audio_cfg_init (audio/audio.c:180) does.
 
@@ -252,20 +260,21 @@ int main(int argc, char *argv[])
     struct rtp *receiver_session;
     struct pdb *receiver_participants;
     receiver_participants = pdb_init();
-    receiver_session = init_network(remote_host, remote_port, remote_port, receiver_participants, false);
+    receiver_session = init_network(receive_host, receive_port, receive_port, receiver_participants, false);
     // Receiver thread config stuff
     struct thread_data *receiver_data = calloc(1, sizeof(struct thread_data));
     receiver_data->rtp_session = receiver_session;
     receiver_data->participants = receiver_participants;
     receiver_data->wait = &receiver_mutex;
     receiver_data->go = &sender_mutex;
+    // tx_session not used.
     receiver_data->tx_session = NULL;
 
     // Sender RTP session stuff
     struct rtp *sender_session;
     struct pdb *sender_participants;
     sender_participants = pdb_init();
-    sender_session = init_network(local_host, local_port, local_port, sender_participants, false);
+    sender_session = init_network(sendto_host, sendto_port, sendto_port, sender_participants, false);
     // Sender thread creation stuff
     struct thread_data *sender_data = calloc(1, sizeof(struct thread_data));
     sender_data->rtp_session = sender_session;

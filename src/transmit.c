@@ -226,13 +226,13 @@ struct tx *tx_init(struct module *parent, unsigned mtu, enum tx_media_type media
 //                                 return NULL;
 //                         }
                 }
-                if(encryption) {
-                        if(openssl_encrypt_init(&tx->encryption,
-                                                encryption, MODE_AES128_CTR) != 0) {
-                                fprintf(stderr, "Unable to initialize encryption\n");
-                                return NULL;
-                        }
-                }
+//                if(encryption) {
+//                        if(openssl_encrypt_init(&tx->encryption,
+//                                                encryption, MODE_AES128_CTR) != 0) {
+//                                fprintf(stderr, "Unable to initialize encryption\n");
+//                                return NULL;
+//                        }
+//                }
 
                 platform_spin_init(&tx->spin);
 
@@ -242,40 +242,40 @@ struct tx *tx_init(struct module *parent, unsigned mtu, enum tx_media_type media
 }
 
 struct tx *tx_init_h264(struct module *parent, unsigned mtu, enum tx_media_type media_type,
-                char *fec, const char *encryption)
+        char *fec, const char *encryption)
 {
-  rtpenc_h264_nals_recv = 0;
-  rtpenc_h264_nals_sent_nofrag = 0;
-  rtpenc_h264_nals_sent_frag = 0;
-  rtpenc_h264_nals_sent = 0;
-  return tx_init(parent, mtu, media_type, fec, encryption);
+    rtpenc_h264_nals_recv = 0;
+    rtpenc_h264_nals_sent_nofrag = 0;
+    rtpenc_h264_nals_sent_frag = 0;
+    rtpenc_h264_nals_sent = 0;
+    return tx_init(parent, mtu, media_type, fec, encryption);
 }
 
 static struct response *fec_change_callback(struct module *mod, struct message *msg)
 {
-        struct tx *tx = (struct tx *) mod->priv_data;
+    struct tx *tx = (struct tx *) mod->priv_data;
 
-        struct msg_change_fec_data *data = (struct msg_change_fec_data *) msg;
-        struct response *response;
+    struct msg_change_fec_data *data = (struct msg_change_fec_data *) msg;
+    struct response *response;
 
-        if(tx->media_type != data->media_type)
-                return NULL;
+    if(tx->media_type != data->media_type)
+        return NULL;
 
-        platform_spin_lock(&tx->spin);
-        void *old_fec_state = tx->fec_state;
-        tx->fec_state = NULL;
-//         if(set_fec(tx, data->fec)) {
-//                 ldgm_encoder_destroy(old_fec_state);
-//                 response = new_response(RESPONSE_OK, NULL);
-//         } else {
-                tx->fec_state = old_fec_state;
-                response = new_response(RESPONSE_BAD_REQUEST, NULL);
-//         }
-        platform_spin_unlock(&tx->spin);
+    platform_spin_lock(&tx->spin);
+    void *old_fec_state = tx->fec_state;
+    tx->fec_state = NULL;
+    //         if(set_fec(tx, data->fec)) {
+    //                 ldgm_encoder_destroy(old_fec_state);
+    //                 response = new_response(RESPONSE_OK, NULL);
+    //         } else {
+    tx->fec_state = old_fec_state;
+    response = new_response(RESPONSE_BAD_REQUEST, NULL);
+    //         }
+    platform_spin_unlock(&tx->spin);
 
-        free_message(msg);
+    free_message(msg);
 
-        return response;
+    return response;
 }
 
 // static bool set_fec(struct tx *tx, const char *fec_const)
@@ -324,318 +324,318 @@ static struct response *fec_change_callback(struct module *mod, struct message *
 
 static void tx_done(struct module *mod)
 {
-        struct tx *tx = (struct tx *) mod->priv_data;
-        assert(tx->magic == TRANSMIT_MAGIC);
-//         ldgm_encoder_destroy(tx->fec_state);
-        pthread_spin_destroy(&tx->spin);
-        free(tx);
+    struct tx *tx = (struct tx *) mod->priv_data;
+    assert(tx->magic == TRANSMIT_MAGIC);
+    //         ldgm_encoder_destroy(tx->fec_state);
+    pthread_spin_destroy(&tx->spin);
+    free(tx);
 }
 
 /*
  * sends one or more frames (tiles) with same TS in one RTP stream. Only one m-bit is set.
  */
-void
+    void
 tx_send(struct tx *tx, struct video_frame *frame, struct rtp *rtp_session)
 {
-        unsigned int i;
-        uint32_t ts = 0;
+    unsigned int i;
+    uint32_t ts = 0;
 
-        assert(!frame->fragment || tx->fec_scheme == FEC_NONE); // currently no support for FEC with fragments
-        assert(!frame->fragment || frame->tile_count); // multiple tile are not currently supported for fragmented send
+    assert(!frame->fragment || tx->fec_scheme == FEC_NONE); // currently no support for FEC with fragments
+    assert(!frame->fragment || frame->tile_count); // multiple tile are not currently supported for fragmented send
 
-        platform_spin_lock(&tx->spin);
+    platform_spin_lock(&tx->spin);
 
-        ts = get_local_mediatime();
-        if(frame->fragment &&
-                        tx->last_frame_fragment_id == frame->frame_fragment_id) {
-                ts = tx->last_ts;
-        } else {
-                tx->last_frame_fragment_id = frame->frame_fragment_id;
-                tx->last_ts = ts;
+    ts = get_local_mediatime();
+    if(frame->fragment &&
+            tx->last_frame_fragment_id == frame->frame_fragment_id) {
+        ts = tx->last_ts;
+    } else {
+        tx->last_frame_fragment_id = frame->frame_fragment_id;
+        tx->last_ts = ts;
+    }
+
+    for(i = 0; i < frame->tile_count; ++i)
+    {
+        int last = FALSE;
+        int fragment_offset = 0;
+
+        if (i == frame->tile_count - 1) {
+            if(!frame->fragment || frame->last_fragment)
+                last = TRUE;
         }
+        if(frame->fragment)
+            fragment_offset = vf_get_tile(frame, i)->offset;
 
-        for(i = 0; i < frame->tile_count; ++i)
-        {
-                int last = FALSE;
-                int fragment_offset = 0;
-                
-                if (i == frame->tile_count - 1) {
-                        if(!frame->fragment || frame->last_fragment)
-                                last = TRUE;
-                }
-                if(frame->fragment)
-                        fragment_offset = vf_get_tile(frame, i)->offset;
-
-                tx_send_base(tx, vf_get_tile(frame, i), rtp_session, ts, last,
-                                frame->color_spec, frame->fps, frame->interlacing,
-                                i, fragment_offset);
-                tx->buffer ++;
-        }
-        platform_spin_unlock(&tx->spin);
+        tx_send_base(tx, vf_get_tile(frame, i), rtp_session, ts, last,
+                frame->color_spec, frame->fps, frame->interlacing,
+                i, fragment_offset);
+        tx->buffer ++;
+    }
+    platform_spin_unlock(&tx->spin);
 }
 
 
-void
+    void
 tx_send_tile(struct tx *tx, struct video_frame *frame, int pos, struct rtp *rtp_session)
 {
-        struct tile *tile;
-        int last = FALSE;
-        uint32_t ts = 0;
-        int fragment_offset = 0;
+    struct tile *tile;
+    int last = FALSE;
+    uint32_t ts = 0;
+    int fragment_offset = 0;
 
-        assert(!frame->fragment || tx->fec_scheme == FEC_NONE); // currently no support for FEC with fragments
-        assert(!frame->fragment || frame->tile_count); // multiple tile are not currently supported for fragmented send
-        
-        platform_spin_lock(&tx->spin);
+    assert(!frame->fragment || tx->fec_scheme == FEC_NONE); // currently no support for FEC with fragments
+    assert(!frame->fragment || frame->tile_count); // multiple tile are not currently supported for fragmented send
 
-        tile = vf_get_tile(frame, pos);
-        ts = get_local_mediatime();
-        if(frame->fragment &&
-                        tx->last_frame_fragment_id == frame->frame_fragment_id) {
-                ts = tx->last_ts;
-        } else {
-                tx->last_frame_fragment_id = frame->frame_fragment_id;
-                tx->last_ts = ts;
-        }
-        if(!frame->fragment || frame->last_fragment)
-                last = TRUE;
-        if(frame->fragment)
-                fragment_offset = vf_get_tile(frame, pos)->offset;
-        tx_send_base(tx, tile, rtp_session, ts, last, frame->color_spec, frame->fps, frame->interlacing, pos,
-                        fragment_offset);
-        tx->buffer ++;
+    platform_spin_lock(&tx->spin);
 
-        platform_spin_unlock(&tx->spin);
+    tile = vf_get_tile(frame, pos);
+    ts = get_local_mediatime();
+    if(frame->fragment &&
+            tx->last_frame_fragment_id == frame->frame_fragment_id) {
+        ts = tx->last_ts;
+    } else {
+        tx->last_frame_fragment_id = frame->frame_fragment_id;
+        tx->last_ts = ts;
+    }
+    if(!frame->fragment || frame->last_fragment)
+        last = TRUE;
+    if(frame->fragment)
+        fragment_offset = vf_get_tile(frame, pos)->offset;
+    tx_send_base(tx, tile, rtp_session, ts, last, frame->color_spec, frame->fps, frame->interlacing, pos,
+            fragment_offset);
+    tx->buffer ++;
+
+    platform_spin_unlock(&tx->spin);
 }
 
 static uint32_t format_interl_fps_hdr_row(enum interlacing_t interlacing, double input_fps)
 {
-        unsigned int fpsd, fd, fps, fi;
-        uint32_t tmp;
+    unsigned int fpsd, fd, fps, fi;
+    uint32_t tmp;
 
-        tmp = interlacing << 29;
-        fps = round(input_fps);
-        fpsd = 1;
-        if(fabs(input_fps - round(input_fps) / 1.001) < 0.005)
-                fd = 1;
-        else
-                fd = 0;
-        fi = 0;
+    tmp = interlacing << 29;
+    fps = round(input_fps);
+    fpsd = 1;
+    if(fabs(input_fps - round(input_fps) / 1.001) < 0.005)
+        fd = 1;
+    else
+        fd = 0;
+    fi = 0;
 
-        tmp |= fps << 19;
-        tmp |= fpsd << 15;
-        tmp |= fd << 14;
-        tmp |= fi << 13;
-        return htonl(tmp);
+    tmp |= fps << 19;
+    tmp |= fpsd << 15;
+    tmp |= fd << 14;
+    tmp |= fi << 13;
+    return htonl(tmp);
 }
 
-static void
+    static void
 tx_send_base(struct tx *tx, struct tile *tile, struct rtp *rtp_session,
-                uint32_t ts, int send_m,
-                codec_t color_spec, double fps,
-                enum interlacing_t interlacing, unsigned int substream,
-                int fragment_offset)
+        uint32_t ts, int send_m,
+        codec_t color_spec, double fps,
+        enum interlacing_t interlacing, unsigned int substream,
+        int fragment_offset)
 {
-        int m, data_len;
-        // see definition in rtp_callback.h
+    int m, data_len;
+    // see definition in rtp_callback.h
 
-        uint32_t hdr_data[100];
-        uint32_t *ldgm_payload_hdr = hdr_data;
-        uint32_t *video_hdr = ldgm_payload_hdr + 1;
-        //uint32_t *ldgm_hdr = video_hdr + sizeof(video_payload_hdr_t)/sizeof(uint32_t);
-        uint32_t *encryption_hdr;
-        int pt = PT_VIDEO;            /* A value specified in our packet format */
-        char *data;
-        unsigned int pos;
+    uint32_t hdr_data[100];
+    uint32_t *ldgm_payload_hdr = hdr_data;
+    uint32_t *video_hdr = ldgm_payload_hdr + 1;
+    //uint32_t *ldgm_hdr = video_hdr + sizeof(video_payload_hdr_t)/sizeof(uint32_t);
+    uint32_t *encryption_hdr;
+    int pt = PT_VIDEO;            /* A value specified in our packet format */
+    char *data;
+    unsigned int pos;
 #ifdef HAVE_LINUX
-        struct timespec start, stop;
+    struct timespec start, stop;
 #elif defined HAVE_MACOSX
-        struct timeval start, stop;
+    struct timeval start, stop;
 #else // Windows
-	LARGE_INTEGER start, stop, freq;
+    LARGE_INTEGER start, stop, freq;
 #endif
-        long delta;
-        uint32_t tmp;
-//         int mult_pos[FEC_MAX_MULT];
-//         int mult_index = 0;
-//         int mult_first_sent = 0;
-        int hdrs_len = 40 + (sizeof(video_payload_hdr_t)); // for computing max payload size
-        char *data_to_send;
-        int data_to_send_len;
+    long delta;
+    uint32_t tmp;
+    //         int mult_pos[FEC_MAX_MULT];
+    //         int mult_index = 0;
+    //         int mult_first_sent = 0;
+    int hdrs_len = 40 + (sizeof(video_payload_hdr_t)); // for computing max payload size
+    char *data_to_send;
+    int data_to_send_len;
 
-         assert(tx->magic == TRANSMIT_MAGIC);
-// 
-         tx_update(tx, tile);
-// 
-//         perf_record(UVP_SEND, ts);
+    assert(tx->magic == TRANSMIT_MAGIC);
+    // 
+    tx_update(tx, tile);
+    // 
+    //         perf_record(UVP_SEND, ts);
 
-        data_to_send = tile->data;
-        data_to_send_len = tile->data_len;
+    data_to_send = tile->data;
+    data_to_send_len = tile->data_len;
 
-//         if(tx->fec_scheme == FEC_MULT) {
-//                 int i;
-//                 for (i = 0; i < tx->mult_count; ++i) {
-//                         mult_pos[i] = 0;
-//                 }
-//                 mult_index = 0;
-//         }
+    //         if(tx->fec_scheme == FEC_MULT) {
+    //                 int i;
+    //                 for (i = 0; i < tx->mult_count; ++i) {
+    //                         mult_pos[i] = 0;
+    //                 }
+    //                 mult_index = 0;
+    //         }
 
-        m = 0;
-        pos = 0;
+    m = 0;
+    pos = 0;
 
-        char *rtp_hdr;
-        int rtp_hdr_len;
+    char *rtp_hdr;
+    int rtp_hdr_len;
 
-        if(tx->encryption && !fec_is_ldgm(tx)) {
-                /*
-                 * Important
-                 * Crypto and video header must be in specified order placed one right after
-                 * the another since both will be sent as a RTP header.
-                 */
-                encryption_hdr = video_hdr + sizeof(video_payload_hdr_t)/sizeof(uint32_t);
+    if(tx->encryption && !fec_is_ldgm(tx)) {
+        /*
+         * Important
+         * Crypto and video header must be in specified order placed one right after
+         * the another since both will be sent as a RTP header.
+         */
+        encryption_hdr = video_hdr + sizeof(video_payload_hdr_t)/sizeof(uint32_t);
 
-                encryption_hdr[0] = htonl(CRYPTO_TYPE_AES128_CTR << 24);
-                hdrs_len += sizeof(crypto_payload_hdr_t) + openssl_get_overhead(tx->encryption);
-                rtp_hdr = (char *) video_hdr;
-                rtp_hdr_len = sizeof(crypto_payload_hdr_t) + sizeof(video_payload_hdr_t);
-                pt = PT_ENCRYPT_VIDEO;
+        encryption_hdr[0] = htonl(CRYPTO_TYPE_AES128_CTR << 24);
+        hdrs_len += sizeof(crypto_payload_hdr_t) + openssl_get_overhead(tx->encryption);
+        rtp_hdr = (char *) video_hdr;
+        rtp_hdr_len = sizeof(crypto_payload_hdr_t) + sizeof(video_payload_hdr_t);
+        pt = PT_ENCRYPT_VIDEO;
+    }
+
+    video_hdr[3] = htonl(tile->width << 16 | tile->height);
+    video_hdr[4] = get_fourcc(color_spec);
+    video_hdr[2] = htonl(data_to_send_len);
+    tmp = substream << 22;
+    tmp |= 0x3fffff & tx->buffer;
+    video_hdr[0] = htonl(tmp);
+
+    /* word 6 */
+    video_hdr[5] = format_interl_fps_hdr_row(interlacing, fps);
+
+    //         if(fec_is_ldgm(tx)) {
+    //                 hdrs_len = 40 + (sizeof(ldgm_video_payload_hdr_t));
+    //                 char *tmp_data = NULL;
+    //                 char *ldgm_input_data;
+    //                 int ldgm_input_len;
+    //                 int ldgm_payload_hdr_len = sizeof(ldgm_payload_hdr_t) + sizeof(video_payload_hdr_t);
+    //                 if(tx->encryption) {
+    //                         ldgm_input_len = tile->data_len + sizeof(crypto_payload_hdr_t) +
+    //                                 MAX_CRYPTO_EXCEED;
+    //                         ldgm_input_data = tmp_data = malloc(ldgm_input_len);
+    //                         char *ciphertext = tmp_data + sizeof(crypto_payload_hdr_t);
+    //                         encryption_hdr = (uint32_t *)(void *) tmp_data;
+    //                         encryption_hdr[0] = htonl(CRYPTO_TYPE_AES128_CTR << 24);
+    //                         ldgm_payload_hdr[0] = ntohl(PT_ENCRYPT_VIDEO);
+    //                         int ret = openssl_encrypt(tx->encryption,
+    //                                         tile->data, tile->data_len,
+    //                                         (char *) ldgm_payload_hdr, ldgm_payload_hdr_len,
+    //                                         ciphertext);
+    //                         ldgm_input_len = sizeof(crypto_payload_hdr_t) + ret;
+    // 
+    //                 } else {
+    //                         ldgm_input_data = tile->data;
+    //                         ldgm_input_len = tile->data_len;
+    //                         ldgm_payload_hdr[0] = ntohl(PT_VIDEO);
+    //                 }
+    //                 ldgm_encoder_encode(tx->fec_state, (char *) ldgm_payload_hdr,
+    //                                 ldgm_payload_hdr_len,
+    //                                 ldgm_input_data, ldgm_input_len, &data_to_send, &data_to_send_len);
+    //                 free(tmp_data);
+    //                 tmp = substream << 22;
+    //                 tmp |= 0x3fffff & tx->buffer;
+    //                 // see definition in rtp_callback.h
+    //                 ldgm_hdr[0] = htonl(tmp);
+    //                 ldgm_hdr[2] = htonl(data_to_send_len);
+    //                 ldgm_hdr[3] = htonl(
+    //                                 (ldgm_encoder_get_k(tx->fec_state)) << 19 |
+    //                                 (ldgm_encoder_get_m(tx->fec_state)) << 6 |
+    //                                 ldgm_encoder_get_c(tx->fec_state));
+    //                 ldgm_hdr[4] = htonl(ldgm_encoder_get_seed(tx->fec_state));
+    // 
+    //                 pt = PT_VIDEO_LDGM;
+    // 
+    //                 rtp_hdr = (char *) ldgm_hdr;
+    //                 rtp_hdr_len = sizeof(ldgm_video_payload_hdr_t);
+    if(!tx->encryption) {
+        rtp_hdr = (char *) video_hdr;
+        rtp_hdr_len = sizeof(video_payload_hdr_t);
+    }
+
+    uint32_t *hdr_offset; // data offset pointer - contains field that needs to be updated
+    // every cycle
+    //         if(fec_is_ldgm(tx)) {
+    //                 hdr_offset = ldgm_hdr + 1;
+    //         } else {
+    hdr_offset = video_hdr + 1;
+    //         }
+
+    do {
+        //                 if(tx->fec_scheme == FEC_MULT) {
+        //                         pos = mult_pos[mult_index];
+        //                 }
+
+        int offset = pos + fragment_offset;
+
+        *hdr_offset = htonl(offset);
+
+        data = data_to_send + pos;
+        data_len = tx->mtu - hdrs_len;
+        data_len = (data_len / ALIGNMENT) * ALIGNMENT;
+        if (pos + data_len >= (unsigned int) data_to_send_len) {
+            if (send_m) {
+                m = 1;
+            }
+            data_len = data_to_send_len - pos;
+        }
+        pos += data_len;
+        GET_STARTTIME;
+        if(data_len) { /* check needed for FEC_MULT */
+            char encrypted_data[data_len + MAX_CRYPTO_EXCEED];
+
+            if(tx->encryption && tx->fec_scheme != FEC_LDGM) {
+                data_len = openssl_encrypt(tx->encryption,
+                        data, data_len,
+                        (char *) video_hdr, sizeof(video_payload_hdr_t),
+                        encrypted_data);
+                data = encrypted_data;
+            }
+
+            rtp_send_data_hdr(rtp_session, ts, pt, m, 0, 0,
+                    rtp_hdr, rtp_hdr_len,
+                    data, data_len, 0, 0, 0);
+            //                         if(m && tx->fec_scheme != FEC_NONE) {
+            //                                 int i;
+            //                                 for(i = 0; i < 5; ++i) {
+            //                                         rtp_send_data_hdr(rtp_session, ts, pt, m, 0, 0,
+            //                                                   rtp_hdr, rtp_hdr_len,
+            //                                                   data, data_len, 0, 0, 0);
+            //                                 }
+            //                         }
         }
 
-        video_hdr[3] = htonl(tile->width << 16 | tile->height);
-        video_hdr[4] = get_fourcc(color_spec);
-        video_hdr[2] = htonl(data_to_send_len);
-        tmp = substream << 22;
-        tmp |= 0x3fffff & tx->buffer;
-        video_hdr[0] = htonl(tmp);
-
-        /* word 6 */
-        video_hdr[5] = format_interl_fps_hdr_row(interlacing, fps);
-
-//         if(fec_is_ldgm(tx)) {
-//                 hdrs_len = 40 + (sizeof(ldgm_video_payload_hdr_t));
-//                 char *tmp_data = NULL;
-//                 char *ldgm_input_data;
-//                 int ldgm_input_len;
-//                 int ldgm_payload_hdr_len = sizeof(ldgm_payload_hdr_t) + sizeof(video_payload_hdr_t);
-//                 if(tx->encryption) {
-//                         ldgm_input_len = tile->data_len + sizeof(crypto_payload_hdr_t) +
-//                                 MAX_CRYPTO_EXCEED;
-//                         ldgm_input_data = tmp_data = malloc(ldgm_input_len);
-//                         char *ciphertext = tmp_data + sizeof(crypto_payload_hdr_t);
-//                         encryption_hdr = (uint32_t *)(void *) tmp_data;
-//                         encryption_hdr[0] = htonl(CRYPTO_TYPE_AES128_CTR << 24);
-//                         ldgm_payload_hdr[0] = ntohl(PT_ENCRYPT_VIDEO);
-//                         int ret = openssl_encrypt(tx->encryption,
-//                                         tile->data, tile->data_len,
-//                                         (char *) ldgm_payload_hdr, ldgm_payload_hdr_len,
-//                                         ciphertext);
-//                         ldgm_input_len = sizeof(crypto_payload_hdr_t) + ret;
-// 
-//                 } else {
-//                         ldgm_input_data = tile->data;
-//                         ldgm_input_len = tile->data_len;
-//                         ldgm_payload_hdr[0] = ntohl(PT_VIDEO);
-//                 }
-//                 ldgm_encoder_encode(tx->fec_state, (char *) ldgm_payload_hdr,
-//                                 ldgm_payload_hdr_len,
-//                                 ldgm_input_data, ldgm_input_len, &data_to_send, &data_to_send_len);
-//                 free(tmp_data);
-//                 tmp = substream << 22;
-//                 tmp |= 0x3fffff & tx->buffer;
-//                 // see definition in rtp_callback.h
-//                 ldgm_hdr[0] = htonl(tmp);
-//                 ldgm_hdr[2] = htonl(data_to_send_len);
-//                 ldgm_hdr[3] = htonl(
-//                                 (ldgm_encoder_get_k(tx->fec_state)) << 19 |
-//                                 (ldgm_encoder_get_m(tx->fec_state)) << 6 |
-//                                 ldgm_encoder_get_c(tx->fec_state));
-//                 ldgm_hdr[4] = htonl(ldgm_encoder_get_seed(tx->fec_state));
-// 
-//                 pt = PT_VIDEO_LDGM;
-// 
-//                 rtp_hdr = (char *) ldgm_hdr;
-//                 rtp_hdr_len = sizeof(ldgm_video_payload_hdr_t);
-        if(!tx->encryption) {
-                rtp_hdr = (char *) video_hdr;
-                rtp_hdr_len = sizeof(video_payload_hdr_t);
-        }
-
-        uint32_t *hdr_offset; // data offset pointer - contains field that needs to be updated
-                              // every cycle
-//         if(fec_is_ldgm(tx)) {
-//                 hdr_offset = ldgm_hdr + 1;
-//         } else {
-                hdr_offset = video_hdr + 1;
-//         }
+        //                 if(tx->fec_scheme == FEC_MULT) {
+        //                         mult_pos[mult_index] = pos;
+        //                         mult_first_sent ++;
+        //                         if(mult_index != 0 || mult_first_sent >= (tx->mult_count - 1))
+        //                                         mult_index = (mult_index + 1) % tx->mult_count;
+        //                 }
 
         do {
-//                 if(tx->fec_scheme == FEC_MULT) {
-//                         pos = mult_pos[mult_index];
-//                 }
+            GET_STOPTIME;
+            GET_DELTA;
+            if (delta < 0)
+                delta += 1000000000L;
+        } while (packet_rate - delta > 0);
 
-                int offset = pos + fragment_offset;
+        /* when trippling, we need all streams goes to end */
+        //                 if(tx->fec_scheme == FEC_MULT) {
+        //                         pos = mult_pos[tx->mult_count - 1];
+        //                 }
 
-                *hdr_offset = htonl(offset);
+    } while (pos < (unsigned int) data_to_send_len);
 
-                data = data_to_send + pos;
-                data_len = tx->mtu - hdrs_len;
-                data_len = (data_len / ALIGNMENT) * ALIGNMENT;
-                if (pos + data_len >= (unsigned int) data_to_send_len) {
-                        if (send_m) {
-                                m = 1;
-                        }
-                        data_len = data_to_send_len - pos;
-                }
-                pos += data_len;
-                GET_STARTTIME;
-                if(data_len) { /* check needed for FEC_MULT */
-                        char encrypted_data[data_len + MAX_CRYPTO_EXCEED];
-
-                        if(tx->encryption && tx->fec_scheme != FEC_LDGM) {
-                                data_len = openssl_encrypt(tx->encryption,
-                                                data, data_len,
-                                                (char *) video_hdr, sizeof(video_payload_hdr_t),
-                                                encrypted_data);
-                                data = encrypted_data;
-                        }
-
-                        rtp_send_data_hdr(rtp_session, ts, pt, m, 0, 0,
-                                  rtp_hdr, rtp_hdr_len,
-                                  data, data_len, 0, 0, 0);
-//                         if(m && tx->fec_scheme != FEC_NONE) {
-//                                 int i;
-//                                 for(i = 0; i < 5; ++i) {
-//                                         rtp_send_data_hdr(rtp_session, ts, pt, m, 0, 0,
-//                                                   rtp_hdr, rtp_hdr_len,
-//                                                   data, data_len, 0, 0, 0);
-//                                 }
-//                         }
-                }
-
-//                 if(tx->fec_scheme == FEC_MULT) {
-//                         mult_pos[mult_index] = pos;
-//                         mult_first_sent ++;
-//                         if(mult_index != 0 || mult_first_sent >= (tx->mult_count - 1))
-//                                         mult_index = (mult_index + 1) % tx->mult_count;
-//                 }
-
-                do {
-                        GET_STOPTIME;
-                        GET_DELTA;
-                        if (delta < 0)
-                                delta += 1000000000L;
-                } while (packet_rate - delta > 0);
-
-                /* when trippling, we need all streams goes to end */
-//                 if(tx->fec_scheme == FEC_MULT) {
-//                         pos = mult_pos[tx->mult_count - 1];
-//                 }
-
-        } while (pos < (unsigned int) data_to_send_len);
-
-//         if(fec_is_ldgm(tx)) {
-//                ldgm_encoder_free_buffer(tx->fec_state, data_to_send);
-//         }
+    //         if(fec_is_ldgm(tx)) {
+    //                ldgm_encoder_free_buffer(tx->fec_state, data_to_send);
+    //         }
 }
 
 
@@ -645,153 +645,153 @@ tx_send_base(struct tx *tx, struct tile *tile, struct rtp *rtp_session,
  */
 void audio_tx_send(struct tx* tx, struct rtp *rtp_session, audio_frame2 * buffer)
 {
-        int pt; /* PT set for audio in our packet format */
-        unsigned int pos = 0u,
-                     m = 0u;
-        int channel;
-        char *chan_data;
-        int data_len;
-        char *data;
-        // see definition in rtp_callback.h
-        uint32_t hdr_data[100];
-        uint32_t *audio_hdr = hdr_data;
-        uint32_t *crypto_hdr = audio_hdr + sizeof(audio_payload_hdr_t) / sizeof(uint32_t);
-        uint32_t timestamp;
+    int pt; /* PT set for audio in our packet format */
+    unsigned int pos = 0u,
+                 m = 0u;
+    int channel;
+    char *chan_data;
+    int data_len;
+    char *data;
+    // see definition in rtp_callback.h
+    uint32_t hdr_data[100];
+    uint32_t *audio_hdr = hdr_data;
+    uint32_t *crypto_hdr = audio_hdr + sizeof(audio_payload_hdr_t) / sizeof(uint32_t);
+    uint32_t timestamp;
 #ifdef HAVE_LINUX
-        struct timespec start, stop;
+    struct timespec start, stop;
 #elif defined HAVE_MACOSX
-        struct timeval start, stop;
+    struct timeval start, stop;
 #else // Windows
-	LARGE_INTEGER start, stop, freq;
+    LARGE_INTEGER start, stop, freq;
 #endif
-        long delta;
-        int mult_pos[FEC_MAX_MULT];
-        int mult_index = 0;
-        int mult_first_sent = 0;
-        int rtp_hdr_len;
+    long delta;
+    int mult_pos[FEC_MAX_MULT];
+    int mult_index = 0;
+    int mult_first_sent = 0;
+    int rtp_hdr_len;
 
-        platform_spin_lock(&tx->spin);
+    //platform_spin_lock(&tx->spin);
 
-        timestamp = get_local_mediatime();
-        perf_record(UVP_SEND, timestamp);
+    timestamp = get_local_mediatime();
+    perf_record(UVP_SEND, timestamp);
 
-        if(tx->encryption) {
-                rtp_hdr_len = sizeof(crypto_payload_hdr_t) + sizeof(audio_payload_hdr_t);
-                pt = PT_ENCRYPT_AUDIO;
-        } else {
-                rtp_hdr_len = sizeof(audio_payload_hdr_t);
-                pt = PT_AUDIO; /* PT set for audio in our packet format */
+    if(tx->encryption) {
+        rtp_hdr_len = sizeof(crypto_payload_hdr_t) + sizeof(audio_payload_hdr_t);
+        pt = PT_ENCRYPT_AUDIO;
+    } else {
+        rtp_hdr_len = sizeof(audio_payload_hdr_t);
+        pt = PT_AUDIO; /* PT set for audio in our packet format */
+    }
+
+    for(channel = 0; channel < buffer->ch_count; ++channel)
+    {
+        chan_data = buffer->data[channel];
+        pos = 0u;
+
+        if(tx->fec_scheme == FEC_MULT) {
+            int i;
+            for (i = 0; i < tx->mult_count; ++i) {
+                mult_pos[i] = 0;
+            }
+            mult_index = 0;
         }
 
-        for(channel = 0; channel < buffer->ch_count; ++channel)
-        {
-                chan_data = buffer->data[channel];
-                pos = 0u;
+        uint32_t tmp;
+        tmp = channel << 22; /* bits 0-9 */
+        tmp |= tx->buffer; /* bits 10-31 */
+        audio_hdr[0] = htonl(tmp);
 
-                if(tx->fec_scheme == FEC_MULT) {
-                        int i;
-                        for (i = 0; i < tx->mult_count; ++i) {
-                                mult_pos[i] = 0;
-                        }
-                        mult_index = 0;
+        audio_hdr[2] = htonl(buffer->data_len[channel]);
+
+        /* fourth word */
+        tmp = (buffer->bps * 8) << 26;
+        tmp |= buffer->sample_rate;
+        audio_hdr[3] = htonl(tmp);
+
+        /* fifth word */
+        audio_hdr[4] = htonl(get_audio_tag(buffer->codec));
+
+        do {
+            if(tx->fec_scheme == FEC_MULT) {
+                pos = mult_pos[mult_index];
+            }
+
+            data = chan_data + pos;
+            data_len = tx->mtu - 40 - sizeof(audio_payload_hdr_t);
+            if(pos + data_len >= (unsigned int) buffer->data_len[channel]) {
+                data_len = buffer->data_len[channel] - pos;
+                if(channel == buffer->ch_count - 1)
+                    m = 1;
+            }
+            audio_hdr[1] = htonl(pos);
+            pos += data_len;
+
+            GET_STARTTIME;
+
+            if(data_len) { /* check needed for FEC_MULT */
+                char encrypted_data[data_len + MAX_CRYPTO_EXCEED];
+                if(tx->encryption) {
+                    crypto_hdr[0] = htonl(CRYPTO_TYPE_AES128_CTR << 24);
+                    data_len = openssl_encrypt(tx->encryption,
+                            data, data_len,
+                            (char *) audio_hdr, sizeof(audio_payload_hdr_t),
+                            encrypted_data);
+                    data = encrypted_data;
                 }
 
-                uint32_t tmp;
-                tmp = channel << 22; /* bits 0-9 */
-                tmp |= tx->buffer; /* bits 10-31 */
-                audio_hdr[0] = htonl(tmp);
+                rtp_send_data_hdr(rtp_session, timestamp, pt, m, 0,        /* contributing sources */
+                        0,        /* contributing sources length */
+                        (char *) audio_hdr, rtp_hdr_len,
+                        data, data_len,
+                        0, 0, 0);
+            }
 
-                audio_hdr[2] = htonl(buffer->data_len[channel]);
+            if(tx->fec_scheme == FEC_MULT) {
+                mult_pos[mult_index] = pos;
+                mult_first_sent ++;
+                if(mult_index != 0 || mult_first_sent >= (tx->mult_count - 1))
+                    mult_index = (mult_index + 1) % tx->mult_count;
+            }
 
-                /* fourth word */
-                tmp = (buffer->bps * 8) << 26;
-                tmp |= buffer->sample_rate;
-                audio_hdr[3] = htonl(tmp);
+            do {
+                GET_STOPTIME;
+                GET_DELTA;
+                if (delta < 0)
+                    delta += 1000000000L;
+            } while (packet_rate - delta > 0);
 
-                /* fifth word */
-                audio_hdr[4] = htonl(get_audio_tag(buffer->codec));
+            /* when trippling, we need all streams goes to end */
+            if(tx->fec_scheme == FEC_MULT) {
+                pos = mult_pos[tx->mult_count - 1];
+            }
 
-                do {
-                        if(tx->fec_scheme == FEC_MULT) {
-                                pos = mult_pos[mult_index];
-                        }
 
-                        data = chan_data + pos;
-                        data_len = tx->mtu - 40 - sizeof(audio_payload_hdr_t);
-                        if(pos + data_len >= (unsigned int) buffer->data_len[channel]) {
-                                data_len = buffer->data_len[channel] - pos;
-                                if(channel == buffer->ch_count - 1)
-                                        m = 1;
-                        }
-                        audio_hdr[1] = htonl(pos);
-                        pos += data_len;
-                        
-                        GET_STARTTIME;
-                        
-                        if(data_len) { /* check needed for FEC_MULT */
-                                char encrypted_data[data_len + MAX_CRYPTO_EXCEED];
-                                if(tx->encryption) {
-                                        crypto_hdr[0] = htonl(CRYPTO_TYPE_AES128_CTR << 24);
-                                        data_len = openssl_encrypt(tx->encryption,
-                                                        data, data_len,
-                                                        (char *) audio_hdr, sizeof(audio_payload_hdr_t),
-                                                        encrypted_data);
-                                        data = encrypted_data;
-                                }
+        } while (pos < (unsigned int) buffer->data_len[channel]);
+    }
 
-                                rtp_send_data_hdr(rtp_session, timestamp, pt, m, 0,        /* contributing sources */
-                                      0,        /* contributing sources length */
-                                      (char *) audio_hdr, rtp_hdr_len,
-                                      data, data_len,
-                                      0, 0, 0);
-                        }
+    tx->buffer ++;
 
-                        if(tx->fec_scheme == FEC_MULT) {
-                                mult_pos[mult_index] = pos;
-                                mult_first_sent ++;
-                                if(mult_index != 0 || mult_first_sent >= (tx->mult_count - 1))
-                                                mult_index = (mult_index + 1) % tx->mult_count;
-                        }
-
-                        do {
-                                GET_STOPTIME;
-                                GET_DELTA;
-                                if (delta < 0)
-                                        delta += 1000000000L;
-                        } while (packet_rate - delta > 0);
-
-                        /* when trippling, we need all streams goes to end */
-                        if(tx->fec_scheme == FEC_MULT) {
-                                pos = mult_pos[tx->mult_count - 1];
-                        }
-
-                      
-                } while (pos < (unsigned int) buffer->data_len[channel]);
-        }
-
-        tx->buffer ++;
-
-        platform_spin_unlock(&tx->spin);
+    //platform_spin_unlock(&tx->spin);
 }
 
 
 void rtpenc_h264_stats_print()
 {
-	printf("[RTPENC][STATS] Total recv NALs: %d\n", rtpenc_h264_nals_recv);
-	printf("[RTPENC][STATS] Unfragmented sent NALs: %d\n",
-			rtpenc_h264_nals_sent_nofrag);
-	printf("[RTPENC][STATS] Fragmented sent NALs: %d\n",
-			rtpenc_h264_nals_sent_frag);
-	printf("[RTPENC][STATS] NAL fragments sent: %d\n",
-			rtpenc_h264_nals_sent - rtpenc_h264_nals_sent_nofrag);
-	printf("[RTPENC][STATS] Total sent NALs: %d\n", rtpenc_h264_nals_sent);
+    printf("[RTPENC][STATS] Total recv NALs: %d\n", rtpenc_h264_nals_recv);
+    printf("[RTPENC][STATS] Unfragmented sent NALs: %d\n",
+            rtpenc_h264_nals_sent_nofrag);
+    printf("[RTPENC][STATS] Fragmented sent NALs: %d\n",
+            rtpenc_h264_nals_sent_frag);
+    printf("[RTPENC][STATS] NAL fragments sent: %d\n",
+            rtpenc_h264_nals_sent - rtpenc_h264_nals_sent_nofrag);
+    printf("[RTPENC][STATS] Total sent NALs: %d\n", rtpenc_h264_nals_sent);
 }
 
 static uint8_t *rtpenc_h264_find_startcode_internal(uint8_t *start,
-		uint8_t *end);
+        uint8_t *end);
 uint8_t *rtpenc_h264_find_startcode(uint8_t *p, uint8_t *end);
 int rtpenc_h264_parse_nal_units(uint8_t *buf_in, int size,
-		struct rtp_nal_t *nals, int *nnals);
+        struct rtp_nal_t *nals, int *nnals);
 
 static void rtpenc_h264_debug_print_nal_recv_info(uint8_t *header, int size);
 static void rtpenc_h264_debug_print_nal_sent_info(uint8_t *header, int size);
@@ -800,356 +800,356 @@ static void rtpenc_h264_debug_print_payload_bytes(uint8_t *payload);
 
 static void rtpenc_h264_debug_print_payload_bytes(uint8_t *payload)
 {
-	#ifdef DEBUG
-	debug_msg("NAL 1st 6 payload bytes: %x %x %x %x %x %x\n",
-			(unsigned char)payload[0], (unsigned char)payload[1],
-			(unsigned char)payload[2], (unsigned char)payload[3],
-			(unsigned char)payload[4], (unsigned char)payload[5]);
-	#else
-	UNUSED(payload);
-	#endif
+#ifdef DEBUG
+    debug_msg("NAL 1st 6 payload bytes: %x %x %x %x %x %x\n",
+            (unsigned char)payload[0], (unsigned char)payload[1],
+            (unsigned char)payload[2], (unsigned char)payload[3],
+            (unsigned char)payload[4], (unsigned char)payload[5]);
+#else
+    UNUSED(payload);
+#endif
 }
 
 static void rtpenc_h264_debug_print_nal_recv_info(uint8_t *header, int size)
 {
-	#ifdef DEBUG
-	int type = (int)(*header & 0x1f);
-	int nri = (int)((*header & 0x60) >> 5);
-	debug_msg("NAL recv | %d bytes | header: %d %d %d %d %d %d %d %d | NRI: %d | type: %d\n",
-			size,
-			((*header) & 0x80) >> 7, ((*header) & 0x40) >> 6,
-			((*header) & 0x20) >> 5, ((*header) & 0x10) >> 4,
-			((*header) & 0x08) >> 3, ((*header) & 0x04) >> 2,
-			((*header) & 0x02) >> 1, ((*header) & 0x01),
-			nri, type);
-	#else
-	UNUSED(header);
-	UNUSED(size);
-	#endif
+#ifdef DEBUG
+    int type = (int)(*header & 0x1f);
+    int nri = (int)((*header & 0x60) >> 5);
+    debug_msg("NAL recv | %d bytes | header: %d %d %d %d %d %d %d %d | NRI: %d | type: %d\n",
+            size,
+            ((*header) & 0x80) >> 7, ((*header) & 0x40) >> 6,
+            ((*header) & 0x20) >> 5, ((*header) & 0x10) >> 4,
+            ((*header) & 0x08) >> 3, ((*header) & 0x04) >> 2,
+            ((*header) & 0x02) >> 1, ((*header) & 0x01),
+            nri, type);
+#else
+    UNUSED(header);
+    UNUSED(size);
+#endif
 }
 
 static void rtpenc_h264_debug_print_nal_sent_info(uint8_t *header, int size)
 {
-	#ifdef DEBUG
-	int type = (int)(*header & 0x1f);
-	int nri = (int)((*header & 0x60) >> 5);
-	debug_msg("NAL sent | %d bytes | header: %d %d %d %d %d %d %d %d | NRI: %d | type: %d\n",
-			size,
-			((*header) & 0x80) >> 7, ((*header) & 0x40) >> 6,
-			((*header) & 0x20) >> 5, ((*header) & 0x10) >> 4,
-			((*header) & 0x08) >> 3, ((*header) & 0x04) >> 2,
-			((*header) & 0x02) >> 1, ((*header) & 0x01),
-			type, nri);
-	#else
-	UNUSED(header);
-	UNUSED(size);
-	#endif
+#ifdef DEBUG
+    int type = (int)(*header & 0x1f);
+    int nri = (int)((*header & 0x60) >> 5);
+    debug_msg("NAL sent | %d bytes | header: %d %d %d %d %d %d %d %d | NRI: %d | type: %d\n",
+            size,
+            ((*header) & 0x80) >> 7, ((*header) & 0x40) >> 6,
+            ((*header) & 0x20) >> 5, ((*header) & 0x10) >> 4,
+            ((*header) & 0x08) >> 3, ((*header) & 0x04) >> 2,
+            ((*header) & 0x02) >> 1, ((*header) & 0x01),
+            type, nri);
+#else
+    UNUSED(header);
+    UNUSED(size);
+#endif
 }
 
 static void rtpenc_h264_debug_print_fragment_sent_info(uint8_t *header, int size)
 {
-	#ifdef DEBUG
-	char frag_class;
-	switch((header[1] & 0xE0) >> 5) {
-		case 0:
-			frag_class = '0';
-			break;
-		case 2:
-			frag_class = 'E';
-			break;
-		case 4:
-			frag_class = 'S';
-			break;
-		default:
-			frag_class = '!';
-			break;
-	}
-	debug_msg("NAL fragment send | %d bytes | flag %c\n", size, frag_class);
-	#else
-	UNUSED(header);
-	UNUSED(size);
-	#endif
+#ifdef DEBUG
+    char frag_class;
+    switch((header[1] & 0xE0) >> 5) {
+        case 0:
+            frag_class = '0';
+            break;
+        case 2:
+            frag_class = 'E';
+            break;
+        case 4:
+            frag_class = 'S';
+            break;
+        default:
+            frag_class = '!';
+            break;
+    }
+    debug_msg("NAL fragment send | %d bytes | flag %c\n", size, frag_class);
+#else
+    UNUSED(header);
+    UNUSED(size);
+#endif
 }
 
 static uint8_t *rtpenc_h264_find_startcode_internal(uint8_t *start,
-		uint8_t *end)
+        uint8_t *end)
 {
-	uint8_t *p = start;
-	uint8_t *pend = end; // - 3; // XXX: w/o -3, p[1] and p[2] may fail.
+    uint8_t *p = start;
+    uint8_t *pend = end; // - 3; // XXX: w/o -3, p[1] and p[2] may fail.
 
-	for (p = start; p < pend; p++) {
-		if (p[0] == 0 && p[1] == 0 && p[2] == 1) {
-			return p;
-		}
-	}
+    for (p = start; p < pend; p++) {
+        if (p[0] == 0 && p[1] == 0 && p[2] == 1) {
+            return p;
+        }
+    }
 
-	return (uint8_t *) NULL;
+    return (uint8_t *) NULL;
 }
 
 uint8_t *rtpenc_h264_find_startcode(uint8_t *p, uint8_t *end)
 {
-	uint8_t *out = rtpenc_h264_find_startcode_internal(p, end);
-	if (out != NULL) {
-		if (p < out && out < end && !out[-1]) {
-			out--;
-		}
-	} else {
-		debug_msg("No NAL start code found\n"); // It's not an error per se.
-	}
-	return out;
+    uint8_t *out = rtpenc_h264_find_startcode_internal(p, end);
+    if (out != NULL) {
+        if (p < out && out < end && !out[-1]) {
+            out--;
+        }
+    } else {
+        debug_msg("No NAL start code found\n"); // It's not an error per se.
+    }
+    return out;
 }
 
 int rtpenc_h264_parse_nal_units(uint8_t *buf_in, int size,
-								struct rtp_nal_t *nals, int *nnals)
+        struct rtp_nal_t *nals, int *nnals)
 {
-	uint8_t *p = buf_in;
-	uint8_t *end = p + size;
-	uint8_t *nal_start;
-	uint8_t *nal_end = NULL;
+    uint8_t *p = buf_in;
+    uint8_t *end = p + size;
+    uint8_t *nal_start;
+    uint8_t *nal_end = NULL;
 
-	size = 0;
-	*nnals = 0;
-	// TODO: control error
-	nal_start = rtpenc_h264_find_startcode(p, end);
-	for (;;) {
-		if (nal_start == end || nal_start == NULL) {
-			break;
-		}
+    size = 0;
+    *nnals = 0;
+    // TODO: control error
+    nal_start = rtpenc_h264_find_startcode(p, end);
+    for (;;) {
+        if (nal_start == end || nal_start == NULL) {
+            break;
+        }
 
-		nal_end = rtpenc_h264_find_startcode(nal_start + 3, end);
-		if (nal_end == NULL) {
-			nal_end = end;
-		}
-		int nal_size = nal_end - nal_start;
+        nal_end = rtpenc_h264_find_startcode(nal_start + 3, end);
+        if (nal_end == NULL) {
+            nal_end = end;
+        }
+        int nal_size = nal_end - nal_start;
 
-		size += nal_size;
+        size += nal_size;
 
-		nals[(*nnals)].data = nal_start;
-		nals[(*nnals)].size = nal_size;
-		(*nnals)++;
+        nals[(*nnals)].data = nal_start;
+        nals[(*nnals)].size = nal_size;
+        (*nnals)++;
 
-		nal_start = nal_end;
-	}
-	return size;
+        nal_start = nal_end;
+    }
+    return size;
 }
 
 static void tx_send_base_h264(struct tx *tx, struct tile *tile, struct rtp *rtp_session, uint32_t ts,
-		int send_m, codec_t color_spec, double input_fps,
-		enum interlacing_t interlacing, unsigned int substream,
-		int fragment_offset)
+        int send_m, codec_t color_spec, double input_fps,
+        enum interlacing_t interlacing, unsigned int substream,
+        int fragment_offset)
 {
 
-	UNUSED(color_spec);
-	UNUSED(input_fps);
-	UNUSED(interlacing);
-	UNUSED(substream);
-	UNUSED(fragment_offset);
-	
-	assert(tx->magic == TRANSMIT_MAGIC);
-        tx_update(tx, tile);
+    UNUSED(color_spec);
+    UNUSED(input_fps);
+    UNUSED(interlacing);
+    UNUSED(substream);
+    UNUSED(fragment_offset);
 
-	uint8_t *data = (uint8_t *) tile->data;
-	int data_len = tile->data_len;
+    assert(tx->magic == TRANSMIT_MAGIC);
+    tx_update(tx, tile);
 
-	struct rtp_nal_t nals[RTPENC_H264_MAX_NALS];
-	int nnals = 0;
-	rtpenc_h264_parse_nal_units(data, data_len, nals, &nnals);
+    uint8_t *data = (uint8_t *) tile->data;
+    int data_len = tile->data_len;
 
-	rtpenc_h264_nals_recv += nnals;
-	debug_msg("%d NAL units found in buffer\n", nnals);
+    struct rtp_nal_t nals[RTPENC_H264_MAX_NALS];
+    int nnals = 0;
+    rtpenc_h264_parse_nal_units(data, data_len, nals, &nnals);
 
-	char pt = RTPENC_H264_PT;
-	int cc = 0;
-	uint32_t csrc = 0;
+    rtpenc_h264_nals_recv += nnals;
+    debug_msg("%d NAL units found in buffer\n", nnals);
 
-	char *extn = 0;
-	uint16_t extn_len = 0;
-	uint16_t extn_type = 0;
+    char pt = RTPENC_H264_PT;
+    int cc = 0;
+    uint32_t csrc = 0;
 
-	int i;
-	for (i = 0; i < nnals; i++) {
-		struct rtp_nal_t nal = nals[i];
+    char *extn = 0;
+    uint16_t extn_len = 0;
+    uint16_t extn_type = 0;
 
-		int fragmentation = 0;
-		int nal_max_size = tx->mtu - 40;
-		if (nal.size > nal_max_size) {
-			debug_msg("RTP packet size exceeds the MTU size\n");
-			fragmentation = 1;
-		}
+    int i;
+    for (i = 0; i < nnals; i++) {
+        struct rtp_nal_t nal = nals[i];
 
-		uint8_t *nal_header = nal.data;
+        int fragmentation = 0;
+        int nal_max_size = tx->mtu - 40;
+        if (nal.size > nal_max_size) {
+            debug_msg("RTP packet size exceeds the MTU size\n");
+            fragmentation = 1;
+        }
 
-		// skip startcode
-		int startcode_size = 0;
-		uint8_t *p = nal_header;
-		while ((*(p++)) == (uint8_t)0) {
-			startcode_size++;
-		}
-		startcode_size++;
+        uint8_t *nal_header = nal.data;
 
-		nal_header += startcode_size;
-		int nal_header_size = 1;
+        // skip startcode
+        int startcode_size = 0;
+        uint8_t *p = nal_header;
+        while ((*(p++)) == (uint8_t)0) {
+            startcode_size++;
+        }
+        startcode_size++;
 
-		uint8_t *nal_payload = nal.data + nal_header_size + startcode_size; // nal.data + nal_header_size;
-		int nal_payload_size = nal.size - (int)(nal_header_size + startcode_size); //nal.size - nal_header_size;
+        nal_header += startcode_size;
+        int nal_header_size = 1;
 
-		//rtpenc_h264_debug_print_nal_recv_info(nal_header, nal_header_size + nal_payload_size);
+        uint8_t *nal_payload = nal.data + nal_header_size + startcode_size; // nal.data + nal_header_size;
+        int nal_payload_size = nal.size - (int)(nal_header_size + startcode_size); //nal.size - nal_header_size;
 
-		const char type = (char) (*nal_header & 0x1f);
-		const char nri = (char) ((*nal_header & 0x60) >> 5);
+        //rtpenc_h264_debug_print_nal_recv_info(nal_header, nal_header_size + nal_payload_size);
 
-		char info_type;
-		if (type >= 1 && type <= 23) {
-			info_type = 1;
-		} else {
-			info_type = type;
-		}
+        const char type = (char) (*nal_header & 0x1f);
+        const char nri = (char) ((*nal_header & 0x60) >> 5);
 
-		switch (info_type) {
-		case 0:
-		case 1:
-			debug_msg("Unfragmented or reconstructed NAL type\n");
-			break;
-		default:
-			error_msg("Non expected NAL type %d\n", (int)info_type);
-			return; // TODO maybe just warn and don't fail?
-			break;
-		}
+        char info_type;
+        if (type >= 1 && type <= 23) {
+            info_type = 1;
+        } else {
+            info_type = type;
+        }
 
-		int m = 0;
-		if (!fragmentation) {
+        switch (info_type) {
+            case 0:
+            case 1:
+                debug_msg("Unfragmented or reconstructed NAL type\n");
+                break;
+            default:
+                error_msg("Non expected NAL type %d\n", (int)info_type);
+                return; // TODO maybe just warn and don't fail?
+                break;
+        }
 
-			if (i == nnals - 1) {
-				m = send_m;
-				debug_msg("NAL with M bit\n");
-			}
+        int m = 0;
+        if (!fragmentation) {
 
-			int err = rtp_send_data_hdr(rtp_session, ts, pt, m, cc, &csrc,
-						(char *)nal_header, nal_header_size,
-			 			(char *)nal_payload, nal_payload_size, extn, extn_len,
-						extn_type);
+            if (i == nnals - 1) {
+                m = send_m;
+                debug_msg("NAL with M bit\n");
+            }
 
-			/*unsigned char *dst = (unsigned char *)(nal.data);
-			unsigned char *end = (unsigned char *)(nal.data + nal.size);
-			debug_msg("\n\nFirst four bytes: %02x %02x %02x %02x\n", dst[0], dst[1], dst[2], dst[3]);
-			debug_msg("Last four bytes: %02x %02x %02x %02x\n",
-					end[-4],
-					end[-3],
-					end[-2],
-					end[-1]);
-			debug_msg("NAL size: %d\n\n", nal.size); // - startcode_size); */
+            int err = rtp_send_data_hdr(rtp_session, ts, pt, m, cc, &csrc,
+                    (char *)nal_header, nal_header_size,
+                    (char *)nal_payload, nal_payload_size, extn, extn_len,
+                    extn_type);
 
-			if (err < 0) {
-				error_msg("There was a problem sending the RTP packet\n");
-			}
-			else {
-				rtpenc_h264_nals_sent_nofrag++;
-				rtpenc_h264_nals_sent++;
-				//rtpenc_h264_debug_print_nal_sent_info(nal_header, nal_payload_size + nal_header_size);
-			}
-		}
-		else {
+            /*unsigned char *dst = (unsigned char *)(nal.data);
+              unsigned char *end = (unsigned char *)(nal.data + nal.size);
+              debug_msg("\n\nFirst four bytes: %02x %02x %02x %02x\n", dst[0], dst[1], dst[2], dst[3]);
+              debug_msg("Last four bytes: %02x %02x %02x %02x\n",
+              end[-4],
+              end[-3],
+              end[-2],
+              end[-1]);
+              debug_msg("NAL size: %d\n\n", nal.size); // - startcode_size); */
 
-			uint8_t frag_header[2];
-			int frag_header_size = 2;
+            if (err < 0) {
+                error_msg("There was a problem sending the RTP packet\n");
+            }
+            else {
+                rtpenc_h264_nals_sent_nofrag++;
+                rtpenc_h264_nals_sent++;
+                //rtpenc_h264_debug_print_nal_sent_info(nal_header, nal_payload_size + nal_header_size);
+            }
+        }
+        else {
 
-			frag_header[0] = 28 | (nri << 5); // fu_indicator, new type, same nri
-			frag_header[1] = type | (1 << 7);// start, initial fu_header
+            uint8_t frag_header[2];
+            int frag_header_size = 2;
 
-			uint8_t *frag_payload = nal_payload;
-			int frag_payload_size = nal_max_size - frag_header_size;
+            frag_header[0] = 28 | (nri << 5); // fu_indicator, new type, same nri
+            frag_header[1] = type | (1 << 7);// start, initial fu_header
 
-			int remaining_payload_size = nal_payload_size;
+            uint8_t *frag_payload = nal_payload;
+            int frag_payload_size = nal_max_size - frag_header_size;
 
-			while (remaining_payload_size + 2 > nal_max_size) {
+            int remaining_payload_size = nal_payload_size;
 
-				//rtpenc_h264_debug_print_payload_bytes(frag_payload);
+            while (remaining_payload_size + 2 > nal_max_size) {
 
-				int err = rtp_send_data_hdr(rtp_session, ts, pt, m, cc, &csrc,
-							(char *)frag_header, frag_header_size,
-							(char *)frag_payload, frag_payload_size, extn, extn_len,
-							extn_type);
-				if (err < 0) {
-					error_msg("There was a problem sending the RTP packet\n");
-				}
-				else {
-					rtpenc_h264_nals_sent++;
-					//rtpenc_h264_debug_print_fragment_sent_info(frag_header, frag_payload_size + frag_header_size);
-				}
+                //rtpenc_h264_debug_print_payload_bytes(frag_payload);
 
-				remaining_payload_size -= frag_payload_size;
-				frag_payload += frag_payload_size;
+                int err = rtp_send_data_hdr(rtp_session, ts, pt, m, cc, &csrc,
+                        (char *)frag_header, frag_header_size,
+                        (char *)frag_payload, frag_payload_size, extn, extn_len,
+                        extn_type);
+                if (err < 0) {
+                    error_msg("There was a problem sending the RTP packet\n");
+                }
+                else {
+                    rtpenc_h264_nals_sent++;
+                    //rtpenc_h264_debug_print_fragment_sent_info(frag_header, frag_payload_size + frag_header_size);
+                }
 
-				frag_header[1] = type;
-			}
+                remaining_payload_size -= frag_payload_size;
+                frag_payload += frag_payload_size;
 
-			if (i == nnals - 1) {
-				m = send_m;
-				debug_msg("NAL fragment (E) with M bit\n");
-			}
+                frag_header[1] = type;
+            }
 
-			frag_header[1] = type | (1 << 6); // end
+            if (i == nnals - 1) {
+                m = send_m;
+                debug_msg("NAL fragment (E) with M bit\n");
+            }
 
-			//rtpenc_h264_debug_print_payload_bytes(frag_payload);
+            frag_header[1] = type | (1 << 6); // end
 
-			int err = rtp_send_data_hdr(rtp_session, ts, pt, m, cc, &csrc,
-					(char *)frag_header, frag_header_size,
-					(char *)frag_payload, remaining_payload_size, extn, extn_len,
-					extn_type);
-			if (err < 0) {
-				error_msg("There was a problem sending the RTP packet\n");
-			}
-			else {
-				rtpenc_h264_nals_sent_frag++; // Each fragmented NAL has one E (end) NAL fragment
-				rtpenc_h264_nals_sent++;
-			    //rtpenc_h264_debug_print_fragment_sent_info(frag_header, remaining_payload_size + frag_header_size);
-			}
-		}
-	}
+            //rtpenc_h264_debug_print_payload_bytes(frag_payload);
+
+            int err = rtp_send_data_hdr(rtp_session, ts, pt, m, cc, &csrc,
+                    (char *)frag_header, frag_header_size,
+                    (char *)frag_payload, remaining_payload_size, extn, extn_len,
+                    extn_type);
+            if (err < 0) {
+                error_msg("There was a problem sending the RTP packet\n");
+            }
+            else {
+                rtpenc_h264_nals_sent_frag++; // Each fragmented NAL has one E (end) NAL fragment
+                rtpenc_h264_nals_sent++;
+                //rtpenc_h264_debug_print_fragment_sent_info(frag_header, remaining_payload_size + frag_header_size);
+            }
+        }
+    }
 }
 
 /*
  * sends one or more frames (tiles) with same TS in one RTP stream. Only one m-bit is set.
  */
-void
+    void
 tx_send_h264(struct tx *tx, struct video_frame *frame, struct rtp *rtp_session, float framerate)
 {
-        unsigned int i;
-        uint32_t ts = 0;
+    unsigned int i;
+    uint32_t ts = 0;
 
-        assert(!frame->fragment || tx->fec_scheme == FEC_NONE); // currently no support for FEC with fragments
-        assert(!frame->fragment || frame->tile_count); // multiple tile are not currently supported for fragmented send
+    assert(!frame->fragment || tx->fec_scheme == FEC_NONE); // currently no support for FEC with fragments
+    assert(!frame->fragment || frame->tile_count); // multiple tile are not currently supported for fragmented send
 
-        platform_spin_lock(&tx->spin);
+    platform_spin_lock(&tx->spin);
 
-        ts = get_local_mediatime(); // Do not force the timestamp
-        //uint32_t ts_delta = (1.0/framerate) * 90000;
-        //ts = tx->last_ts + ts_delta; // TODO!!
-        if(frame->fragment &&
-                        tx->last_frame_fragment_id == frame->frame_fragment_id) {
-                ts = tx->last_ts;
-        } else {
-                tx->last_frame_fragment_id = frame->frame_fragment_id;
-                tx->last_ts = ts;
+    ts = get_local_mediatime(); // Do not force the timestamp
+    //uint32_t ts_delta = (1.0/framerate) * 90000;
+    //ts = tx->last_ts + ts_delta; // TODO!!
+    if(frame->fragment &&
+            tx->last_frame_fragment_id == frame->frame_fragment_id) {
+        ts = tx->last_ts;
+    } else {
+        tx->last_frame_fragment_id = frame->frame_fragment_id;
+        tx->last_ts = ts;
+    }
+
+    for(i = 0; i < frame->tile_count; ++i)
+    {
+        int last = FALSE;
+        int fragment_offset = 0;
+
+        if (i == frame->tile_count - 1) {
+            if(!frame->fragment || frame->last_fragment)
+                last = TRUE;
         }
+        if(frame->fragment)
+            fragment_offset = vf_get_tile(frame, i)->offset;
 
-        for(i = 0; i < frame->tile_count; ++i)
-        {
-                int last = FALSE;
-                int fragment_offset = 0;
-                
-                if (i == frame->tile_count - 1) {
-                        if(!frame->fragment || frame->last_fragment)
-                                last = TRUE;
-                }
-                if(frame->fragment)
-                        fragment_offset = vf_get_tile(frame, i)->offset;
-
-                tx_send_base_h264(tx, vf_get_tile(frame, i), rtp_session, ts, last,
-                                frame->color_spec, frame->fps, frame->interlacing,
-                                i, fragment_offset);
-                tx->buffer ++;
-        }
-        platform_spin_unlock(&tx->spin);
+        tx_send_base_h264(tx, vf_get_tile(frame, i), rtp_session, ts, last,
+                frame->color_spec, frame->fps, frame->interlacing,
+                i, fragment_offset);
+        tx->buffer ++;
+    }
+    platform_spin_unlock(&tx->spin);
 }
 
