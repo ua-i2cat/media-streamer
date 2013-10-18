@@ -11,6 +11,7 @@ libiomanager_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -I.. -I../src -i../src/rtp -I../sr
 libiomanager_la_SOURCES = participants.c \
 						  receiver.c \
 						  transmitter.c \
+						  stream.c \
 						  ../dxt_compress/dxt_util.c \
 						  ../dxt_compress/dxt_decoder.c \
 						  ../dxt_compress/dxt_encoder.c
@@ -20,6 +21,7 @@ uginclude_HEADERS =	receiver.h \
 					config_unix.h \
 					participants.h \
 					transmitter.h \
+					stream.h \
 					../src/video.h \
 					../src/video_codec.h \
 					../src/types.h \

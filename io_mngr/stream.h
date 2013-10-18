@@ -1,3 +1,6 @@
+#ifndef _STREAM_H_
+#define _STREAM_H_
+
 typedef struct decoder {
     pthread_t thread;
     uint8_t run;
@@ -36,7 +39,6 @@ typedef struct audio_stream {
     // TODO
 } audio_stream_t;
 
-
 typedef struct video_stream {
     codec_t codec;
     uint32_t width;
@@ -49,8 +51,8 @@ typedef struct stream {
     stream_type_t type;
     uint8_t active;
     union {
-        audio_stream_t *audio;
-        video_stream_t *video;
+        audio_stream_t audio;
+        video_stream_t video;
     };
     union {
         encoder_t *encoder;
@@ -58,42 +60,7 @@ typedef struct stream {
     };
 } stream_t;
 
-typedef enum transport_protocol {
-    RTP;
-    RTSP;
-} transport_protocol_t;
+decoder_t *init_decoder_thread(stream_t *stream);
+decoder_t *init_encoder_thread(stream_t *stream);
 
-typedef enum participant_type {
-    INPUT;
-    OUTPUT;
-} participant_type_t;
-
-typedef enum rtp_session {
-    uint32_t port;
-    char *addr;
-} rtp_session_t;
-
-typedef enum rtsp_session {
-    uint32_t port;
-    char *addr;
-    // TODO: RTSP fields
-} rtsp_session_t;
-
-typedef struct participant_struct {
-    participant_type_t type;
-    transport_protocol_t protocol;
-    uint32_t ssrc;
-    union {
-        rtp_session_t *rtp;
-        rtsp_session_t *rtsp;
-    };
-    stream_t **streams;
-    participant_t *prev;
-    participant_t *next;
-} participant_t;
-
-typedef struct participant_list {
-    int count;
-    participant_t *first;
-    participant_t *last;
-} participant_list_t;
+#endif
