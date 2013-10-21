@@ -81,7 +81,7 @@ encoder_thread_t *init_encoder(stream_data_t *stream)
 
 void destroy_decoder(decoder_thread_t *decoder)
 {
-    asser(decoder->run == FALSE);
+    assert(decoder->run == FALSE);
 
     pthread_mutext_destroy(&decoder->lock);
     pthread_cond_destroy(&decoder->notify_frame);
@@ -128,7 +128,14 @@ void destroy_stream_list(stream_list_t *list)
 
 stream_data_t *init_video_stream(stream_type_t type, uint32_t id, uint8_t active)
 {
-    
+    stream_data_t *stream = malloc(sizeof(stream_data_t));
+    if (stream == NULL) {
+        error_msg("init_video_stream malloc error");
+        return NULL;
+    }
+    pthread_rwlock_init(&stream->lock, NULL);
+    stream->type = type;
+    // TODO
 }
 
 int destroy_stream(stream_data_t *stream)
