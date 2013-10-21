@@ -5,113 +5,78 @@
 #include "video_decompress.h"
 
 
-participant_data_t *init_participant(int id, int width, int height, codec_t codec, char *dst, uint32_t port, ptype_t type);
+participant_data_t *init_participant(int id, int width, int height, codec_t codec, char *addr, uint32_t port, ptype_t type);
 void destroy_decoder_thread(decoder_thread_t *dec_th);
 void destroy_participant(participant_data_t *src);
 int remove_participant(participant_list_t *list, uint32_t id);
 void destroy_participant_list(participant_list_t *list);
 
-participant_data_t *init_participant(int id, int width, int height, codec_t codec, char *dst, uint32_t port, ptype_t type){
-  participant_data_t *participant;
-  rtp_session_t *rtp;
+participant_data_t *init_participant(int id, participant_type_t type, participant_protocol_t protocol, char *addr, uint32_t port){
+    participant_data_t *participant;
   
-  participant = (participant_data_t *) malloc(sizeof(participant_data_t));
+    participant = (participant_data_t *) malloc(sizeof(participant_data_t));
   
-  pthread_mutex_init(&participant->lock, NULL);
-  participant->new_frame = FALSE;
-  participant->active = I_AWAIT;
-  participant->ssrc = 0;
-  participant->height = height;
-  participant->width = width;
-  participant->codec = codec;
-  participant->proc.decoder = NULL;
-  participant->proc.encoder = NULL;
-  participant->next = participant->previous = NULL;
-  participant->type = type;
-  participant->id = id;
-  participant->rx_data = calloc(1, sizeof(struct recieved_data));
-  init_rx_data(participant->rx_data);
+    pthread_mutex_init(&participant->lock, NULL);
+    participant->id = id;
+    participant->ssrc = 0;
+    participant->next = participant->previous = NULL;
+    participant->type = type;
+    participant->protocol = protocol;
+    participant->streams_count = 0;
 
-  if (width != 0 && height != 0){
-      participant->frame = malloc(vc_get_linesize(width, RGB)*height);
-  } else {
-    participant->frame = NULL;
-  }
-  
-  if (dst == NULL) {
-    participant->session = NULL;
-  } else {
-    rtp = (rtp_session_t *) malloc(sizeof(rtp_session_t));
-    rtp->addr = dst;
-    rtp->port = port;
-    participant->session = rtp;
-  }
-  
-  return participant;
+    if (protocol == RTP){
+        //TODO: init RTP struct
+        participant->rtp.port = port;
+        participant->rtp.addr = addr;
+
+    } else if (protocol == RTSP){
+        //TODO: init RTSP struct
+        participant->rtsp.port = port;
+        participant->rtsp.addr = addr;
+
+    } else {
+        //Error when introducing protocol
+    }
+    
+    return participant;
 }
 
-void destroy_decoder_thread(decoder_thread_t *dec_th){
-    assert(dec_th->run == FALSE);
+int add_participant(participant_list_t *list, int id, participant_type_t part_type, participant_protocol_t prot_type, char *addr, uint32_t port){
+    struct participant_data *participant;
   
-    pthread_mutex_destroy(&dec_th->lock);
-    pthread_cond_destroy(&dec_th->notify_frame);
+    participant = init_participant(id, part_type, prot_type, addr, port);
+  
+    if (list->count == 0) {
     
-    decompress_done(dec_th->sd);
+        assert(list->first == NULL && list->last == NULL);
+        list->count++;
+        list->first = list->last = participant;
     
-    free(dec_th->data);
-    free(dec_th);
-}
+    } else if (list->count > 0){
+    
+        assert(list->first != NULL && list->last != NULL);
+        participant->previous = list->last;
+        list->count++;
+        list->last->next = participant;
+        list->last = participant;
 
-void destroy_encoder_thread(encoder_thread_t *encoder)
-{
-    if (encoder == NULL) {
-        return;
+    } else{
+      //TODO: error_msg
+      return FALSE;
     }
-
-    if (encoder->run != TRUE) {
-        return;
-    }
-
-    encoder->run = FALSE;
-
-    sem_post(&encoder->input_sem);
-    sem_post(&encoder->output_sem);
-
-
-    // TODO: error control? reporting?
-    sem_destroy(&encoder->input_sem);
-    sem_destroy(&encoder->output_sem);
-
-    pthread_join(encoder->rtpenc->thread, NULL);
-    pthread_join(encoder->thread, NULL);
-
-    pthread_mutex_destroy(&encoder->lock);
-
-    free(encoder->rtpenc);
-    free(encoder);
-
-    encoder = NULL;
-
+  
+    return TRUE;
 }
 
 void destroy_participant(participant_data_t *src){
-  free(src->frame);
-  free(src->session);
   
-  if (src->type == INPUT && src->proc.decoder != NULL){
-    destroy_decoder_thread(src->proc.decoder);
-  } else if (src->type == OUTPUT && src->proc.encoder != NULL){
-    encoder_thread_t *encoder = src->proc.encoder;
-    destroy_encoder_thread(encoder);
-  }
+    pthread_mutex_destroy(&src->lock);
   
-  pthread_mutex_destroy(&src->lock);
-  
-  free(src);
+    free(src);
 }
 
 participant_list_t *init_participant_list(void){
-  participant_list_t 	*list;
+  participant_list_t  *list;
     
   list = (participant_list_t *) malloc(sizeof(participant_list_t));
   
@@ -124,70 +89,6 @@ participant_list_t *init_participant_list(void){
   return list;
 }
 
-decoder_thread_t *init_decoder_thread(participant_data_t *src){
-	decoder_thread_t *decoder;
-	struct video_desc des;
-
-	initialize_video_decompress();
-	
-	decoder = malloc(sizeof(decoder_thread_t));
-	decoder->new_frame = FALSE;
-	decoder->run = FALSE;
-	
-	decoder->sd = (struct state_decompress *) calloc(2, sizeof(struct state_decompress *));
-	
-	pthread_mutex_init(&decoder->lock, NULL);
-	pthread_cond_init(&decoder->notify_frame, NULL);
-	
-	if (decompress_is_available(LIBAVCODEC_MAGIC)) { //TODO: add some magic to determine codec
-	  decoder->sd = decompress_init(LIBAVCODEC_MAGIC);
-
-	  des.width = src->width;
-	  des.height = src->height;
-	  des.color_spec  = src->codec;
-	  des.tile_count = 0;
-	  des.interlacing = PROGRESSIVE;
-	  des.fps = 24;
-        
-	  if (decompress_reconfigure(decoder->sd, des, 16, 8, 0, vc_get_linesize(des.width, RGB), RGB)) {
-	    decoder->data = malloc(1920*1080*4*sizeof(char)); //TODO this is the worst case in raw data, should be the worst case for specific codec
-	  } else {
-	    //TODO: error_msg
-	  }
-	  
-      } else {
-	//TODO: error_msg
-      }
-      
-      return decoder;
-}
-
-int add_participant(participant_list_t *list, int id, int width, int height, codec_t codec, char *dst, uint32_t port, ptype_t type){
-  struct participant_data *participant;
-  
-  participant = init_participant(id, width, height, codec, dst, port, type);
-  
-  if (list->count == 0) {
-    
-    assert(list->first == NULL && list->last == NULL);
-    list->count++;
-    list->first = list->last = participant;
-    
-  } else if (list->count > 0){
-    
-    assert(list->first != NULL && list->last != NULL);
-    participant->previous = list->last;
-    list->count++;
-    list->last->next = participant;
-    list->last = participant;
-
-  } else{
-    //TODO: error_msg
-    return FALSE;
-  }
-  
-  return TRUE;
-}
 
 participant_data_t *get_participant_id(participant_list_t *list, uint32_t id){
   participant_data_t *participant;
@@ -195,7 +96,7 @@ participant_data_t *get_participant_id(participant_list_t *list, uint32_t id){
   participant = list->first;
   while(participant != NULL){
     if(participant->id == id)
-      return participant;
+      return participant; 
     participant = participant->next;
   }
 
@@ -279,10 +180,9 @@ void set_active_participant(participant_data_t *participant, uint8_t active) {
 	
 	pthread_mutex_lock(&participant->lock);
 	assert(active == TRUE || active == FALSE);
-	
+
 	if (active == FALSE){
 		participant->active = active;
-    participant->new_frame = FALSE;
 	} else if (participant->active == FALSE) {
 		participant->active = I_AWAIT;
 	}
@@ -308,3 +208,22 @@ void destroy_participant_list(participant_list_t *list){
   
   free(list);
 }
+
+int add_participant_stream(participant_data_t *participant, stream_data_t *stream){
+    pthread_mutex_lock(&participant->lock);
+
+    if (participant->streams_count == MAX_PARTICIPANT_STREAMS){
+      debug_msg("Max number of streams per participant reached.\n");
+      pthread_mutex_unlock(&participant->lock);
+      return -1;
+    }
+
+    //TODO: manage participant stream list pointer
+
+    pthread_mutex_unlock(&participant->lock);
+}
+
+int remove_participant_stream(participant_data_t *participant, stream_data_t *stream){
+
+}
+

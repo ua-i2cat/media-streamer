@@ -47,6 +47,11 @@ typedef enum stream_type {
     VIDEO
 } stream_type_t;
 
+typedef enum io_type {
+    INPUT,
+    OUTPUT
+} io_type_t;
+
 typedef struct audio_data {
     // TODO
 } audio_data_t;
@@ -62,6 +67,7 @@ typedef struct video_data {
 typedef struct stream_data {
     pthread_rwlock_t lock;
     stream_type_t type;
+    io_type_t io_type;
     uint32_t id;
     uint8_t active;
     struct stream_data *prev;

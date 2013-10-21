@@ -87,26 +87,103 @@ void destroy_encoder(encoder_thread_t *encoder)
 
 stream_list_t *init_stream_list(void)
 {
-
+    stream_list_t  *list;
+    
+    list = (stream_list_t *) malloc(sizeof(stream_list_t));
+  
+    pthread_rwlock_init(&list->lock, NULL);
+  
+    list->count = 0;
+    list->first = NULL;
+    list->last = NULL;
+  
+    return list;
 }
 
 void destroy_stream_list(stream_list_t *list)
 {
+    stream_data_t *stream;
+  
+    stream = list->first;
+
+    while(stream != NULL){
+        pthread_rwlock_wrlock(&list->lock);
+        remove_stream(list, stream->id);
+        pthread_rwlock_unlock(&list->lock);
+        stream = stream->next;
+    }
+  
+    assert(list->count == 0);
+ 
+    pthread_rwlock_destroy(&list->lock);
+  
+    free(list);
 
 }
 
-stream_data_t *init_video_stream(stream_type_t type, uint32_t id, uint8_t active)
+stream_data_t *init_stream(uint32_t id, uint8_t active, io_type_t io_type, stream_type_t type)
 {
+    stream_data_t *stream;
 
+    stream = (stream_data_t*)malloc(sizeof(stream_data_t));
+
+    pthread_mutex_init(&stream->lock, NULL);
+    stream->type = type;
+    stream->io_type = io_type;
+    stream->id = id;
+    stream->active = active;
+    stream->next = stream->previous = NULL;
+
+    return stream;
 }
 
 int destroy_stream(stream_data_t *stream)
 {
+    if (stream->type == VIDEO){
+        free(stream->video.frame);
+    } else if (stream->type == AUDIO){
+        //Free audio structures
+    }
 
+    if (stream->io_type == INPUT && stream->decoder != NULL){
+        destroy_decoder_thread(stream->decoder);
+    } else if (stream->io_type == OUTPUT && stream->encoder != NULL){
+        destroy_encoder_thread(encoder);
+    }
+  
+    pthread_mutex_destroy(&stream->lock);
+  
+    free(stream);
+
+    return 0;
 }
 
-int set_stream_video_data(stream_data_t *stream, codec_t codec, uint32_t width, uint32_t height)
+int set_stream_data(stream_data_t *stream, codec_t codec, uint32_t width, uint32_t height)
 {
+    pthread_rwlock_wrlock(&stream->lock);
+
+    if (stream->type == AUDIO){
+        //init audio structures
+    } else if (stream->type == VIDEO){
+        stream->video.codec = codec;
+        stream->video.width = width;
+        stream->video.height = height;
+        stream->video.frame_len = vc_get_linesize(width, RGB)*height;
+        stream->video.frame = malloc(stream->video.frame_len);
+    } else {
+        debug_msg("type not contemplated\n")
+    }
+
+    if (stream->io_type == INPUT && stream->decoder == NULL){
+        stream->decoder = init_decoder(stream);
+    } else if (stream->io_type == OUTPUT && stream->encoder == NULL){
+        stream->encoder = init_encoder(stream);
+    }
+
+    pthread_rwlock_unlock(&stream->lock);
+
+    return 0;
+
 }
 
 int add_stream(stream_list_t *list, stream_data_t *stream)

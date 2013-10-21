@@ -37,8 +37,8 @@ struct participant_data {
     participant_data_t *previous;
     participant_protocol_t protocol;
     union {
-        rtp_session_t *rtp;
-        rtsp_session_t *rtsp;
+        rtp_session_t rtp;
+        rtsp_session_t rtsp;
     }
     struct recieved_data *rx_data; // TODO: move to decoder_t
 
