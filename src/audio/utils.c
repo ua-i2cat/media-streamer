@@ -72,26 +72,26 @@
 
 audio_frame2 *audio_frame2_init()
 {
-    audio_frame2 *ret = (audio_frame2 *) calloc(1, sizeof(audio_frame2));
-    return ret;
+        audio_frame2 *ret = (audio_frame2 *) calloc(1, sizeof(audio_frame2));
+        return ret;
 }
 
 void audio_frame2_allocate(audio_frame2 *frame, int nr_channels, int max_size)
 {
-    assert(nr_channels <= MAX_AUDIO_CHANNELS);
+        assert(nr_channels <= MAX_AUDIO_CHANNELS);
 
-    frame->max_size = max_size;
-    frame->ch_count = nr_channels;
+        frame->max_size = max_size;
+        frame->ch_count = nr_channels;
 
-    for(int i = 0; i < MAX_AUDIO_CHANNELS; ++i) {
-        free(frame->data[i]);
-        frame->data[i] = NULL;
-        frame->data_len[i] = 0;
-    }
+        for(int i = 0; i < MAX_AUDIO_CHANNELS; ++i) {
+                free(frame->data[i]);
+                frame->data[i] = NULL;
+                frame->data_len[i] = 0;
+        }
 
-    for(int i = 0; i < nr_channels; ++i) {
-        frame->data[i] = malloc(max_size);
-    }
+        for(int i = 0; i < nr_channels; ++i) {
+                frame->data[i] = malloc(max_size);
+        }
 }
 
 //void audio_frame_to_audio_frame2(audio_frame2 *frame, struct audio_frame *old)
@@ -110,12 +110,12 @@ void audio_frame2_allocate(audio_frame2 *frame, int nr_channels, int max_size)
 
 void audio_frame2_free(audio_frame2 *frame)
 {
-    if(!frame)
-        return;
-    for(int i = 0; i < MAX_AUDIO_CHANNELS; ++i) {
-        free(frame->data[i]);
-    }
-    free(frame);
+        if(!frame)
+                return;
+        for(int i = 0; i < MAX_AUDIO_CHANNELS; ++i) {
+                free(frame->data[i]);
+        }
+        free(frame);
 }
 
 //bool audio_desc_eq(struct audio_desc a1, struct audio_desc a2) {
@@ -401,21 +401,21 @@ void audio_frame2_free(audio_frame2 *frame)
 
 const char *get_name_to_audio_codec(audio_codec_t codec)
 {
-    return audio_codec_info[codec].name;
+        return audio_codec_info[codec].name;
 }
 
 uint32_t get_audio_tag(audio_codec_t codec)
 {
-    return audio_codec_info[codec].tag;
+        return audio_codec_info[codec].tag;
 }
 
 audio_codec_t get_audio_codec_to_tag(uint32_t tag)
 {
-    for(int i = 0; i < audio_codec_info_len; ++i) {
-        if(audio_codec_info[i].tag == tag) {
-            return i;
+        for(int i = 0; i < audio_codec_info_len; ++i) {
+                if(audio_codec_info[i].tag == tag) {
+                        return i;
+                }
         }
-    }
-    return AC_NONE;
+        return AC_NONE;
 }
 

@@ -65,15 +65,15 @@
 //const int max_audio_codecs = MAX_AUDIO_CODECS;
 
 audio_codec_info_t audio_codec_info[] = {
-    [AC_NONE] = { "(none)", 0 },
-    [AC_PCM] = { "PCM", 0x0001 },
-    [AC_ALAW] = { "A-law", 0x0006 },
-    [AC_MULAW] = { "u-law", 0x0007 },
-    [AC_ADPCM_IMA_WAV] = { "ADPCM", 0x0011 },
-    [AC_SPEEX] = { "speex", 0xA109 },
-    [AC_OPUS] = { "OPUS", 0x7375704F }, // == Opus, the TwoCC isn't defined
-    [AC_G722] = { "G.722", 0x028F },
-    [AC_G726] = { "G.726", 0x0045 },
+        [AC_NONE] = { "(none)", 0 },
+        [AC_PCM] = { "PCM", 0x0001 },
+        [AC_ALAW] = { "A-law", 0x0006 },
+        [AC_MULAW] = { "u-law", 0x0007 },
+        [AC_ADPCM_IMA_WAV] = { "ADPCM", 0x0011 },
+        [AC_SPEEX] = { "speex", 0xA109 },
+        [AC_OPUS] = { "OPUS", 0x7375704F }, // == Opus, the TwoCC isn't defined
+        [AC_G722] = { "G.722", 0x028F },
+        [AC_G726] = { "G.726", 0x0045 },
 };
 
 int audio_codec_info_len = sizeof(audio_codec_info)/sizeof(audio_codec_info_t);
@@ -105,12 +105,12 @@ int audio_codec_info_len = sizeof(audio_codec_info)/sizeof(audio_codec_info_t);
 //}
 
 struct audio_codec_state {
-    void **state;
-    int state_count;
-    int index;
-    audio_codec_t codec;
-    audio_codec_direction_t direction;
-    audio_frame2 *out;
+        void **state;
+        int state_count;
+        int index;
+        audio_codec_t codec;
+        audio_codec_direction_t direction;
+        audio_frame2 *out;
 };
 
 //void list_audio_codecs(void) {
@@ -294,18 +294,18 @@ struct audio_codec_state {
 
 void audio_codec_done(struct audio_codec_state *s)
 {
-    if(!s)
-        return;
-    for(int i = 0; i < s->state_count; ++i) {
-        //audio_codecs[s->index]->done(s->state[i]);
-    }
-    free(s->state);
+        if(!s)
+                return;
+        for(int i = 0; i < s->state_count; ++i) {
+//                audio_codecs[s->index]->done(s->state[i]);
+        }
+        free(s->state);
 
-    for(int i = 0; i < MAX_AUDIO_CHANNELS; ++i) {
-        s->out->data[i] = NULL;
-    }
-    audio_frame2_free(s->out);
-    free(s);
+        for(int i = 0; i < MAX_AUDIO_CHANNELS; ++i) {
+                s->out->data[i] = NULL;
+        }
+        audio_frame2_free(s->out);
+        free(s);
 }
 
 //const int *audio_codec_get_supported_bps(struct audio_codec_state *s)

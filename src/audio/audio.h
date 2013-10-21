@@ -62,24 +62,24 @@
 //extern int audio_init_state_ok;
 
 typedef enum {
-    AC_NONE,
-    AC_PCM,
-    AC_ALAW,
-    AC_MULAW,
-    AC_ADPCM_IMA_WAV,
-    AC_SPEEX,
-    AC_OPUS,
-    AC_G722,
-    AC_G726,
+        AC_NONE,
+        AC_PCM,
+        AC_ALAW,
+        AC_MULAW,
+        AC_ADPCM_IMA_WAV,
+        AC_SPEEX,
+        AC_OPUS,
+        AC_G722,
+        AC_G726,
 } audio_codec_t;
 
 //struct state_audio;
 
 struct audio_desc {
-    int bps;                /* bytes per sample */
-    int sample_rate;
-    int ch_count;		/* count of channels */
-    audio_codec_t codec;
+        int bps;                /* bytes per sample */
+        int sample_rate;
+        int ch_count;		/* count of channels */
+        audio_codec_t codec;
 };
 
 /**
@@ -87,24 +87,24 @@ struct audio_desc {
  */
 typedef struct audio_frame
 {
-    int bps;                /* bytes per sample */
-    int sample_rate;
-    char *data; /* data should be at least 4B aligned */
-    int data_len;           /* size of useful data in buffer */
-    int ch_count;		/* count of channels */
-    unsigned int max_size;  /* maximal size of data in buffer */
+        int bps;                /* bytes per sample */
+        int sample_rate;
+        char *data; /* data should be at least 4B aligned */
+        int data_len;           /* size of useful data in buffer */
+        int ch_count;		/* count of channels */
+        unsigned int max_size;  /* maximal size of data in buffer */
 }
 audio_frame;
 
 typedef struct
 {
-    int bps;                /* bytes per sample */
-    int sample_rate;
-    char *data[MAX_AUDIO_CHANNELS]; /* data should be at least 4B aligned */
-    int data_len[MAX_AUDIO_CHANNELS];           /* size of useful data in buffer */
-    int ch_count;		/* count of channels */
-    unsigned int max_size;  /* maximal size of data in buffer */
-    audio_codec_t codec;
+        int bps;                /* bytes per sample */
+        int sample_rate;
+        char *data[MAX_AUDIO_CHANNELS]; /* data should be at least 4B aligned */
+        int data_len[MAX_AUDIO_CHANNELS];           /* size of useful data in buffer */
+        int ch_count;		/* count of channels */
+        unsigned int max_size;  /* maximal size of data in buffer */
+        audio_codec_t codec;
 } audio_frame2;
 
 //typedef struct

@@ -21,6 +21,6 @@ rec_trans_LDFLAGS = -L. -L./src -L./io_mngr -lvcompress -lvdecompress -liomanage
 rec_trans_DEPENDENCIES = src/librtp.la src/libvcompress.la src/libvdecompress.la io_mngr/libiomanager.la
 
 audio_rtp_only_SOURCES = tests/audio_rtp_only.c
-audio_rtp_only_CFLAGS = $(AM_CFLAGS) -Isrc -Itests -Iio_mngr -Idxt_compress -Isrc/rtp -Isrc/utils
-audio_rtp_only_LDFLAGS = -L./src -L./io_mngr -lvcompress -lvdecompress -liomanager -lavcodec
+audio_rtp_only_CFLAGS = $(AM_CFLAGS) -Isrc -Itests -Isrc/rtp -Isrc/utils -Isrc/audio
+audio_rtp_only_LDFLAGS = -L./src -lrtp
 audio_rtp_only_DEPENDENCIES = src/librtp.la

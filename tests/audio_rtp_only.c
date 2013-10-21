@@ -19,7 +19,7 @@
 #include "rtp/rtp.h"
 #include "rtp/pbuf.h"
 #include "rtp/rtp_callback.h"
-#include "rtp/audio_rtpdec.h"
+#include "rtp/audio_decoders.h"
 #include "transmit.h"
 #include "audio/audio.h"
 #include "audio/codec.h"
@@ -199,9 +199,8 @@ int main(int argc, char *argv[])
 
     // Default network options
     char *sendto_host = "localhost";
-    char *receive_host = "localhost";
     uint16_t sendto_port = PORT_AUDIO;
-    uint16_t receive_port = PORT_AUDIO + 2;
+    uint16_t receive_port = PORT_AUDIO + 4;
 
     // Option processing
     static struct option getopt_options[] = {
@@ -212,7 +211,6 @@ int main(int argc, char *argv[])
     };
     int ch;
     int option_index = 0;
-    int tmp;
 
     while ((ch = getopt_long(argc, argv, "h:s:r:", getopt_options, &option_index)) != -1) {
         switch (ch) {
@@ -223,13 +221,7 @@ int main(int argc, char *argv[])
                 sendto_port = atoi(optarg);
                 break;
             case 'r':
-                tmp = atoi(optarg);
-                if (1024 <= tmp && tmp <= 65535 && tmp % 2 == 0) {
-                    receive_port = tmp;
-                }
-                else {
-                    printf("I don't like %s as send_port! >:(\n", argv[2]);
-                }
+                receive_port = atoi(optarg);
                 break;
             case '?':
                 usage();
@@ -238,10 +230,6 @@ int main(int argc, char *argv[])
             default:
                 break; 
         }
-    }
-
-    if (strcmp(sendto_host, "localhost") && sendto_port == receive_port) {
-        receive_port = sendto_port + 2;
     }
 
     printf("Host to send: %s\n", sendto_host);
@@ -260,7 +248,7 @@ int main(int argc, char *argv[])
     struct rtp *receiver_session;
     struct pdb *receiver_participants;
     receiver_participants = pdb_init();
-    receiver_session = init_network(receive_host, receive_port, receive_port, receiver_participants, false);
+    receiver_session = init_network(NULL, receive_port, 0, receiver_participants, false);
     // Receiver thread config stuff
     struct thread_data *receiver_data = calloc(1, sizeof(struct thread_data));
     receiver_data->rtp_session = receiver_session;
@@ -274,7 +262,7 @@ int main(int argc, char *argv[])
     struct rtp *sender_session;
     struct pdb *sender_participants;
     sender_participants = pdb_init();
-    sender_session = init_network(sendto_host, sendto_port, sendto_port, sender_participants, false);
+    sender_session = init_network(sendto_host, 0, sendto_port, sender_participants, false);
     // Sender thread creation stuff
     struct thread_data *sender_data = calloc(1, sizeof(struct thread_data));
     sender_data->rtp_session = sender_session;
@@ -285,8 +273,7 @@ int main(int argc, char *argv[])
     struct module mod;
     module_init_default(&mod);
     char *audio_fec = strdup(DEFAULT_AUDIO_FEC);
-    char *encryption = "0";
-    sender_data->tx_session = tx_init(&mod, 1500, TX_MEDIA_AUDIO, audio_fec, encryption);
+    sender_data->tx_session = tx_init(&mod, 1500, TX_MEDIA_AUDIO, audio_fec, NULL);
 
     // Launch them
     gettimeofday(&receiver_data->start_time, NULL);
