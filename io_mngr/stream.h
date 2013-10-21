@@ -5,7 +5,7 @@
 #include "types.h"
 #include <pthread.h>
 
-typedef struct decoder {
+typedef struct decoder_thread_thread {
     pthread_t thread;
     uint8_t run;
 
@@ -16,9 +16,9 @@ typedef struct decoder {
     uint8_t *data;
     uint32_t data_len;
     struct state_decompress *sd;
-} decoder_t;
+} decoder_thread_thread_t;
 
-typedef struct encoder {
+typedef struct encoder_thread_thread {
     pthread_t thread;
     uint8_t run;
 
@@ -32,7 +32,7 @@ typedef struct encoder {
     int index;
     struct video_frame *frame;
     uint8_t *input_frame;
-    uin32_t input_frame_len;
+    uint32_t input_frame_len;
 
     sem_t input_sem;
     sem_t output_sem;
@@ -40,7 +40,7 @@ typedef struct encoder {
     uint8_t *data;
     uint32_t data_len;
     struct state_compress *sc;
-} encoder_t;
+} encoder_thread_thread_t;
 
 typedef enum stream_type {
     AUDIO,
@@ -60,6 +60,7 @@ typedef struct video_data {
 } video_data_t;
 
 typedef struct stream_data {
+    pthread_rwlock_t lock;
     stream_type_t type;
     uint32_t id;
     uint8_t active;
@@ -70,8 +71,8 @@ typedef struct stream_data {
         video_data_t video;
     };
     union {
-        encoder_t *encoder;
-        decoder_t *decoder;
+        encoder_thread_t *encoder;
+        decoder_thread_t *decoder;
     };
 } stream_data_t;
 
@@ -82,14 +83,14 @@ typedef struct stream_list {
     stream_data_t *last;
 } stream_list_t;
 
-decoder_t *init_decoder(stream_data_t *stream);
-decoder_t *init_encoder(stream_data_t *stream);
+decoder_thread_t *init_decoder(stream_data_t *stream);
+decoder_thread_t *init_encoder(stream_data_t *stream);
 
-int *destroy_decoder(stream_data_t *stream);
-int *destroy_encoder(straem_data_t *stream);
+void destroy_decoder(decoder_thread_t *decoder);
+void destroy_encoder(encoder_thread_t *encoder);
 
 stream_list_t *init_stream_list(void);
-int *destroy_stream_list(stream_list_t *list);
+void destroy_stream_list(stream_list_t *list);
 
 stream_data_t *init_video_stream(stream_type_t type, uint32_t id, uint8_t active);
 int destroy_stream(stream_data_t *stream);

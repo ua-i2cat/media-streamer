@@ -40,8 +40,7 @@ struct participant_data {
         rtp_session_t *rtp;
         rtsp_session_t *rtsp;
     }
-    struct rtp_session *session;
-    struct recieved_data *rx_data;
+    struct recieved_data *rx_data; // TODO: move to decoder_t
 
     // One participant may have more than one stream.
     uint8_t streams_count;
