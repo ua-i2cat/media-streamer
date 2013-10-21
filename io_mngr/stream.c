@@ -81,12 +81,21 @@ encoder_thread_t *init_encoder(stream_data_t *stream)
 
 void destroy_decoder(decoder_thread_t *decoder)
 {
-    
+    asser(decoder->run == FALSE);
+
+    pthread_mutext_destroy(&decoder->lock);
+    pthread_cond_destroy(&decoder->notify_frame);
+
+    decompress_done(decoder->sd);
+
+    free(decoder->data);
+    free(decoder);
 }
 
 void destroy_encoder(encoder_thread_t *encoder)
 {
-
+    // TODO
+    UNUSED(encoder);
 }
 
 stream_list_t *init_stream_list(void)
