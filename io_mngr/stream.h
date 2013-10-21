@@ -1,6 +1,9 @@
 #ifndef _STREAM_H_
 #define _STREAM_H_
 
+#include "config_unix.h"
+#include <pthread.h>
+
 typedef struct decoder {
     pthread_t thread;
     uint8_t run;
@@ -31,8 +34,8 @@ typedef struct encoder {
 } encoder_t;
 
 typedef enum stream_type {
-    AUDIO;
-    VIDEO;
+    AUDIO,
+    VIDEO
 } stream_type_t;
 
 typedef struct audio_stream {
@@ -49,6 +52,7 @@ typedef struct video_stream {
 
 typedef struct stream {
     stream_type_t type;
+    uint32_t ssrc;
     uint8_t active;
     union {
         audio_stream_t audio;

@@ -1,4 +1,7 @@
 #include "stream.h"
+#include "config_unix.h"
+#include "types.h"
+#include <pthread.h>
 
 decoder_t *init_decoder_thread(stream_t *stream)
 {
@@ -14,15 +17,6 @@ decoder_t *init_decoder_thread(stream_t *stream)
     }
 	decoder->new_frame = FALSE;
 	decoder->run = FALSE;
-	
-    /* TODO: calloc may be unnecessary?
-	decoder->sd = calloc(2, sizeof(struct state_decompress *));
-    if (decoder->sd == NULL) {
-        error_msg("decoder state decompress calloc failed");
-        free(decoder);
-        return NULL;
-    }
-    */
 	
 	pthread_mutex_init(&decoder->lock, NULL);
 	pthread_cond_init(&decoder->notify_frame, NULL);
