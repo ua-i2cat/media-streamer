@@ -1,7 +1,4 @@
 #include "stream.h"
-#include "config_unix.h"
-#include "types.h"
-#include <pthread.h>
 
 decoder_t *init_decoder_thread(stream_t *stream)
 {
