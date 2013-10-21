@@ -1,6 +1,8 @@
 #include "stream.h"
 #include "video_decompress.h"
 #include "video_decompress/libavcodec.h"
+#include "video_codec.h"
+#include "debug.h"
 
 decoder_thread_t *init_decoder(stream_data_t *stream)
 {
