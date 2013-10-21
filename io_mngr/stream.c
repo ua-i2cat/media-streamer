@@ -1,15 +1,17 @@
 #include "stream.h"
+#include "video_decompress.h"
+#include "video_decompress/libavcodec.h"
 
 decoder_thread_t *init_decoder(stream_data_t *stream)
 {
-    pthread_rwlock_rdlock(stream->lock);
+    pthread_rwlock_rdlock(&stream->lock);
 
 	decoder_thread_t *decoder;
 	struct video_desc des;
 
 	initialize_video_decompress();
 	
-	decoder = malloc(sizeof(decoder_thread_thread_t));
+	decoder = malloc(sizeof(decoder_thread_t));
     if (decoder == NULL) {
         error_msg("decoder malloc failed");
         pthread_rwlock_unlock(&stream->lock);
@@ -32,16 +34,16 @@ decoder_thread_t *init_decoder(stream_data_t *stream)
             return NULL;
         }
 
-        des.width = stream->width;
-        des.height = stream->height;
-        des.color_spec  = stream->codec;
+        des.width = stream->video.width;
+        des.height = stream->video.height;
+        des.color_spec  = stream->video.codec;
         des.tile_count = 0;
         des.interlacing = PROGRESSIVE;
         des.fps = 24; // TODO XXX
 
         if (decompress_reconfigure(decoder->sd, des, 16, 8, 0, vc_get_linesize(des.width, RGB), RGB)) {
             decoder->data = malloc(1920*1080*4*sizeof(char)); //TODO this is the worst case in raw data, should be the worst case for specific codec
-            if (decoder->data = NULL) {
+            if (decoder->data == NULL) {
                 error_msg("decoder data malloc failed");
                 decompress_done(decoder->sd);
                 free(decoder);
@@ -108,12 +110,14 @@ void destroy_stream_list(stream_list_t *list)
         destroy_stream(current);
         current = next;
     }
-    pthread_rwlock_unlock(&list->lock);
+    //pthread_rwlock_unlock(&list->lock);
+    pthread_rwlock_destroy(&list->lock);
+    free(list);
 }
 
 stream_data_t *init_video_stream(stream_type_t type, uint32_t id, uint8_t active)
 {
-
+    
 }
 
 int destroy_stream(stream_data_t *stream)
@@ -130,7 +134,7 @@ int add_stream(stream_list_t *list, stream_data_t *stream)
 
 }
 
-int remove_stream(stream_list *list, uint32_t id)
+int remove_stream(stream_list_t *list, uint32_t id)
 {
 
 }
