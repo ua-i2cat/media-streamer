@@ -5,7 +5,7 @@
 #include "types.h"
 #include <pthread.h>
 
-typedef struct decoder_thread_thread {
+typedef struct decoder_thread {
     pthread_t thread;
     uint8_t run;
 
@@ -16,9 +16,9 @@ typedef struct decoder_thread_thread {
     uint8_t *data;
     uint32_t data_len;
     struct state_decompress *sd;
-} decoder_thread_thread_t;
+} decoder_thread_t;
 
-typedef struct encoder_thread_thread {
+typedef struct encoder_thread {
     pthread_t thread;
     uint8_t run;
 
@@ -40,7 +40,7 @@ typedef struct encoder_thread_thread {
     uint8_t *data;
     uint32_t data_len;
     struct state_compress *sc;
-} encoder_thread_thread_t;
+} encoder_thread_t;
 
 typedef enum stream_type {
     AUDIO,
@@ -64,15 +64,15 @@ typedef struct stream_data {
     stream_type_t type;
     uint32_t id;
     uint8_t active;
-    stream_data_t *prev;
-    stream_data_t *next;
+    struct stream_data *prev;
+    struct stream_data *next;
     union {
         audio_data_t audio;
         video_data_t video;
     };
     union {
-        encoder_thread_t *encoder;
-        decoder_thread_t *decoder;
+        struct encoder_thread *encoder;
+        struct decoder_thread *decoder;
     };
 } stream_data_t;
 
@@ -100,6 +100,6 @@ int set_stream_video_data(stream_data_t *stream, codec_t codec,
 // TODO set_stream_audio_data
 
 int add_stream(stream_list_t *list, stream_data_t *stream);
-int remove_stream(stream_list *list, uint32_t id);
+int remove_stream(stream_list_t *list, uint32_t id);
 
 #endif
