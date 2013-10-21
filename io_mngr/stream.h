@@ -4,6 +4,7 @@
 #include "config_unix.h"
 #include "types.h"
 #include <pthread.h>
+#include <semaphore.h>
 
 typedef struct decoder_thread {
     pthread_t thread;
@@ -90,7 +91,7 @@ typedef struct stream_list {
 } stream_list_t;
 
 decoder_thread_t *init_decoder(stream_data_t *stream);
-decoder_thread_t *init_encoder(stream_data_t *stream);
+encoder_thread_t *init_encoder(stream_data_t *stream);
 
 void destroy_decoder(decoder_thread_t *decoder);
 void destroy_encoder(encoder_thread_t *encoder);
