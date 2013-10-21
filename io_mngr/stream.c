@@ -59,7 +59,9 @@ decoder_t *init_decoder_thread(stream_t *stream)
     return decoder;
 }
 
-decoder_t *init_encoder_thread(stream_t *stream)
+encoder_t *init_encoder_thread(stream_t *stream)
 {
-    return NULL;
+    return NULL; // TODO
 }
+
+
