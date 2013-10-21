@@ -8,10 +8,10 @@ AM_CXXFLAGS = -O2 -g -DHAVE_CONFIG_H -g -fPIC -Wno-multichar -Wno-deprecated -ms
 libiomanager_la_LDFLAGS = -version-info 0:1:0 -L. -L.. -L../src -lpthread -lrtp -lvcompress -lvdecompress
 libiomanager_la_CFLAGS = $(AM_CFLAGS) -I. -I.. -I../src -I../src/rtp -I../src/utils
 libiomanager_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -I.. -I../src -i../src/rtp -I../src/utils
-libiomanager_la_SOURCES = participants.c \
+libiomanager_la_SOURCES = stream.c \
+						  participants.c \
 						  receiver.c \
 						  transmitter.c \
-						  stream.c \
 						  ../dxt_compress/dxt_util.c \
 						  ../dxt_compress/dxt_decoder.c \
 						  ../dxt_compress/dxt_encoder.c
@@ -30,4 +30,4 @@ uginclude_HEADERS =	receiver.h \
 					../src/rtp/pbuf.h \
 					../src/utils/list.h \
 					../src/rtp/rtp.h \
-					../src/config.h 
+					../src/config.h
