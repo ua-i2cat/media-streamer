@@ -2,7 +2,7 @@
 
 decoder_thread_t *init_decoder(stream_data_t *stream)
 {
-    pthread_rwlock_rlock(stream->lock);
+    pthread_rwlock_rdlock(stream->lock);
 
 	decoder_thread_t *decoder;
 	struct video_desc des;
@@ -69,7 +69,7 @@ decoder_thread_t *init_decoder(stream_data_t *stream)
 
 encoder_thread_t *init_encoder(stream_data_t *stream)
 {
-    pthread_rwlock_rlock(&stream->lock);
+    pthread_rwlock_rdlock(&stream->lock);
     // TODO ...
     pthread_rwlock_unlock(&stream->lock);
     return NULL;
@@ -77,7 +77,7 @@ encoder_thread_t *init_encoder(stream_data_t *stream)
 
 void destroy_decoder(decoder_thread_t *decoder)
 {
-
+    
 }
 
 void destroy_encoder(encoder_thread_t *encoder)
@@ -87,12 +87,28 @@ void destroy_encoder(encoder_thread_t *encoder)
 
 stream_list_t *init_stream_list(void)
 {
-
+    stream_list_t *list = malloc(sizeof(stream_list_t));
+    if (list == NULL) {
+        error_msg("init_stream_list malloc error");
+        return NULL;
+    }
+    pthread_rwlock_init(&list->lock, NULL);
+    list->count = 0;
+    list->first = NULL;
+    list->last = NULL;
+    return list;
 }
 
 void destroy_stream_list(stream_list_t *list)
 {
-
+    pthread_rwlock_wrlock(&list->lock);
+    stream_data_t *current = list->first;
+    while (current != NULL) {
+        stream_data_t *next = current->next;
+        destroy_stream(current);
+        current = next;
+    }
+    pthread_rwlock_unlock(&list->lock);
 }
 
 stream_data_t *init_video_stream(stream_type_t type, uint32_t id, uint8_t active)
