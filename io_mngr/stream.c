@@ -16,6 +16,11 @@ void *decoder_th(void* stream);
 // private functions
 void *encoder_routine(void *arg);
 
+
+// Private functions
+void *encoder_routine(void *arg);
+
+
 decoder_thread_t *init_decoder(stream_data_t *stream)
 {
     pthread_rwlock_rdlock(&stream->lock);
@@ -188,6 +193,14 @@ void *encoder_routine(void *arg)
     module_done(CAST_MODULE(&cmod));
     free(encoder->input_frame);
     pthread_exit((void *)NULL);
+
+void *encoder_routine(void *arg)
+{
+    stream_data_t *stream = (stream_data_t *)arg;
+
+    // TODO
+
+    return (void *)NULL;
 }
 
 encoder_thread_t *init_encoder(stream_data_t *stream)
