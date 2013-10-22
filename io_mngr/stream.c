@@ -192,11 +192,8 @@ int destroy_stream(stream_data_t *stream)
     } else if (stream->io_type == OUTPUT && stream->encoder != NULL){
         //destroy_encoder_thread(encoder);
     }
-  
     pthread_rwlock_destroy(&stream->lock);
-  
     free(stream);
-
     return TRUE;
 }
 
@@ -270,7 +267,7 @@ stream_data_t *get_stream_id(stream_list_t *list, uint32_t id)
         }
         stream = stream->next;
     }
-    
+
     pthread_rwlock_unlock(&list->lock);
     return stream;
 }
