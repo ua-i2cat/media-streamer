@@ -213,7 +213,6 @@ int set_stream_video_data(stream_data_t *stream, codec_t codec, uint32_t width, 
         stream->video.decoded_frame_len = vc_get_linesize(width, RGB)*height;
         stream->video.decoded_frame = malloc(stream->video.decoded_frame_len);
     } else {
-        debug_msg("type not contemplated\n");
         error_msg("set_stream_video_data: type not contemplated\n");
         pthread_rwlock_unlock(&stream->lock);
         return FALSE;
@@ -228,7 +227,6 @@ int set_stream_video_data(stream_data_t *stream, codec_t codec, uint32_t width, 
     pthread_rwlock_unlock(&stream->lock);
 
     return TRUE;
-
 }
 
 int add_stream(stream_list_t *list, stream_data_t *stream)
