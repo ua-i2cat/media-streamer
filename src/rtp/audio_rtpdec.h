@@ -1,15 +1,17 @@
 /*
- * FILE:   transmit.h
- * AUTHOR: Colin Perkins <csp@isi.edu>
- *         Martin Benes     <martinbenesh@gmail.com>
- *         Lukas Hejtmanek  <xhejtman@ics.muni.cz>
- *         Petr Holub       <hopet@ics.muni.cz>
- *         Milos Liska      <xliska@fi.muni.cz>
- *         Jiri Matela      <matela@ics.muni.cz>
- *         Dalibor Matura   <255899@mail.muni.cz>
- *         Ian Wesley-Smith <iwsmith@cct.lsu.edu>
- *
- * Copyright (c) 2001-2002 University of Southern California
+ * FILE:     audio_decoder.h
+ * AUTHOR:   N.Cihan Tas
+ * MODIFIED: Ladan Gharai
+ *           Colin Perkins
+ *           Martin Benes     <martinbenesh@gmail.com>
+ *           Lukas Hejtmanek  <xhejtman@ics.muni.cz>
+ *           Petr Holub       <hopet@ics.muni.cz>
+ *           Milos Liska      <xliska@fi.muni.cz>
+ *           Jiri Matela      <matela@ics.muni.cz>
+ *           Dalibor Matura   <255899@mail.muni.cz>
+ *           Ian Wesley-Smith <iwsmith@cct.lsu.edu>
+ * 
+ * Copyright (c) 2003-2004 University of Southern California
  * Copyright (c) 2005-2010 CESNET z.s.p.o.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,35 +51,13 @@
  *
  */
 
-#ifndef TRANSMIT_H_
-#define TRANSMIT_H_
+struct coded_data;
 
-#include "audio/audio.h"
+int decode_audio_frame(struct coded_data *cdata, void *data);
+void *audio_decoder_init(char *audio_channel_map, const char *audio_scale,
+        const char *encryption);
+void audio_decoder_destroy(void *state);
 
-struct module;
-struct rtp;
-struct tx;
-struct video_frame;
-
-enum tx_media_type {
-        TX_MEDIA_AUDIO,
-        TX_MEDIA_VIDEO
-};
-
-struct tx *tx_init(struct module *parent, unsigned mtu, enum tx_media_type media_type,
-                char *fec, const char *encryption);
-void		 tx_send_tile(struct tx *tx_session, struct video_frame *frame, int pos, struct rtp *rtp_session);
-void             tx_send(struct tx *tx_session, struct video_frame *frame, struct rtp *rtp_session);
-void             audio_tx_send(struct tx *tx_session, struct rtp *rtp_session, audio_frame2 *buffer);
-
-// void tx_init_h264(void);
-// 
-struct tx *tx_init_h264(struct module *parent, unsigned mtu, enum tx_media_type media_type,
-                char *fec, const char *encryption);
-
-void tx_send_h264(struct tx *tx_session, struct video_frame *frame, struct rtp *rtp_session, float framerate);
-
-void rtpenc_h264_stats_print(void);
-
-#endif // TRANSMIT_H_
+// Accessor to get the audio_frame2 in the local struct state_audio_decoder.
+audio_frame2 *get_audio_frame2_pointer(struct state_audio_decoder *s);
 

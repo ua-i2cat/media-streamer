@@ -14,6 +14,7 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					rtp/rtp.c \
 					rtp/rtp_callback.c \
 					rtp/rtpdec.c \
+					rtp/audio_decoders.c \
 					crypto/crc_32.c \
 					crypto/crypt_aes.c \
 					crypto/crypt_aes_impl.c \
@@ -22,21 +23,26 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					crypto/openssl_decrypt.c\
 					crypto/openssl_encrypt.c \
 					crypto/random.c \
+                                        audio/utils.c \
+                                        audio/codec.c \
 					tv.c \
 					perf.c \
 					tfrc.c \
 					ntp.c \
 					pdb.c \
 					debug.c \
+					transmit.c \
+					module.c \
+					messaging.cpp \
+					video_codec.c \
+					video_frame.c \
+					compat/platform_spin.c \
 					compat/gettimeofday.c \
 					compat/inet_pton.c \
 					compat/inet_ntop.c \
 					compat/vsnprintf.c \
 					compat/drand48.c \
 					utils/list.c \
-					transmit.c \
-					module.c \
-					messaging.cpp \
 					utils/h264_stream.c
 
 libvcompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut -lGLU
@@ -154,7 +160,11 @@ nobase_uginclude_HEADERS =	./tfrc.h \
 							./rtp/rtpdec.h \
 							./rtp/ptime.h \
 							./rtp/rtp.h \
+							./rtp/audio_decoders.h \
 							./video_decompress.h \
+                                                        ./audio/audio.h \
+                                                        ./audio/utils.h \
+                                                        ./audio/codec.h \
   						    ../dxt_compress/dxt_common.h \
 						    ../dxt_compress/dxt_decoder.h \
 						    ../dxt_compress/dxt_display.h \

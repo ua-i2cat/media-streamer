@@ -67,7 +67,8 @@
 
 //#include "video_display.h"
 
-//#include "audio/audio.h"
+#include "audio/audio.h"
+#include "utils/list.h"
 #include "list.h"
 #include "rtp.h"
 
@@ -103,12 +104,12 @@ struct vcodec_state {
         struct simple_linked_list *messages;
 };
 
-/*struct pbuf_audio_data {
+struct pbuf_audio_data {
         audio_frame buffer;
         struct state_audio_decoder *decoder;
 
         bool reconfigured;
-};*/
+};
 
 /**
  * @param decode_data
@@ -119,8 +120,8 @@ typedef int decode_frame_t(struct coded_data *cdata, void *decode_data);
  */
 struct pbuf	*pbuf_init(void);
 void		 pbuf_insert(struct pbuf *playout_buf, rtp_packet *r);
-//int 	 	 audio_pbuf_decode(struct pbuf *playout_buf, struct timeval curr_time,
-//                             decode_frame_t decode_func, void *data);
+int 	 	 audio_pbuf_decode(struct pbuf *playout_buf, struct timeval curr_time,
+                             decode_frame_t decode_func, void *data);
 int 	 	 pbuf_decode(struct pbuf *playout_buf, struct timeval curr_time,
                              decode_frame_t decode_func, void *data);
                              //struct video_frame *framebuffer, int i, struct state_decoder *decoder);
