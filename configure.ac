@@ -5,6 +5,9 @@ AC_PREREQ([2.68])
 AC_INIT([ug-modules], [0.1.0], [BUG-REPORT-ADDRESS])
 #AC_CONFIG_SRCDIR([cuda_dxt/cuda_dxt.h])
 
+# non-verbose output
+AM_SILENT_RULES([yes])
+
 LT_INIT
 
 AM_INIT_AUTOMAKE([ug-modules], [0.1.0])
