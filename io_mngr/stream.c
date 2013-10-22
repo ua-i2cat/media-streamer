@@ -2,10 +2,17 @@
 #include "video_decompress.h"
 #include "video_decompress/libavcodec.h"
 #include "video_codec.h"
+#include "video_compress.h"
+#include "video_frame.h"
+#include "module.h"
 #include "debug.h"
 
+#include <stdlib.h>
 
-// Private functions
+#define DEFAULT_FPS 24
+#define PIXEL_FORMAT RGB
+
+// private functions
 void *encoder_routine(void *arg);
 
 
@@ -79,10 +86,72 @@ decoder_thread_t *init_decoder(stream_data_t *stream)
 void *encoder_routine(void *arg)
 {
     stream_data_t *stream = (stream_data_t *)arg;
+    encoder_thread_t *encoder = stream->encoder;
 
-    // TODO
+    int width = stream->video.width;
+    int height = stream->video.height;
 
-    return (void *)NULL;
+    encoder->input_frame_len = vc_get_linesize(width, PIXEL_FORMAT) * height;
+    encoder->input_frame = malloc(encoder->input_frame_len);
+    if (encoder->input_frame == NULL) {
+        error_msg("encoder_routine: malloc error");
+        pthread_exit((void *)NULL);
+    }
+
+    struct module cmod;
+    module_init_default(&cmod);
+
+    compress_init(&cmod, "libavcodec:codec=H.264", &encoder->cs);
+
+    struct video_frame *frame = vf_alloc(1);
+    if (frame == NULL) {
+        error_msg("encoder_routine: vf_alloc error");
+        compress_done(&encoder->cs);
+        pthread_exit((void *)NULL);
+    }
+
+    vf_get_tile(frame, 0)->width = width;
+    vf_get_tile(frame, 0)->height = height;
+    frame->color_spec = PIXEL_FORMAT;
+    // TODO: set default fps value. If it's not set -> core dump
+    frame->fps = DEFAULT_FPS; 
+    frame->interlacing = PROGRESSIVE;
+
+    encoder->run = TRUE; // TODO: set to TRUE also in init_encoder!?
+    encoder->index = 0;
+
+    while (encoder->run) {
+        sem_wait(&encoder->input_sem);
+        if (!encoder->run) {
+            break;
+        }
+    
+        // TODO: create encoder input buffer
+        pthread_mutex_lock(&encoder->lock);
+        
+        frame->tiles[0].data = encoder->input_frame;
+        frame->tiles[0].data_len = encoder->input_frame_len;
+    
+        struct video_frame *tx_frame;
+        tx_frame = compress_frame(encoder->cs, frame, encoder->index);
+
+        encoder->frame = tx_frame;
+
+        pthread_rwlock_unlock(&encoder->lock);
+
+        encoder->index = (encoder->index + 1) % 2;
+
+        /* NOTE: now the encoder knows nothing about the RTP
+           thread, so the notify and pause strategy is implemented
+           only trough the input and ouput semaphores
+         */
+        sem_post(&encoder->output_sem);
+        sem_wait(&encoder->input_sem);
+    }
+
+    module_done(CAST_MODULE(&cmod));
+    free(encoder->input_frame);
+    pthread_exit((void *)NULL);
 }
 
 encoder_thread_t *init_encoder(stream_data_t *stream)
@@ -229,9 +298,9 @@ int destroy_stream(stream_data_t *stream)
     }
 
     if (stream->io_type == INPUT && stream->decoder != NULL){
-        destroy_decoder_thread(stream->decoder);
+        destroy_decoder(stream->decoder);
     } else if (stream->io_type == OUTPUT && stream->encoder != NULL){
-        destroy_encoder_thread(stream->encoder);
+        destroy_encoder(stream->encoder);
     }
     
     pthread_mutex_destroy(&stream->lock);
@@ -328,7 +397,7 @@ int remove_stream(stream_list_t *list, uint32_t id)
         return FALSE;
     }
 
-    pthread_rwlock_rwlock(&stream->lock);
+    pthread_rwlock_wrlock(&stream->lock);
 
     if (stream->prev == NULL) {
         assert(list->first == stream);

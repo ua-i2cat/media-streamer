@@ -40,7 +40,7 @@ typedef struct encoder_thread {
 
     uint8_t *data;
     uint32_t data_len;
-    struct state_compress *sc;
+    struct compress_state *cs;
 } encoder_thread_t;
 
 typedef enum stream_type {
