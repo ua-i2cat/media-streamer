@@ -93,7 +93,6 @@ struct pbuf {
 };
 
 static void free_cdata(struct coded_data *head);
-
 /*********************************************************************************/
 
 static void pbuf_validate(struct pbuf *playout_buf)
@@ -149,7 +148,6 @@ static void pbuf_validate(struct pbuf *playout_buf)
 #endif
 }
 
-
 struct pbuf *pbuf_init(void)
 {
         struct pbuf *playout_buf = NULL;
@@ -169,18 +167,6 @@ struct pbuf *pbuf_init(void)
         return playout_buf;
 }
 
-//TODO: move this function to somewhere else
-
-int mod (int a, int b)
-{
-   if(b < 0) //you can check for b == 0 separately and do what you want
-     return mod(-a, -b);   
-   int ret = a % b;
-   if(ret < 0)
-     ret+=b;
-   return ret;
-}
-
 static void add_coded_unit(struct pbuf_node *node, rtp_packet * pkt)
 {
     /* Add "pkt" to the frame represented by "node". The "node" has    */
@@ -190,7 +176,7 @@ static void add_coded_unit(struct pbuf_node *node, rtp_packet * pkt)
     /* in descending order of packets as they arrive (NOT necessarily  */
     /* descending sequence number order, as the network might reorder) */
 
-    struct coded_data *tmp, *curr, *aux, *prv;
+    struct coded_data *tmp, *curr, *prv;
 
     assert(node->rtp_timestamp == pkt->ts);
     assert(node->cdata != NULL);
