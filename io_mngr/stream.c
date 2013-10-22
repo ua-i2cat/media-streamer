@@ -165,6 +165,9 @@ int set_stream_video_data(stream_data_t *stream, codec_t codec, uint32_t width, 
 
     if (stream->type == AUDIO){
         //init audio structures
+        error_msg("set_stream_video_data: stream type is AUDIO");
+        pthread_rwlock_unlock(&stream->lock);
+        return FALSE;
     } else if (stream->type == VIDEO){
         stream->video.codec = codec;
         stream->video.width = width;
@@ -172,7 +175,9 @@ int set_stream_video_data(stream_data_t *stream, codec_t codec, uint32_t width, 
         stream->video.frame_len = vc_get_linesize(width, RGB)*height;
         stream->video.frame = malloc(stream->video.frame_len);
     } else {
-        debug_msg("type not contemplated\n");
+        error_msg("set_stream_video_data: type not contemplated\n");
+        pthread_rwlock_unlock(&stream->lock);
+        return FALSE;
     }
 
     if (stream->io_type == INPUT && stream->decoder == NULL){
@@ -183,8 +188,7 @@ int set_stream_video_data(stream_data_t *stream, codec_t codec, uint32_t width, 
 
     pthread_rwlock_unlock(&stream->lock);
 
-    return 0;
-
+    return TRUE;
 }
 
 int add_stream(stream_list_t *list, stream_data_t *stream)
