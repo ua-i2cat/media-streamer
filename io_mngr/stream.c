@@ -83,7 +83,7 @@ void destroy_decoder(decoder_thread_t *decoder)
 {
     assert(decoder->run == FALSE);
 
-    pthread_mutext_destroy(&decoder->lock);
+    pthread_mutex_destroy(&decoder->lock);
     pthread_cond_destroy(&decoder->notify_frame);
 
     decompress_done(decoder->sd);
@@ -149,7 +149,7 @@ int destroy_stream(stream_data_t *stream)
     if (stream->io_type == INPUT && stream->decoder != NULL){
         destroy_decoder_thread(stream->decoder);
     } else if (stream->io_type == OUTPUT && stream->encoder != NULL){
-        destroy_encoder_thread(encoder);
+        destroy_encoder_thread(stream->encoder);
     }
   
     pthread_mutex_destroy(&stream->lock);
@@ -172,7 +172,7 @@ int set_stream_video_data(stream_data_t *stream, codec_t codec, uint32_t width, 
         stream->video.frame_len = vc_get_linesize(width, RGB)*height;
         stream->video.frame = malloc(stream->video.frame_len);
     } else {
-        debug_msg("type not contemplated\n")
+        debug_msg("type not contemplated\n");
     }
 
     if (stream->io_type == INPUT && stream->decoder == NULL){
