@@ -14,8 +14,9 @@ typedef struct decoder_thread {
     pthread_cond_t notify_frame;
     uint8_t new_frame;
 
-    uint8_t *data;
-    uint32_t data_len;
+    uint8_t *coded_frame;
+    uint8_t coded_frame_len;
+
     struct state_decompress *sd;
 } decoder_thread_t;
 
@@ -61,8 +62,8 @@ typedef struct video_data {
     codec_t codec;
     uint32_t width;
     uint32_t height;
-    uint8_t *frame;  // TODO: char *?
-    uint32_t frame_len;
+    uint8_t *decoded_frame;  // TODO: char *?
+    uint32_t decoded_frame_len;
 } video_data_t;
 
 typedef struct stream_data {
@@ -71,6 +72,7 @@ typedef struct stream_data {
     io_type_t io_type;
     uint32_t id;
     uint8_t active;
+    uint8_t new_frame;
     struct stream_data *prev;
     struct stream_data *next;
     union {
@@ -93,13 +95,15 @@ typedef struct stream_list {
 decoder_thread_t *init_decoder(stream_data_t *stream);
 encoder_thread_t *init_encoder(stream_data_t *stream);
 
+void start_decoder(stream_data_t *stream);
+
 void destroy_decoder(decoder_thread_t *decoder);
 void destroy_encoder(encoder_thread_t *encoder);
 
 stream_list_t *init_stream_list(void);
 void destroy_stream_list(stream_list_t *list);
 
-stream_data_t *init_video_stream(stream_type_t type, uint32_t id, uint8_t active);
+stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, uint8_t active);
 int destroy_stream(stream_data_t *stream);
 
 int set_stream_video_data(stream_data_t *stream, codec_t codec,

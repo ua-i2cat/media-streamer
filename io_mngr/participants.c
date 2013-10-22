@@ -4,14 +4,12 @@
 #include "video_decompress/libavcodec.h"
 #include "video_decompress.h"
 
-
-participant_data_t *init_participant(int id, int width, int height, codec_t codec, char *addr, uint32_t port, ptype_t type);
 void destroy_decoder_thread(decoder_thread_t *dec_th);
 void destroy_participant(participant_data_t *src);
 int remove_participant(participant_list_t *list, uint32_t id);
 void destroy_participant_list(participant_list_t *list);
 
-participant_data_t *init_participant(int id, participant_type_t type, participant_protocol_t protocol, char *addr, uint32_t port){
+participant_data_t *init_participant(uint32_t id, io_type_t type, participant_protocol_t protocol, char *addr, uint32_t port){
     participant_data_t *participant;
   
     participant = (participant_data_t *) malloc(sizeof(participant_data_t));
@@ -41,7 +39,7 @@ participant_data_t *init_participant(int id, participant_type_t type, participan
     return participant;
 }
 
-int add_participant(participant_list_t *list, int id, participant_type_t part_type, participant_protocol_t prot_type, char *addr, uint32_t port){
+int add_participant(participant_list_t *list, int id, io_type_t part_type, participant_protocol_t prot_type, char *addr, uint32_t port){
     struct participant_data *participant;
   
     participant = init_participant(id, part_type, prot_type, addr, port);
@@ -112,7 +110,6 @@ participant_data_t *get_participant_ssrc(participant_list_t *list, uint32_t ssrc
       return participant;
     }
     if (participant->ssrc == 0){
-      assert(participant->proc.decoder == NULL);
       return participant;
     }
     participant = participant->next;
@@ -122,73 +119,64 @@ participant_data_t *get_participant_ssrc(participant_list_t *list, uint32_t ssrc
 }
 
 int remove_participant(participant_list_t *list, uint32_t id){
-  participant_data_t *participant;
+    participant_data_t *participant;
   
-  if (list->count == 0) {
-    return FALSE;
-  }
+    if (list->count == 0) {
+        return FALSE;
+    }
   
-  participant = get_participant_id(list, id);
+    participant = get_participant_id(list, id);
 
-  if (participant == NULL)
-    return FALSE;
+    if (participant == NULL)
+        return FALSE;
 
-  pthread_mutex_lock(&participant->lock);
-  
-  if (participant->type == INPUT && participant->proc.decoder != NULL
-    && participant->proc.decoder->run == TRUE){
-
-    participant->proc.decoder->run = FALSE;
-    pthread_cond_signal(&participant->proc.decoder->notify_frame);
-    pthread_mutex_unlock(&participant->lock);
-    
-    pthread_join(participant->proc.decoder->th_id, NULL); //TODO: timeout to force thread kill //TODO unlock 
-    
     pthread_mutex_lock(&participant->lock);
- 
-  } else if (participant->type == OUTPUT /*&& participant->proc.encoder->run == TRUE*/){
-    destroy_encoder_thread(participant);
-  }
+  
+    if (participant->type == INPUT && participant->streams_count > 0){
+        remove_participant_stream(participant, participant->streams[0]);
+        //TODO: where to execute remove stream???
+    }
 
-  if (participant->next == NULL && participant->previous == NULL) {
-    assert(list->last == participant && list->first == participant);
-    list->first = NULL;
-    list->last = NULL;
-  } else if (participant->next == NULL) {
-    assert(list->last == participant);
-    list->last = participant->previous;
-    participant->previous->next = NULL;
-  } else if (participant->previous == NULL) {
-    assert(list->first == participant);
-    list->first = participant->next;
-    participant->next->previous = NULL;
-  } else {
-    assert(participant->next != NULL && participant->previous != NULL);
-    participant->previous->next = participant->next;
-    participant->next->previous = participant->previous;
-  }
-  list->count--;
+    if (participant->next == NULL && participant->previous == NULL) {
+        assert(list->last == participant && list->first == participant);
+        list->first = NULL;
+        list->last = NULL;
+    } else if (participant->next == NULL) {
+        assert(list->last == participant);
+        list->last = participant->previous;
+        participant->previous->next = NULL;
+    } else if (participant->previous == NULL) {
+        assert(list->first == participant);
+        list->first = participant->next;
+        participant->next->previous = NULL;
+    } else {
+        assert(participant->next != NULL && participant->previous != NULL);
+        participant->previous->next = participant->next;
+        participant->next->previous = participant->previous;
+    }
+    
+    list->count--;
   
-  pthread_mutex_unlock(&participant->lock);
+    pthread_mutex_unlock(&participant->lock);
   
-  destroy_participant(participant);
+    destroy_participant(participant);
   
-  return TRUE;
+    return TRUE;
 }
 
-void set_active_participant(participant_data_t *participant, uint8_t active) {
+// void set_active_participant(participant_data_t *participant, uint8_t active) {
 	
-	pthread_mutex_lock(&participant->lock);
-	assert(active == TRUE || active == FALSE);
+//     pthread_mutex_lock(&participant->lock);
+//   	assert(active == TRUE || active == FALSE);
 
-	if (active == FALSE){
-		participant->active = active;
-	} else if (participant->active == FALSE) {
-		participant->active = I_AWAIT;
-	}
+// 	  if (active == FALSE){
+// 		    participant->active = active;
+// 	  } else if (participant->active == FALSE) {
+// 		    participant->active = I_AWAIT;
+// 	  }
 	
-	pthread_mutex_unlock(&participant->lock);
-}
+// 	  pthread_mutex_unlock(&participant->lock);
+// }
 
 void destroy_participant_list(participant_list_t *list){
   participant_data_t *participant;

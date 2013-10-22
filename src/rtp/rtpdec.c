@@ -36,7 +36,6 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 			cdata = orig;
 			buffers->buffer_len[substream] = total_length;
 			dst = buffers->frame_buffer[substream] + total_length;
-            buffers->frame_type = BFRAME;
 		}
 
 		while (cdata != NULL) {
@@ -412,11 +411,29 @@ cleanup:
         return ret;
 }
 
-int init_rx_data(struct recieved_data *rx_data){
+received_data_t* init_rx_data(){
+    recieved_data_t *rx_data;
+
     rx_data->frame_type = BFRAME;
     rx_data->info.width = 0;
     rx_data->info.height = 0;
     rx_data->frame_buffer[0] = malloc(1920*1080*4*sizeof(char));
+
+    return rx_data;
+}
+
+void reset_rx_data(received_data_t* rx_data){
+    rx_data->frame_type = BFRAME;
+    rx_data->info.width = 0;
+    rx_data->info.height = 0;
+}
+
+int destroy_rx_data(received_data_t* rx_data){
+    if (rx_data->frame_buffer[0] != NULL)
+        free(rx_data->frame_buffer[0]);
+
+    if (rx_data != NULL)
+        free(rx_data);
 }
 
 int fill_rx_data_from_sps(struct recieved_data *rx_data, char *data, int *data_len){
