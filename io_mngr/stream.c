@@ -404,6 +404,33 @@ int add_stream(stream_list_t *list, stream_data_t *stream)
 stream_data_t *get_stream_id(stream_list_t *list, uint32_t id)
 {
     pthread_rwlock_rdlock(&list->lock);
+
+    int ret = TRUE;
+
+    if (list->count == 0) {
+        assert(list->first == NULL && list->last == NULL);
+        list->count++;
+        list->first = list->last = stream;
+    } else if (list->count > 0) {
+        assert(list->first != NULL && list->last != NULL);
+        stream->next = NULL;
+        stream->prev = list->last;
+        list->last->next = stream;
+        list->last = stream;
+        list->count++;
+    } else {
+        error_msg("add_stream list->count < 0");
+        ret = FALSE;
+    }
+    pthread_rwlock_unlock(&list->lock);
+    pthread_rwlock_unlock(&stream->lock);
+    return ret;
+}
+
+stream_data_t *get_stream_id(stream_list_t *list, uint32_t id)
+{
+    pthread_rwlock_rdlock(&list->lock);
+
     stream_data_t *stream = list->first;
     while (stream != NULL) {
         if (stream->id == id) {
@@ -411,7 +438,6 @@ stream_data_t *get_stream_id(stream_list_t *list, uint32_t id)
         }
         stream = stream->next;
     }
-
     pthread_rwlock_unlock(&list->lock);
     return stream;
 }
