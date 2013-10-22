@@ -6,6 +6,9 @@
 
 void *decoder_th(void* stream);
 
+// Private functions
+void *encoder_routine(void *arg);
+
 decoder_thread_t *init_decoder(stream_data_t *stream)
 {
     pthread_rwlock_rdlock(&stream->lock);
@@ -109,13 +112,64 @@ void start_decoder(stream_data_t *stream){
         stream->decoder->run = FALSE;
 }
 
+void *encoder_routine(void *arg)
+{
+    stream_data_t *stream = (stream_data_t *)arg;
+
+    // TODO
+
+    return (void *)NULL;
+}
 
 encoder_thread_t *init_encoder(stream_data_t *stream)
 {
-    pthread_rwlock_rdlock(&stream->lock);
-    // TODO ...
+    
+    encoder_thread_t *encoder = malloc(sizeof(encoder_thread_t));
+    if (encoder == NULL) {
+        error_msg("init_encoder: malloc error");
+        return NULL;
+    }
+
+    if (pthread_mutex_init(&encoder->lock, NULL) < 0) {
+        error_msg("init_encoder: pthread_mutex_init error");
+        free(encoder);
+        return NULL;
+    }
+
+    if (sem_init(&encoder->input_sem, 1, 0)) {
+        error_msg("init_encoder: sem_init error");
+        pthread_mutex_destroy(&encoder->lock);
+        free(encoder);
+        return NULL;
+    }
+    if (sem_init(&encoder->output_sem, 1, 0)) {
+        error_msg("init_encoder: sem_init error");
+        pthread_mutex_destroy(&encoder->lock);
+        sem_destroy(&encoder->input_sem);
+        free(encoder);
+        return NULL;
+    }
+
+    encoder->run = FALSE;
+
+    int ret = 0;
+    ret = pthread_create(&encoder->thread, NULL, encoder_routine, stream);
+    if (ret < 0) {
+        error_msg("init_encoder: pthread_create error");
+        pthread_mutex_destroy(&encoder->lock);
+        sem_destroy(&encoder->input_sem);
+        sem_destroy(&encoder->output_sem);
+        free(encoder);
+        return NULL;
+    }
+    
+    encoder->run = TRUE;
+
+    // TODO assign the encoder here?
+    pthread_rwlock_wrlock(&stream->lock);
+    stream->encoder = encoder;
     pthread_rwlock_unlock(&stream->lock);
-    return NULL;
+    return encoder;
 }
 
 void destroy_decoder(decoder_thread_t *decoder)
@@ -133,8 +187,31 @@ void destroy_decoder(decoder_thread_t *decoder)
 
 void destroy_encoder(encoder_thread_t *encoder)
 {
-    // TODO
-    UNUSED(encoder);
+    if (encoder == NULL) {
+        return;
+    }
+
+    // TODO: necessary?
+    //if (encoder->run != TRUE) {
+    //    return;
+    //}
+
+    // TODO: locks?
+
+
+    encoder->run = FALSE;
+
+    sem_post(&encoder->input_sem);
+    sem_post(&encoder->output_sem);
+
+    sem_destroy(&encoder->input_sem);
+    sem_destroy(&encoder->output_sem);
+
+    pthread_join(encoder->thread, NULL);
+    
+    pthread_mutex_destroy(&encoder->lock);
+
+    free(encoder);
 }
 
 stream_list_t *init_stream_list(void)

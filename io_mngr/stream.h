@@ -113,4 +113,6 @@ int set_stream_video_data(stream_data_t *stream, codec_t codec,
 int add_stream(stream_list_t *list, stream_data_t *stream);
 int remove_stream(stream_list_t *list, uint32_t id);
 
+stream_data_t *get_stream_id(stream_list_t *list, uint32_t id);
+
 #endif
