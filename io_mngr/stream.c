@@ -140,6 +140,8 @@ stream_data_t *init_video_stream(stream_type_t type, uint32_t id, uint8_t active
 
 int destroy_stream(stream_data_t *stream)
 {
+    pthread_rwlock_wrlock(&stream->lock);
+
     if (stream->type == VIDEO){
         free(stream->video.frame);
     } else if (stream->type == AUDIO){
@@ -151,12 +153,10 @@ int destroy_stream(stream_data_t *stream)
     } else if (stream->io_type == OUTPUT && stream->encoder != NULL){
         destroy_encoder_thread(stream->encoder);
     }
-  
+    
     pthread_mutex_destroy(&stream->lock);
-  
     free(stream);
-
-    return 0;
+    return TRUE;
 }
 
 int set_stream_video_data(stream_data_t *stream, codec_t codec, uint32_t width, uint32_t height)
@@ -225,7 +225,7 @@ stream_data_t *get_stream_id(stream_list_t *list, uint32_t id)
         }
         stream = stream->next;
     }
-    
+
     pthread_rwlock_unlock(&list->lock);
     return stream;
 }
@@ -233,10 +233,40 @@ stream_data_t *get_stream_id(stream_list_t *list, uint32_t id)
 int remove_stream(stream_list_t *list, uint32_t id)
 {
     pthread_rwlock_wrlock(&list->lock);
-
+    
     if (list->count == 0) {
+        pthread_rwlock_unlock(&list->lock);
+        return FALSE;
+    }
+    stream_data_t *stream = get_stream_id(list, id);
+    if (stream == NULL) {
+        pthread_rwlock_unlock(&list->lock);
         return FALSE;
     }
 
+    pthread_rwlock_rwlock(&stream->lock);
+
+    if (stream->prev == NULL) {
+        assert(list->first == stream);
+        list->first = stream->next;
+    } else {
+        stream->prev->next = stream->next;
+    }
+
+    if (stream->next == NULL) {
+        assert(list->last == stream);
+        list->last = stream->prev;
+    } else {
+        stream->next->prev = stream->prev;
+    }
+
+    list->count--;
+
     pthread_rwlock_unlock(&list->lock);
+    
+    destroy_stream(stream);
+
+    pthread_rwlock_unlock(&stream->lock);
+    
+    return TRUE;
 }
