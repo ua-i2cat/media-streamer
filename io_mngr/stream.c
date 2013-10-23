@@ -357,9 +357,40 @@ int set_stream_video_data(stream_data_t *stream, codec_t codec, uint32_t width, 
         stream->video.height = height;
         stream->video.decoded_frame_len = vc_get_linesize(width, RGB)*height;
         stream->video.decoded_frame = malloc(stream->video.decoded_frame_len);
-        stream->video.encoded_frame_len = 
+        if (stream->video.decoded_frame == NULL) {
+            error_msg("set_stream_video_data: malloc error");
+            pthread_rwlock_unlock(&stream->lock);
+            return FALSE;
+        }
+        // TODO malloc coded_frame ?
+        stream->video.decoded_frame_seqno = 0;
+        stream->video.coded_frame_seqno = 0;
+
+        // locks initialization
+        if (pthread_rwlock_init(&stream->video.lock, NULL) < 0) {
+            error_msg("set_stream_video_data: pthread_rwlock_init error");
+            free(stream->video.decoded_frame);
+            pthread_rwlock_unlock(&stream->lock);
+            return FALSE;
+        }
+        if (pthread_mutex_init(&stream->video.decoded_frame_seqno_lock) < 0) {
+            error_msg("set_stream_video_data: pthread_mutex_init error");
+            pthread_mutex_destroy(&stream->video.lock);
+            free(stream->video.decoded_frame);
+            pthread_rwlock_unlock(&stream->lock);
+            return FALSE;
+        }
+        if (pthread_mutex_init(&stream->video.coded_frame_seqno_lock) < 0) {
+            error_msg("set_stream_video_data: pthread_mutex_init error");
+            pthread_mutex_destroy(&stream->video.lock);
+            pthread_rwlock_destroy(&stream->video.decoded_frame_seqno_lock);
+            free(stream->video.decoded_frame);
+            pthread_rwlock_unlock(&stream->lock);
+            return FALSE;
+        }
     } else {
         error_msg("set_stream_video_data: type not contemplated\n");
+        free(stream->video.decoded_frame);
         pthread_rwlock_unlock(&stream->lock);
         return FALSE;
     }
@@ -371,7 +402,6 @@ int set_stream_video_data(stream_data_t *stream, codec_t codec, uint32_t width, 
     }
 
     pthread_rwlock_unlock(&stream->lock);
-
     return TRUE;
 }
 
