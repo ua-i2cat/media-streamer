@@ -92,6 +92,7 @@ libvdecompress_la_SOURCES =  video_frame.c \
 							 video_decompress/null.c \
 							 utils/list.c \
 							 utils/resource_manager.cpp \
+							 utils/packet_counter.cpp \
 							 utils/worker.cpp
 #							 ../dxt_compress/dxt_common.c \
 #							 ../dxt_compress/dxt_decoder.c \
@@ -107,6 +108,7 @@ nobase_uginclude_HEADERS =	./tfrc.h \
 							./utils/list.h \
 							./utils/h264_stream.h \
 							./utils/bs.h \
+							./utils/packet_counter.h \
 							./ntp.h \
 							./config.h \
 							./perf.h \

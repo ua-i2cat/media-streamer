@@ -496,69 +496,71 @@ int decode_audio_frame(struct coded_data *cdata, void *data)
                 cdata = cdata->nxt;
         }
 
-        //    audio_frame2 *decompressed = audio_codec_decompress(decoder->audio_decompress, decoder->received_frame);
-        //    if(!decompressed) {
-        //        ret = false;
-        //        goto cleanup;
-        //    }
+        audio_frame2 *decompressed = audio_codec_decompress(decoder->audio_decompress, decoder->received_frame);
+        if(!decompressed) {
+                ret = false;
+                goto cleanup;
+        }
 
         //audio_frame2 *resampled = resampler_resample(decoder->resampler, decompressed);
+        // Do not resample
+        audio_frame2 *resampled = decompressed;
 
-        //s->buffer.data_len = resampled->data_len[0] * output_channels;
-        //if((int) s->buffer.max_size < s->buffer.data_len) {
-        //    free(s->buffer.data);
-        //    s->buffer.max_size = s->buffer.data_len;
-        //    s->buffer.data = (char *) malloc(s->buffer.max_size);
-        //}
+        s->buffer.data_len = resampled->data_len[0] * output_channels;
+        if((int) s->buffer.max_size < s->buffer.data_len) {
+                free(s->buffer.data);
+                s->buffer.max_size = s->buffer.data_len;
+                s->buffer.data = (char *) malloc(s->buffer.max_size);
+        }
 
         memset(s->buffer.data, 0, s->buffer.data_len);
 
         // there is a mapping for channel
-        //    for(int channel = 0; channel < resampled->ch_count; ++channel) {
-        //        if(decoder->channel_remapping) {
-        //            if(channel < decoder->channel_map.size) {
-        //                for(int i = 0; i < decoder->channel_map.sizes[channel]; ++i) {
-        //                    mux_and_mix_channel(s->buffer.data, resampled->data[channel],
-        //                            resampled->bps, resampled->data_len[channel],
-        //                            output_channels, decoder->channel_map.map[channel][i],
-        //                            decoder->scale[decoder->fixed_scale ? 0 :
-        //                            decoder->channel_map.map[channel][i]].scale);
-        //                }
-        //            }
-        //        } else {
-        //            mux_and_mix_channel(s->buffer.data, resampled->data[channel], resampled->bps,
-        //                    resampled->data_len[channel], output_channels, channel,
-        //                    decoder->scale[decoder->fixed_scale ? 0 : input_channels].scale);
-        //        }
-        //    }
+        for(int channel = 0; channel < resampled->ch_count; ++channel) {
+                if(decoder->channel_remapping) {
+                        if(channel < decoder->channel_map.size) {
+                                for(int i = 0; i < decoder->channel_map.sizes[channel]; ++i) {
+                                        mux_and_mix_channel(s->buffer.data, resampled->data[channel],
+                                                        resampled->bps, resampled->data_len[channel],
+                                                        output_channels, decoder->channel_map.map[channel][i],
+                                                        decoder->scale[decoder->fixed_scale ? 0 :
+                                                        decoder->channel_map.map[channel][i]].scale);
+                                }
+                        }
+                } else {
+                        mux_and_mix_channel(s->buffer.data, resampled->data[channel], resampled->bps,
+                                        resampled->data_len[channel], output_channels, channel,
+                                        decoder->scale[decoder->fixed_scale ? 0 : input_channels].scale);
+                }
+        }
 
-        //    decoder->samples_decoded += decompressed->data_len[0] / decompressed->bps;
+        decoder->samples_decoded += decompressed->data_len[0] / decompressed->bps;
 
-        //double seconds;
-        //struct timeval t;
+        double seconds;
+        struct timeval t;
 
-        //gettimeofday(&t, 0);
-        //seconds = tv_diff(t, decoder->t0);
-        //    if(seconds > 5.0) {
-        //        int bytes_received = packet_counter_get_total_bytes(decoder->packet_counter);
-        //        fprintf(stderr, "[Audio decoder] Received %u bytes (expected %dB), decoded %d samples in last %f seconds.\n",
-        //                bytes_received,
-        //                packet_counter_get_all_bytes(decoder->packet_counter),
-        //                decoder->samples_decoded,
-        //                seconds);
-        //        decoder->t0 = t;
-        //        packet_counter_clear(decoder->packet_counter);
-        //        decoder->samples_decoded = 0;
-        //    }
+        gettimeofday(&t, 0);
+        seconds = tv_diff(t, decoder->t0);
+        if(seconds > 5.0) {
+                int bytes_received = packet_counter_get_total_bytes(decoder->packet_counter);
+                fprintf(stderr, "[Audio decoder] Received %u bytes (expected %dB), decoded %d samples in last %f seconds.\n",
+                                bytes_received,
+                                packet_counter_get_all_bytes(decoder->packet_counter),
+                                decoder->samples_decoded,
+                                seconds);
+                decoder->t0 = t;
+                packet_counter_clear(decoder->packet_counter);
+                decoder->samples_decoded = 0;
+        }
 
-        //    if(!decoder->fixed_scale) {
-        //        for(int i = 0; i <= decoder->channel_map.max_output; ++i) {
-        //            double avg = get_avg_volume(s->buffer.data, bps,
-        //                    s->buffer.data_len / output_channels, output_channels, i);
-        //            compute_scale(&decoder->scale[i], avg,
-        //                    s->buffer.data_len / output_channels / bps, sample_rate);
-        //        }
-        //    }
+        if(!decoder->fixed_scale) {
+                for(int i = 0; i <= decoder->channel_map.max_output; ++i) {
+                        double avg = get_avg_volume(s->buffer.data, bps,
+                                        s->buffer.data_len / output_channels, output_channels, i);
+                        compute_scale(&decoder->scale[i], avg,
+                                        s->buffer.data_len / output_channels / bps, sample_rate);
+                }
+        }
 
 cleanup:
 
@@ -568,6 +570,6 @@ cleanup:
 // Accessor to get the audio_frame2 in the local struct state_audio_decoder.
 audio_frame2 *get_audio_frame2_pointer(struct state_audio_decoder *s)
 {
-    return s->received_frame;
+        return s->received_frame;
 }
 

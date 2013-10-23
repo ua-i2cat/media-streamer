@@ -133,6 +133,32 @@ static void *receiver_thread(void *arg)
         while (cp != NULL) {
             // Get the data on pbuf and decode it on the frame using the callback.
             if (audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame, &pbuf_data)) {
+                bool failed = false;
+
+                struct audio_desc curr_desc;
+                curr_desc = audio_desc_from_audio_frame(&pbuf_data.buffer);
+
+                if(!audio_desc_eq(device_desc, curr_desc)) {
+                    if(audio_reconfigure(s, curr_desc.bps * 8,
+                                curr_desc.ch_count,
+                                curr_desc.sample_rate) != TRUE) {
+                        fprintf(stderr, "Audio reconfiguration failed!");
+                        failed = true;
+                    }
+                    else {
+                        fprintf(stderr, "Audio reconfiguration succeeded.");
+                        device_desc = curr_desc;
+                        rtp_flush_recv_buf(s->audio_network_device);
+                    }
+                    fprintf(stderr, " (%d channels, %d bps, %d Hz)\n",
+                            curr_desc.ch_count,
+                            curr_desc.bps, curr_desc.sample_rate);
+
+                }
+
+                if(!failed)
+                    audio_playback_put_frame(s->audio_playback_device, &pbuf_data.buffer);
+
                 // If decoded, mark it ready to consume.
                 consumed = false;
             }
