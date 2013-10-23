@@ -53,8 +53,8 @@ typedef struct audio_data {
 
 typedef struct video_data {
     pthread_rwlock_t lock;
-    pthread_rwlock_t new_coded_frame_lock;
-    pthread_rwlock_t new_decoded_frame_lock;
+    pthread_rwlock_t coded_frame_seqno_lock;
+    pthread_rwlock_t decoded_frame_seqno_lock;
     codec_t codec;
     uint32_t width;
     uint32_t height;
