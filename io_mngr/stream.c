@@ -11,28 +11,10 @@
 #define DEFAULT_FPS 24
 #define PIXEL_FORMAT RGB
 
+
+// private functions
+void *encoder_routine(void *arg);
 void *decoder_th(void* stream);
-
-// private functions
-void *encoder_routine(void *arg);
-
-#include <stdlib.h>
-
-#define DEFAULT_FPS 24
-#define PIXEL_FORMAT RGB
-
-// private functions
-void *encoder_routine(void *arg);
-
-
-#include <stdlib.h>
-
-#define DEFAULT_FPS 24
-#define PIXEL_FORMAT RGB
-
-// private functions
-void *encoder_routine(void *arg);
-
 
 decoder_thread_t *init_decoder(stream_data_t *stream)
 {
