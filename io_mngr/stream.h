@@ -14,9 +14,6 @@ typedef struct decoder_thread {
     pthread_cond_t notify_frame;
     uint8_t new_frame;
 
-    uint8_t *coded_frame;
-    uint8_t coded_frame_len;
-
     struct state_decompress *sd;
 } decoder_thread_t;
 
@@ -33,14 +30,10 @@ typedef struct encoder_thread {
 
     int index;
     struct video_frame *frame;
-    uint8_t *input_frame;
-    uint32_t input_frame_len;
 
     sem_t input_sem;
     sem_t output_sem;
 
-    uint8_t *data;
-    uint32_t data_len;
     struct compress_state *cs;
 } encoder_thread_t;
 
@@ -64,6 +57,8 @@ typedef struct video_data {
     uint32_t height;
     uint8_t *decoded_frame;  // TODO: char *?
     uint32_t decoded_frame_len;
+    uint8_t *coded_frame;
+    uint32_t coded_frame_len;
 } video_data_t;
 
 typedef struct stream_data {
