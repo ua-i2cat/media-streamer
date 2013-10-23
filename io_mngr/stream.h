@@ -52,13 +52,18 @@ typedef struct audio_data {
 } audio_data_t;
 
 typedef struct video_data {
+    pthread_rwlock_t lock;
+    pthread_rwlock_t new_coded_frame_lock;
+    pthread_rwlock_t new_decoded_frame_lock;
     codec_t codec;
     uint32_t width;
     uint32_t height;
     uint8_t *decoded_frame;  // TODO: char *?
     uint32_t decoded_frame_len;
+    uint32_t decoded_frame_seqno;
     uint8_t *coded_frame;
     uint32_t coded_frame_len;
+    uint32_t coded_frame_seqno;
 } video_data_t;
 
 typedef struct stream_data {
