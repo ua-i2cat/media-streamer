@@ -46,6 +46,7 @@ struct participant_data {
     pthread_mutex_t lock;
     uint32_t ssrc;
     uint32_t id;
+    uint8_t active;
     participant_data_t *next;
     participant_data_t *previous;
     participant_protocol_t protocol;

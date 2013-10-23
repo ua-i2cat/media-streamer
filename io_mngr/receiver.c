@@ -9,6 +9,8 @@
 
 #define INITIAL_VIDEO_RECV_BUFFER_SIZE  ((4*1920*1080)*110/100) //command line net.core setup: sysctl -w net.core.rmem_max=9123840
 
+void *receiver_thread(receiver_t *receiver);
+
 receiver_t *init_receiver(participant_list_t *participant_list, stream_list_t *stream_list, uint32_t port){
     receiver_t *receiver;
     double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
@@ -76,9 +78,9 @@ void *receiver_thread(receiver_t *receiver) {
 	    
 			while (cp != NULL) {
 	      
-				pthread_rwlock_rdlock(&receiver->list->lock);
-				participant = get_participant_ssrc(receiver->list, cp->ssrc);
-				pthread_rwlock_unlock(&receiver->list->lock);
+				pthread_rwlock_rdlock(&receiver->participant_list->lock);
+				participant = get_participant_ssrc(receiver->participant_list, cp->ssrc);
+				pthread_rwlock_unlock(&receiver->participant_list->lock);
 
 				if (participant != NULL && participant->active > 0) {
 
@@ -87,8 +89,8 @@ void *receiver_thread(receiver_t *receiver) {
 						gettimeofday(&curr_time, NULL);
 
 						if (participant->streams_count == 0){ //In reception we only contemplate one stream per participant
-							//TODO: ID generation
-							stream_data_t *stream = init_video_stream(VIDEO, INPUT, id, FALSE);
+							int id = 0; //TODO: ID generation
+							stream_data_t *stream = init_stream(VIDEO, INPUT, id, FALSE);
 							add_stream(receiver->stream_list, stream);
 							add_participant_stream(participant, stream);
 						}
@@ -96,19 +98,18 @@ void *receiver_thread(receiver_t *receiver) {
 						if (rx_data->info.width != 0 && rx_data->info.height != 0){
 							if (participant->streams[0]->decoder == NULL){
 								set_stream_video_data(participant->streams[0], H264, rx_data->info.width, rx_data->info.height);
-								start_decoder(participant->streams[0]);
 							}
 
-							if (rx_data->info.width != participant->streams[0]->width || rx_data->info.height != participant->streams[0]->height){
+							if (rx_data->info.width != participant->streams[0]->video.width || rx_data->info.height != participant->streams[0]->video.height){
 								//TODO: reconfigure decoder
 							}
 						}
 
 						if (participant->active == I_AWAIT && rx_data->frame_type == INTRA){
-							src->active = TRUE;
+							participant->active = TRUE;
 						}
 
-						if (participant->active == TRUE && src->rx_data->frame_type != BFRAME) {
+						if (participant->active == TRUE && rx_data->frame_type != BFRAME) {
 							
 							pthread_mutex_lock(&participant->lock);
 							pthread_rwlock_rdlock(&participant->streams[0]->lock);
@@ -145,7 +146,7 @@ void *receiver_thread(receiver_t *receiver) {
 	}
   	
   	destroy_rx_data(rx_data);
-    destroy_participant_list(receiver->list);
+    destroy_participant_list(receiver->participant_list);
     rtp_done(receiver->session);
     free(receiver);
     pthread_exit((void *)NULL);   

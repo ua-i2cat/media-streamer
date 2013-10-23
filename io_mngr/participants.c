@@ -243,7 +243,7 @@ int remove_participant_stream(participant_data_t *participant, stream_data_t *st
             ret = TRUE;
             // TODO: this chunk of code moves the streams to the left
             int j = 0;
-            for (j = i; j < MAX_PARTICIPANT_STREAMS - 1) {
+            for (j = i; j < MAX_PARTICIPANT_STREAMS - 1;) {
                 if (participant->streams[j + 1] != NULL) {
                     participant->streams[j] = participant->streams[j + 1];
                 }
@@ -260,7 +260,7 @@ int init_transmission(participant_data_t *participant)
     // TODO
 }
 
-int stop_transmission(participant_data_t *participant);
+int stop_transmission(participant_data_t *participant)
 {
     // TODO
 }

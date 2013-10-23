@@ -261,8 +261,6 @@ void destroy_encoder(encoder_thread_t *encoder)
     //}
 
     // TODO: locks?
-
-
     encoder->run = FALSE;
 
     sem_post(&encoder->input_sem);
@@ -337,8 +335,8 @@ int destroy_stream(stream_data_t *stream)
         free(stream->video.decoded_frame);
         free(stream->video.coded_frame);
         pthread_rwlock_destroy(&stream->video.lock);
-        pthread_rwlock_destroy(&stream->video.decoded_frame_seqno_lock);
-        pthread_rwlock_destroy(&stream->video.coded_frame_seqno_lock);
+        pthread_mutex_destroy(&stream->video.new_coded_frame_lock);
+        pthread_mutex_destroy(&stream->video.new_decoded_frame_lock);
     } else if (stream->type == AUDIO){
         //Free audio structures
     }
@@ -373,7 +371,8 @@ int set_stream_video_data(stream_data_t *stream, codec_t codec, uint32_t width, 
             pthread_rwlock_unlock(&stream->lock);
             return FALSE;
         }
-        // TODO malloc coded_frame ?
+        stream->video.coded_frame = malloc(1920*1080*4*sizeof(char)); //TODO this is the worst case in raw data, should be the worst case for specific codec
+    
         stream->video.decoded_frame_seqno = 0;
         stream->video.coded_frame_seqno = 0;
 
@@ -384,18 +383,18 @@ int set_stream_video_data(stream_data_t *stream, codec_t codec, uint32_t width, 
             pthread_rwlock_unlock(&stream->lock);
             return FALSE;
         }
-        if (pthread_rwlock_init(&stream->video.decoded_frame_seqno_lock, NULL) < 0) {
+        if (pthread_mutex_init(&stream->video.new_decoded_frame_lock, NULL) < 0) {
             error_msg("set_stream_video_data: pthread_mutex_init error");
             pthread_rwlock_destroy(&stream->video.lock);
             free(stream->video.decoded_frame);
             pthread_rwlock_unlock(&stream->lock);
             return FALSE;
         }
-        if (pthread_rwlock_init(&stream->video.coded_frame_seqno_lock, NULL) < 0) {
+        if (pthread_mutex_init(&stream->video.new_coded_frame_lock, NULL) < 0) {
             error_msg("set_stream_video_data: pthread_mutex_init error");
+            pthread_mutex_destroy(&stream->video.new_decoded_frame_lock);
             pthread_rwlock_destroy(&stream->video.lock);
-            pthread_rwlock_destroy(&stream->video.decoded_frame_seqno_lock);
-            free(stream->video.decoded_frame);
+            free(stream->video.coded_frame);
             pthread_rwlock_unlock(&stream->lock);
             return FALSE;
         }
