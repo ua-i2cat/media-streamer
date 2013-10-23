@@ -11,28 +11,9 @@
 #define DEFAULT_FPS 24
 #define PIXEL_FORMAT RGB
 
+// private functions
 void *decoder_th(void* stream);
-
-// private functions
 void *encoder_routine(void *arg);
-
-#include <stdlib.h>
-
-#define DEFAULT_FPS 24
-#define PIXEL_FORMAT RGB
-
-// private functions
-void *encoder_routine(void *arg);
-
-
-#include <stdlib.h>
-
-#define DEFAULT_FPS 24
-#define PIXEL_FORMAT RGB
-
-// private functions
-void *encoder_routine(void *arg);
-
 
 decoder_thread_t *init_decoder(stream_data_t *stream)
 {
@@ -376,6 +357,7 @@ int set_stream_video_data(stream_data_t *stream, codec_t codec, uint32_t width, 
         stream->video.height = height;
         stream->video.decoded_frame_len = vc_get_linesize(width, RGB)*height;
         stream->video.decoded_frame = malloc(stream->video.decoded_frame_len);
+        stream->video.encoded_frame_len = 
     } else {
         error_msg("set_stream_video_data: type not contemplated\n");
         pthread_rwlock_unlock(&stream->lock);
