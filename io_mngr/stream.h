@@ -9,12 +9,10 @@
 typedef struct decoder_thread {
     pthread_t thread;
     uint8_t run;
-
+    struct state_decompress *sd;
+    uint32_t last_seqno;
     pthread_mutex_t lock;
     pthread_cond_t notify_frame;
-    uint8_t new_frame;
-
-    struct state_decompress *sd;
 } decoder_thread_t;
 
 typedef struct encoder_thread {
@@ -53,8 +51,8 @@ typedef struct audio_data {
 
 typedef struct video_data {
     pthread_rwlock_t lock;
-    pthread_rwlock_t new_coded_frame_lock;
-    pthread_rwlock_t new_decoded_frame_lock;
+    pthread_mutex_t new_coded_frame_lock;
+    pthread_mutex_t new_decoded_frame_lock;
     codec_t codec;
     uint32_t width;
     uint32_t height;
@@ -64,6 +62,10 @@ typedef struct video_data {
     uint8_t *coded_frame;
     uint32_t coded_frame_len;
     uint32_t coded_frame_seqno;
+    uint32_t interlacing;  //TODO: fix this. It has to be UG enum
+    uint32_t fps;       //TODO: fix this. It has to be UG enum
+    uint8_t new_coded_frame;
+    uint8_t new_decoded_frame;
 } video_data_t;
 
 typedef struct stream_data {
@@ -72,7 +74,6 @@ typedef struct stream_data {
     io_type_t io_type;
     uint32_t id;
     uint8_t active;
-    uint8_t new_frame;
     struct stream_data *prev;
     struct stream_data *next;
     union {

@@ -31,11 +31,12 @@ decoder_thread_t *init_decoder(stream_data_t *stream)
         pthread_rwlock_unlock(&stream->lock);
         return NULL;
     }
-	decoder->new_frame = FALSE;
+
 	decoder->run = FALSE;
-	
-	pthread_mutex_init(&decoder->lock, NULL);
-	pthread_cond_init(&decoder->notify_frame, NULL);
+    decoder->last_seqno = 0;
+    
+    pthread_mutex_init(&decoder->lock, NULL);
+    pthread_cond_init(&decoder->notify_frame, NULL);
 	
 	if (decompress_is_available(LIBAVCODEC_MAGIC)) {
         //TODO: add some magic to determine codec
@@ -48,23 +49,16 @@ decoder_thread_t *init_decoder(stream_data_t *stream)
             return NULL;
         }
 
+        pthread_rwlock_rdlock(&stream->video.lock);
         des.width = stream->video.width;
         des.height = stream->video.height;
         des.color_spec  = stream->video.codec;
         des.tile_count = 0;
-        des.interlacing = PROGRESSIVE;
-        des.fps = 24; // TODO XXX
+        des.interlacing = stream->video.interlacing;
+        des.fps = stream->video.fps; // TODO XXX
+        pthread_rwlock_unlock(&stream->video.lock);
 
-        if (decompress_reconfigure(decoder->sd, des, 16, 8, 0, vc_get_linesize(des.width, RGB), RGB)) {
-            decoder->coded_frame = malloc(1920*1080*4*sizeof(char)); //TODO this is the worst case in raw data, should be the worst case for specific codec
-            if (decoder->coded_frame == NULL) {
-                error_msg("decoder data malloc failed");
-                decompress_done(decoder->sd);
-                free(decoder);
-                pthread_rwlock_unlock(&stream->lock);
-                return NULL;
-            }
-        } else {
+        if (!decompress_reconfigure(decoder->sd, des, 16, 8, 0, vc_get_linesize(des.width, RGB), RGB)) {
             error_msg("decoder decompress reconfigure failed");
             decompress_done(decoder->sd);
             free(decoder->sd);
@@ -72,6 +66,7 @@ decoder_thread_t *init_decoder(stream_data_t *stream)
             pthread_rwlock_unlock(&stream->lock);
             return NULL;
         }
+
     } else {
 	    error_msg("decompress not available");
         free(decoder);
@@ -85,35 +80,40 @@ decoder_thread_t *init_decoder(stream_data_t *stream)
 
 void *decoder_th(void* stream){
     stream_data_t *str = (stream_data_t *) stream;
-      
-    pthread_mutex_lock(&str->decoder->lock);
 
     while(str->decoder->run){
-    
-        while(!str->decoder->new_frame && str->decoder->run)
-            pthread_cond_wait(&str->decoder->notify_frame, &str->decoder->lock); //TODO: some timeout
+        
+        pthread_mutex_lock(&str->video.new_coded_frame_lock);
+        while(!str->video.new_coded_frame){
+            pthread_cond_wait(&str->decoder->notify_frame, &str->video.new_coded_frame_lock); //TODO: some timeout
+        }
+        str->video.new_coded_frame = FALSE;
+        pthread_mutex_unlock(&str->video.new_coded_frame_lock);
 
         if (str->decoder->run){
-            str->decoder->new_frame = FALSE;
-            pthread_rwlock_wrlock(&str->lock);
+            pthread_rwlock_wrlock(&str->video.lock);
             decompress_frame(str->decoder->sd,(unsigned char *)str->video.decoded_frame, 
-                (unsigned char *)str->decoder->coded_frame, str->decoder->coded_frame_len, 0);
-            str->new_frame = TRUE;
-            pthread_rwlock_unlock(&str->lock);
-        } 
+                (unsigned char *)str->video.coded_frame, str->video.coded_frame_len, 0);
+            str->decoder->last_seqno = str->video.coded_frame_seqno; 
+            str->video.decoded_frame_seqno ++;
+            pthread_rwlock_unlock(&str->video.lock);
+
+            pthread_mutex_lock(&str->video.new_decoded_frame_lock);
+            str->video.new_decoded_frame = TRUE;
+            pthread_mutex_unlock(&str->video.new_decoded_frame_lock);
+        }
+
+        pthread_rwlock_unlock(&str->lock);
     }
 
-    pthread_mutex_unlock(&str->decoder->lock);
     pthread_exit((void *)NULL);    
 }
 
 void start_decoder(stream_data_t *stream){
     assert(stream->decoder == NULL);
   
-    pthread_rwlock_wrlock(&stream->lock);
     stream->decoder = init_decoder(stream);
     stream->decoder->run = TRUE;
-    pthread_rwlock_unlock(&stream->lock);
      
     if (pthread_create(&stream->decoder->thread, NULL, (void *) decoder_th, stream) != 0)
         stream->decoder->run = FALSE;
@@ -250,7 +250,6 @@ void destroy_decoder(decoder_thread_t *decoder)
 
     decompress_done(decoder->sd);
 
-    free(decoder->coded_frame);
     free(decoder);
 }
 

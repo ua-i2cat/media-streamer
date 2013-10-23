@@ -11,6 +11,8 @@
 
 static const uint8_t start_sequence[] = { 0, 0, 0, 1 };
 
+int fill_rx_data_from_sps(struct received_data *rx_data, char *data, int *data_len);
+
 //TODO if no need of tiles then no need of vectors
 
 int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
@@ -28,7 +30,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 	char *dst = NULL;
 	int src_len;
 
-	struct recieved_data *buffers = (struct recieved_data *) rx_data;
+	struct received_data *buffers = (struct received_data *) rx_data;
 	
 	for (pass = 0; pass < 2; pass++) {
 
@@ -51,7 +53,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 			nri = nal & 0x60;
 
             if (type == 7){
-                uint8_t ret = fill_rx_data_from_sps(buffers, pckt->data, &pckt->data_len);
+                fill_rx_data_from_sps(buffers, pckt->data, &pckt->data_len);
             }
 			
 			if (type >= 1 && type <= 23) {
@@ -212,7 +214,7 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
         // the following is just LDGM related optimalization - normally we fill up
         // allocated buffers when we have compressed data. But in case of LDGM, there
         // is just the LDGM buffer present, so we point to it instead to copying
-        struct recieved_data *buffers = (struct recieved_data *) rx_data; // for FEC or compressed data
+        struct received_data *buffers = (struct received_data *) rx_data; // for FEC or compressed data
        // for (i = 0; i < (int) MAX_SUBSTREAMS; ++i) {
        //         //pckt_list[i] = ll_create();
        // 		buffers->buffer_len[i] = 0;
@@ -412,7 +414,7 @@ cleanup:
 }
 
 received_data_t* init_rx_data(){
-    recieved_data_t *rx_data;
+    received_data_t *rx_data;
 
     rx_data->frame_type = BFRAME;
     rx_data->info.width = 0;
@@ -436,7 +438,7 @@ int destroy_rx_data(received_data_t* rx_data){
         free(rx_data);
 }
 
-int fill_rx_data_from_sps(struct recieved_data *rx_data, char *data, int *data_len){
+int fill_rx_data_from_sps(struct received_data *rx_data, char *data, int *data_len){
     if (rx_data->info.width == 0 && rx_data->info.height == 0){
         sps_t* sps = (sps_t*)malloc(sizeof(sps_t));
         uint8_t* rbsp_buf = (uint8_t*)malloc(*data_len);

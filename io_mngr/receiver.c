@@ -111,14 +111,21 @@ void *receiver_thread(receiver_t *receiver) {
 						if (participant->active == TRUE && src->rx_data->frame_type != BFRAME) {
 							
 							pthread_mutex_lock(&participant->lock);
-							pthread_mutex_lock(&participant->streams[0]->decoder->lock); 
- 		  
-							memcpy(participant->streams[0]->decoder->coded_frame, rx_data->frame_buffer[0], rx_data->buffer_len[0]); //TODO: get rid of this magic number
-							participant->streams[0]->decoder->coded_frame_len = rx_data->buffer_len[0];
-							participant->streams[0]->decoder->new_frame = TRUE;
+							pthread_rwlock_rdlock(&participant->streams[0]->lock);
+
+							pthread_rwlock_wrlock(&participant->streams[0]->video.lock); 
+							memcpy(participant->streams[0]->video.coded_frame, rx_data->frame_buffer[0], rx_data->buffer_len[0]); //TODO: get rid of this magic number
+							participant->streams[0]->video.coded_frame_len = rx_data->buffer_len[0];
+							participant->streams[0]->video.coded_frame_seqno ++;
+							pthread_rwlock_unlock(&participant->streams[0]->video.lock); 
+
+
+							pthread_mutex_lock(&participant->streams[0]->video.new_coded_frame_lock);
+							participant->streams[0]->video.new_coded_frame = TRUE;
 							pthread_cond_signal(&participant->streams[0]->decoder->notify_frame);
+							pthread_mutex_unlock(&participant->streams[0]->video.new_coded_frame_lock);
 							
-							pthread_mutex_unlock(&participant->streams[0]->decoder->lock);
+							pthread_rwlock_unlock(&participant->streams[0]->lock);
 							pthread_mutex_unlock(&participant->lock);
 		    
 						} else {
