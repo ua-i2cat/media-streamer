@@ -122,16 +122,12 @@ void *encoder_routine(void *arg)
 {
     stream_data_t *stream = (stream_data_t *)arg;
     encoder_thread_t *encoder = stream->encoder;
+    video_data_t *video = &stream->video;
 
-    int width = stream->video.width;
-    int height = stream->video.height;
+    int width = video->width;
+    int height = video->height;
 
-    encoder->input_frame_len = vc_get_linesize(width, PIXEL_FORMAT) * height;
-    encoder->input_frame = malloc(encoder->input_frame_len);
-    if (encoder->input_frame == NULL) {
-        error_msg("encoder_routine: malloc error");
-        pthread_exit((void *)NULL);
-    }
+    // decoded_frame len and memory already initialized
 
     struct module cmod;
     module_init_default(&cmod);
@@ -164,15 +160,16 @@ void *encoder_routine(void *arg)
         // TODO: create encoder input buffer
         pthread_mutex_lock(&encoder->lock);
         
-        frame->tiles[0].data = encoder->input_frame;
-        frame->tiles[0].data_len = encoder->input_frame_len;
+        frame->tiles[0].data = (char *)video->decoded_frame;
+        frame->tiles[0].data_len = video->decoded_frame_len;
     
         struct video_frame *tx_frame;
         tx_frame = compress_frame(encoder->cs, frame, encoder->index);
 
-        encoder->frame = tx_frame;
+        video->coded_frame = (uint8_t *)vf_get_tile(tx_frame, 0)->data;
+        video->coded_frame_len = vf_get_tile(tx_frame, 0)->data_len;
 
-        pthread_rwlock_unlock(&encoder->lock);
+        pthread_mutex_unlock(&encoder->lock);
 
         encoder->index = (encoder->index + 1) % 2;
 
@@ -185,7 +182,7 @@ void *encoder_routine(void *arg)
     }
 
     module_done(CAST_MODULE(&cmod));
-    free(encoder->input_frame);
+    free(frame);
     pthread_exit((void *)NULL);
 }
 
@@ -310,16 +307,27 @@ void destroy_stream_list(stream_list_t *list)
     free(list);
 }
 
-stream_data_t *init_video_stream(stream_type_t type, uint32_t id, uint8_t active)
+stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, uint8_t active)
 {
     stream_data_t *stream = malloc(sizeof(stream_data_t));
     if (stream == NULL) {
         error_msg("init_video_stream malloc error");
         return NULL;
     }
-    pthread_rwlock_init(&stream->lock, NULL);
+    if (pthread_rwlock_init(&stream->lock, NULL) < 0) {
+        error_msg("init_stream: pthread_rwlock_init error");
+        free(stream);
+        return NULL;
+    }
+    stream->id = id;
     stream->type = type;
-    // TODO
+    stream->io_type = io_type;
+    stream->active = active;
+    stream->prev = NULL;
+    stream->next = NULL;
+    stream->decoder = NULL; // union with stream->encoder
+
+    return stream;
 }
 
 int destroy_stream(stream_data_t *stream)
@@ -328,6 +336,10 @@ int destroy_stream(stream_data_t *stream)
 
     if (stream->type == VIDEO){
         free(stream->video.decoded_frame);
+        free(stream->video.coded_frame);
+        pthread_rwlock_destroy(&stream->video.lock);
+        pthread_rwlock_destroy(&stream->video.decoded_frame_seqno_lock);
+        pthread_rwlock_destroy(&stream->video.coded_frame_seqno_lock);
     } else if (stream->type == AUDIO){
         //Free audio structures
     }
@@ -373,16 +385,16 @@ int set_stream_video_data(stream_data_t *stream, codec_t codec, uint32_t width, 
             pthread_rwlock_unlock(&stream->lock);
             return FALSE;
         }
-        if (pthread_mutex_init(&stream->video.decoded_frame_seqno_lock) < 0) {
+        if (pthread_rwlock_init(&stream->video.decoded_frame_seqno_lock, NULL) < 0) {
             error_msg("set_stream_video_data: pthread_mutex_init error");
-            pthread_mutex_destroy(&stream->video.lock);
+            pthread_rwlock_destroy(&stream->video.lock);
             free(stream->video.decoded_frame);
             pthread_rwlock_unlock(&stream->lock);
             return FALSE;
         }
-        if (pthread_mutex_init(&stream->video.coded_frame_seqno_lock) < 0) {
+        if (pthread_rwlock_init(&stream->video.coded_frame_seqno_lock, NULL) < 0) {
             error_msg("set_stream_video_data: pthread_mutex_init error");
-            pthread_mutex_destroy(&stream->video.lock);
+            pthread_rwlock_destroy(&stream->video.lock);
             pthread_rwlock_destroy(&stream->video.decoded_frame_seqno_lock);
             free(stream->video.decoded_frame);
             pthread_rwlock_unlock(&stream->lock);
@@ -537,11 +549,9 @@ int remove_stream(stream_list_t *list, uint32_t id)
     }
 
     list->count--;
-
     pthread_rwlock_unlock(&list->lock);
     
     destroy_stream(stream);
-
     pthread_rwlock_unlock(&stream->lock);
     
     return TRUE;

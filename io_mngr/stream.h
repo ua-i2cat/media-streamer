@@ -29,7 +29,6 @@ typedef struct encoder_thread {
     */
 
     int index;
-    struct video_frame *frame;
 
     sem_t input_sem;
     sem_t output_sem;
@@ -53,8 +52,8 @@ typedef struct audio_data {
 
 typedef struct video_data {
     pthread_rwlock_t lock;
-    pthread_mutex_t coded_frame_seqno_lock;
-    pthread_mutex_t decoded_frame_seqno_lock;
+    pthread_rwlock_t coded_frame_seqno_lock;
+    pthread_rwlock_t decoded_frame_seqno_lock;
     codec_t codec;
     uint32_t width;
     uint32_t height;
