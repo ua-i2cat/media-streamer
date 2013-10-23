@@ -197,21 +197,70 @@ void destroy_participant_list(participant_list_t *list){
   free(list);
 }
 
-int add_participant_stream(participant_data_t *participant, stream_data_t *stream){
+int add_participant_stream(participant_data_t *participant, stream_data_t *stream)
+{
     pthread_mutex_lock(&participant->lock);
 
-    if (participant->streams_count == MAX_PARTICIPANT_STREAMS){
-      debug_msg("Max number of streams per participant reached.\n");
+    if (participant->streams_count == MAX_PARTICIPANT_STREAMS) {
+      error_msg("Max number of streams per participant reached.\n");
       pthread_mutex_unlock(&participant->lock);
-      return -1;
+      return FALSE;
     }
 
-    //TODO: manage participant stream list pointer
+    /* TODO: if remove_participant_stream moves streams to the left,
+       there should be no need to seek a free position 
+     
+       => simplify insertion
+
+     */
+    
+    int ret = FALSE;
+    int i = 0;
+    while (i++ < MAX_PARTICIPANT_STREAMS) {
+        if (participant->streams[i] == NULL) {
+            participant->streams[i] = stream;
+            participant->streams_count++;
+            assert(participant->streams_count <= MAX_PARTICIPANT_STREAMS);
+            ret = TRUE;
+            break;
+        }
+    }
 
     pthread_mutex_unlock(&participant->lock);
+    return ret;
 }
 
-int remove_participant_stream(participant_data_t *participant, stream_data_t *stream){
-
+int remove_participant_stream(participant_data_t *participant, stream_data_t *stream)
+{
+    pthread_mutex_lock(&participant->lock);
+    int ret = FALSE;
+    int i = 0;
+    while (i++ < MAX_PARTICIPANT_STREAMS) {
+        if (participant->streams[i] == stream) {
+            participant->streams[i] = NULL;
+            participant->streams_count--;
+            assert(participant->streams_count >= 0);
+            ret = TRUE;
+            // TODO: this chunk of code moves the streams to the left
+            int j = 0;
+            for (j = i; j < MAX_PARTICIPANT_STREAMS - 1) {
+                if (participant->streams[j + 1] != NULL) {
+                    participant->streams[j] = participant->streams[j + 1];
+                }
+            }
+            break;
+        }
+    }
+    pthread_mutex_unlock(&participant->lock);
+    return ret;
 }
 
+int init_transmission(participant_data_t *participant)
+{
+    // TODO
+}
+
+int stop_transmission(participant_data_t *participant);
+{
+    // TODO
+}

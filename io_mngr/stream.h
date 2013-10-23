@@ -9,10 +9,12 @@
 typedef struct decoder_thread {
     pthread_t thread;
     uint8_t run;
-    struct state_decompress *sd;
-    uint32_t last_seqno;
+
     pthread_mutex_t lock;
     pthread_cond_t notify_frame;
+    uint8_t new_frame;
+
+    struct state_decompress *sd;
 } decoder_thread_t;
 
 typedef struct encoder_thread {
@@ -27,7 +29,6 @@ typedef struct encoder_thread {
     */
 
     int index;
-    struct video_frame *frame;
 
     sem_t input_sem;
     sem_t output_sem;
