@@ -254,3 +254,13 @@ int remove_participant_stream(participant_data_t *participant, stream_data_t *st
     pthread_mutex_unlock(&participant->lock);
     return ret;
 }
+
+int init_transmission(participant_data_t *participant)
+{
+    // TODO
+}
+
+int stop_transmission(participant_data_t *participant);
+{
+    // TODO
+}
