@@ -21,6 +21,20 @@
 #define PIXEL_FORMAT RGB
 #define MTU 1300 // 1400
 
+typedef struct transmitter {
+    uint8_t run;
+    uint8_t fps;
+    uint32_t recv_port;
+    uint32_t ttl;
+    uint64_t send_buffer_size;
+    uint32_t mtu;
+} transmitter_t;
+
+
+transmitter_t *init_transmitter(participant_list_t *list);
+int start_transmitter(transmitter_t *transmitter);
+int stop_transmitter(transmitter_t *transmitter);
+
 /**
  * @brief Initializes the output manager.
  *
