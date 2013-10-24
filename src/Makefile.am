@@ -100,6 +100,14 @@ libvdecompress_la_SOURCES =  video_frame.c \
 #							 ../dxt_compress/dxt_encoder.c \
 #							 ../dxt_compress/dxt_util.c
 
+libadecompress_la_LDFLAGS = -version-info 0:1:0 -lpthread -lavcodec -lavutil
+libadecompress_la_CFLAGS = $(AM_CFLAGS) -I. -Iutils -Icompat
+libadecompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Iutils -Icompat
+libadecompress_la_SOURCES = debug.c \
+							 audio/codec.c \
+							 audio/utils.c \
+							 utils/packet_counter.cpp
+
 ugincludedir = $(includedir)/ug-modules
 nobase_uginclude_HEADERS =	./tfrc.h \
 							./utils/worker.h \
