@@ -13,6 +13,14 @@
 
 #include "participants.h"
 
+#define DEFAULT_FPS 24
+#define DEFAULT_RECV_PORT 12006 // just trying to not interfere with anything
+#define DEFAULT_RTCP_BW 5 * 1024 * 1024 * 10
+#define DEFAULT_TTL 255
+#define DEFAULT_SEND_BUFFER_SIZE 1920 * 1080 * 4 * sizeof(char) * 10
+#define PIXEL_FORMAT RGB
+#define MTU 1300 // 1400
+
 /**
  * @brief Initializes the output manager.
  *
