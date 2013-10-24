@@ -8,22 +8,27 @@
  *
  */
 
+// General includes
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <getopt.h>
+
+// Includes for librtp
 #include "rtp/rtp.h"
 #include "rtp/pbuf.h"
 #include "rtp/rtp_callback.h"
 #include "rtp/audio_decoders.h"
 #include "transmit.h"
-#include "audio/audio.h"
-#include "audio/codec.h"
 #include "module.h"
 #include "perf.h"
 #include "tv.h"
 #include "pdb.h"
+
+// Includes for libadecompress
+#include "audio/audio.h"
+#include "audio/codec.h"
 
 #define DEFAULT_AUDIO_FEC       "mult:3"
 
@@ -104,6 +109,9 @@ static struct rtp *init_network(char *addr, int recv_port,
 //   It listens to UDP port and when it receivers a packet (cp != NULL)
 //   Iterate by the participants,
 //     trying to decode an audio frame from stored RTP packets. 
+//     If it decodes an RTP packet,
+//       decompress it using the corresponding codec
+//       and flag up the mark (consumed).
 //   Once it's done, update the shared audio_frame2 poniter where the frame is.
 static void *receiver_thread(void *arg)
 {
@@ -111,10 +119,10 @@ static void *receiver_thread(void *arg)
     struct timeval timeout, curr_time;
     uint32_t ts;
     struct pdb_e *cp;
-    struct pbuf_audio_data pbuf_data;
+    audio_frame2 frame;
 
-    memset(&pbuf_data.buffer, 0, sizeof(struct audio_frame));
-    pbuf_data.decoder = audio_decoder_init(NULL, "mixauto", NULL);
+// TODO: init the codec lazy bastard!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    struct audio_codec_state *codec = audio_codec_init(audio_codec, direction);
 
     printf(" Receiver started.\n");
     while (!stop) {
@@ -125,23 +133,29 @@ static void *receiver_thread(void *arg)
         rtp_send_ctrl(d->rtp_session, ts, 0, curr_time);
         timeout.tv_sec = 0;
         timeout.tv_usec = 999999 / 59.94;
+
         // Get packets from network.
         rtp_recv_r(d->rtp_session, &timeout, ts);
+
         // Iterate throught participants
         pdb_iter_t it;
         cp = pdb_iter_init(d->participants, &it);
+
         while (cp != NULL) {
             // Get the data on pbuf and decode it on the frame using the callback.
-            if (audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame, &pbuf_data)) {
+            if (audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame, frame)) {
                 // If decoded, mark it ready to consume.
                 consumed = false;
             }
             pbuf_remove(cp->playout_buffer, curr_time);
             cp = pdb_iter_next(&it);
         }
-        // Point shared_frame to the received frame.
-        shared_frame = get_audio_frame2_pointer(pbuf_data.decoder);
+
+        // Save on shared_frame the result of audio_codec_decompress 
+        // using the audio_frame2 from pbuf_data.decoder (received_frame).
+        shared_frame = audio_codec_decompress(pbuf_data->decoder->audio_decompress, frame);
         pdb_iter_done(&it);
+
         // Wait for sender to be ready.
         pthread_mutex_unlock(d->go);
         pthread_mutex_lock(d->wait);
@@ -149,9 +163,11 @@ static void *receiver_thread(void *arg)
     // Clean the pbuf_audio_data
     free(pbuf_data.buffer.data);
     audio_decoder_destroy(pbuf_data.decoder);
+
     // Finish RTP session and exit.
     rtp_done(d->rtp_session);
     printf(" Receiver stopped.\n");
+
     // Don't let the bro thread gets locked.
     pthread_mutex_unlock(d->go);
     pthread_exit((void *)NULL);

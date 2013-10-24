@@ -67,7 +67,7 @@
 
 //#include "video_display.h"
 
-#include "audio/audio.h"
+//#include "audio/audio.h"
 #include "utils/list.h"
 #include "list.h"
 #include "rtp.h"
@@ -104,12 +104,12 @@ struct vcodec_state {
         struct simple_linked_list *messages;
 };
 
-struct pbuf_audio_data {
-        audio_frame buffer;
-        struct state_audio_decoder *decoder;
-
-        bool reconfigured;
-};
+//struct pbuf_audio_data {
+//        audio_frame buffer;
+//        struct state_audio_decoder *decoder;
+//
+//        bool reconfigured;
+//};
 
 /**
  * @param decode_data

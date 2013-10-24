@@ -1,5 +1,5 @@
 /*
- * FILE:    audio/echo.h
+ * FILE:    audio/audio.h
  * AUTHORS: Martin Benes     <martinbenesh@gmail.com>
  *          Lukas Hejtmanek  <xhejtman@ics.muni.cz>
  *          Petr Holub       <hopet@ics.muni.cz>
@@ -13,23 +13,23 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, is permitted provided that the following conditions
  * are met:
- *
+ * 
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
- *
+ * 
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- *
+ * 
  * 3. All advertising materials mentioning features or use of this software
  *    must display the following acknowledgement:
- *
+ * 
  *      This product includes software developed by CESNET z.s.p.o.
- *
- * 4. Neither the name of CESNET nor the names of its contributors may be used
+ * 
+ * 4. Neither the name of CESNET nor the names of its contributors may be used 
  *    to endorse or promote products derived from this software without specific
  *    prior written permission.
- *
+ * 
  * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING,
  * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
@@ -46,56 +46,49 @@
  *
  */
 
-#ifndef AUDIO_CODEC_H_
-#define AUDIO_CODEC_H_
+#ifndef _AUDIO_FRAME2_H_
+#define _AUDIO_FRAME2_H_
 
-#include "audio/audio.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-typedef enum {
-        AUDIO_CODER,
-        AUDIO_DECODER
-} audio_codec_direction_t;
-
-//struct audio_codec {
-//        const audio_codec_t *supported_codecs;
-//        const int *supported_bytes_per_second;
-//        void *(*init)(audio_codec_t, audio_codec_direction_t, bool);
-//        audio_channel *(*compress)(void *, audio_channel *);
-//        audio_channel *(*decompress)(void *, audio_channel *);
-//        void (*done)(void *);
-//};
-
-//extern void (*register_audio_codec)(struct audio_codec *);
+#define MAX_AUDIO_CHANNELS      8
 
 typedef struct {
-        const char *name;
-        /** @var tag
-         *  @brief TwoCC if defined, otherwise we define our tag
-         */
-        uint32_t    tag;
+    const char *name;
+    /** @var tag
+     *  @brief TwoCC if defined, otherwise we define our tag
+     */
+    uint32_t    tag;
 } audio_codec_info_t;
 
-extern audio_codec_info_t audio_codec_info[];
-extern int audio_codec_info_len;
+// Internal definition, must match the definition from audio part.
+// TODO: Import it from audio part.
+typedef enum {
+    AC_NONE,
+    AC_PCM,
+    AC_ALAW,
+    AC_MULAW,
+    AC_ADPCM_IMA_WAV,
+    AC_SPEEX,
+    AC_OPUS,
+    AC_G722,
+    AC_G726,
+} audio_codec_t;
 
-struct audio_codec_state;
+typedef struct
+{
+    int bps;                /* bytes per sample */
+    int sample_rate;
+    char *data[MAX_AUDIO_CHANNELS]; /* data should be at least 4B aligned */
+    int data_len[MAX_AUDIO_CHANNELS];           /* size of useful data in buffer */
+    int ch_count;		/* count of channels */
+    unsigned int max_size;  /* maximal size of data in buffer */
+    audio_codec_t codec;
+} audio_frame2;
 
-//struct audio_codec_state *audio_codec_init(audio_codec_t audio_codec, audio_codec_direction_t);
-//struct audio_codec_state *audio_codec_reconfigure(struct audio_codec_state *old,
-//                audio_codec_t audio_codec, audio_codec_direction_t);
-//audio_frame2 *audio_codec_compress(struct audio_codec_state *, audio_frame2 *);
-audio_frame2 *audio_codec_decompress(struct audio_codec_state *, audio_frame2 *);
-//const int *audio_codec_get_supported_bps(struct audio_codec_state *);
-void audio_codec_done(struct audio_codec_state *);
+audio_frame2 *audio_frame2_init(void);
+void audio_frame2_allocate(audio_frame2 *, int nr_channels, int max_size);
+void audio_frame2_free(audio_frame2 *);
 
-//void list_audio_codecs(void);
+uint32_t get_audio_tag(audio_codec_t codec);
+audio_codec_t get_audio_codec_to_tag(uint32_t audio_tag);
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* AUDIO_CODEC_H */
+#endif // _AUDIO_FRAME2_H_

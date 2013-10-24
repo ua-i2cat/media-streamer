@@ -58,6 +58,3 @@ void *audio_decoder_init(char *audio_channel_map, const char *audio_scale,
                 const char *encryption);
 void audio_decoder_destroy(void *state);
 
-// Accessor to get the audio_frame2 in the local struct state_audio_decoder.
-audio_frame2 *get_audio_frame2_pointer(struct state_audio_decoder *s);
-

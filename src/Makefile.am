@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = librtp.la libvcompress.la libvdecompress.la
+lib_LTLIBRARIES = librtp.la libvcompress.la libvdecompress.la libadecompress.la
 
 
 AM_CFLAGS = -std=gnu99 -g -lm -DHAVE_CONFIG_H -g -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
@@ -15,6 +15,7 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					rtp/rtp_callback.c \
 					rtp/rtpdec.c \
 					rtp/audio_decoders.c \
+                                        rtp/audio_frame2.c \
 					crypto/crc_32.c \
 					crypto/crypt_aes.c \
 					crypto/crypt_aes_impl.c \
@@ -23,8 +24,6 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					crypto/openssl_decrypt.c\
 					crypto/openssl_encrypt.c \
 					crypto/random.c \
-                                        audio/utils.c \
-                                        audio/codec.c \
 					tv.c \
 					perf.c \
 					tfrc.c \
@@ -44,6 +43,8 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					compat/drand48.c \
 					utils/list.c \
 					utils/h264_stream.c
+#                                        audio/utils.c
+#                                        audio/codec.c 
 
 libvcompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut -lGLU
 libvcompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_compress -Iutils -Icompat -I.. -I../dxt_compress
@@ -171,6 +172,7 @@ nobase_uginclude_HEADERS =	./tfrc.h \
 							./rtp/ptime.h \
 							./rtp/rtp.h \
 							./rtp/audio_decoders.h \
+                                                        ./rtp/audio_frame2.h \
 							./video_decompress.h \
                                                         ./audio/audio.h \
                                                         ./audio/utils.h \
