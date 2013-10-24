@@ -22,6 +22,7 @@ participant_data_t *init_participant(uint32_t id, io_type_t type, participant_pr
     participant->type = type;
     participant->protocol = protocol;
     participant->streams_count = 0;
+    participant->active = I_AWAIT;
 
     if (protocol == RTP){
         //TODO: init RTP struct

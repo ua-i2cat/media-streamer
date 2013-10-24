@@ -101,8 +101,6 @@ void *decoder_th(void* stream){
             str->video.new_decoded_frame = TRUE;
             pthread_mutex_unlock(&str->video.new_decoded_frame_lock);
         }
-
-        pthread_rwlock_unlock(&str->lock);
     }
 
     pthread_exit((void *)NULL);    
