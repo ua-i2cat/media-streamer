@@ -83,18 +83,14 @@ void *receiver_thread(receiver_t *receiver) {
 				participant = get_participant_ssrc(receiver->participant_list, cp->ssrc);
 				pthread_rwlock_unlock(&receiver->participant_list->lock);
 
-				if (participant != NULL && participant->active > 0) {
-					printf("Participant not NULL and active>0\n");
-
+				if (participant != NULL) {
 					if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data)) {	
-						printf("if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data))\n");
-
 
 						gettimeofday(&curr_time, NULL);
 
 						if (participant->streams_count == 0){ //In reception we only contemplate one stream per participant
 							int id = 0; //TODO: ID generation
-							stream_data_t *stream = init_stream(VIDEO, INPUT, id, FALSE);
+							stream_data_t *stream = init_stream(VIDEO, INPUT, id, I_AWAIT);
 							add_stream(receiver->stream_list, stream);
 							add_participant_stream(participant, stream);
 							participant->streams_count ++;
@@ -110,13 +106,12 @@ void *receiver_thread(receiver_t *receiver) {
 							}
 						}
 
-						if (participant->active == I_AWAIT && rx_data->frame_type == INTRA){
-							participant->active = TRUE;
+						if (participant->streams[0]->state == I_AWAIT && rx_data->frame_type == INTRA){
+							participant->streams[0]->state = ACTIVE;
 						}
 
-						if (participant->active == TRUE && rx_data->frame_type != BFRAME) {
+						if (participant->streams[0]->state == ACTIVE && rx_data->frame_type != BFRAME) {
 							
-							printf("Inside if (participant->active == TRUE && rx_data->frame_type != BFRAME)\n");
 							pthread_mutex_lock(&participant->lock);
 							pthread_rwlock_rdlock(&participant->streams[0]->lock);
 
@@ -152,7 +147,6 @@ void *receiver_thread(receiver_t *receiver) {
 	}
   	
   	destroy_rx_data(rx_data);
-    destroy_participant_list(receiver->participant_list);
     rtp_done(receiver->session);
     free(receiver);
     pthread_exit((void *)NULL);   

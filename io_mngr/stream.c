@@ -90,6 +90,7 @@ void *decoder_th(void* stream){
         pthread_mutex_unlock(&str->video.new_coded_frame_lock);
 
         if (str->decoder->run){
+            pthread_rwlock_rdlock(&str->lock);
             pthread_rwlock_wrlock(&str->video.lock);
             decompress_frame(str->decoder->sd,(unsigned char *)str->video.decoded_frame, 
                 (unsigned char *)str->video.coded_frame, str->video.coded_frame_len, 0);
@@ -100,6 +101,7 @@ void *decoder_th(void* stream){
             pthread_mutex_lock(&str->video.new_decoded_frame_lock);
             str->video.new_decoded_frame = TRUE;
             pthread_mutex_unlock(&str->video.new_decoded_frame_lock);
+            pthread_rwlock_unlock(&str->lock);
         }
     }
 
@@ -299,21 +301,28 @@ void destroy_stream_list(stream_list_t *list)
     stream_data_t *current = list->first;
     while (current != NULL) {
         stream_data_t *next = current->next;
+        printf("Before destroy_stream(current);\n");
         destroy_stream(current);
+        printf("After destroy_stream(current);\n");
         current = next;
     }
-    //pthread_rwlock_unlock(&list->lock);
+    pthread_rwlock_unlock(&list->lock);
     pthread_rwlock_destroy(&list->lock);
     free(list);
 }
 
-stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, uint8_t active)
+stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, stream_state_t state)
 {
     stream_data_t *stream = malloc(sizeof(stream_data_t));
     if (stream == NULL) {
         error_msg("init_video_stream malloc error");
         return NULL;
     }
+
+   // pthread_rwlockattr_t *attr = malloc(sizeof(pthread_rwlockattr_t));
+   // pthread_rwlockattr_init(attr);
+   // pthread_rwlockattr_setkind_np(attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+
     if (pthread_rwlock_init(&stream->lock, NULL) < 0) {
         error_msg("init_stream: pthread_rwlock_init error");
         free(stream);
@@ -322,7 +331,7 @@ stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, u
     stream->id = id;
     stream->type = type;
     stream->io_type = io_type;
-    stream->active = active;
+    stream->state = state;
     stream->prev = NULL;
     stream->next = NULL;
     stream->decoder = NULL; // union with stream->encoder
@@ -333,7 +342,7 @@ stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, u
 int destroy_stream(stream_data_t *stream)
 {
     pthread_rwlock_wrlock(&stream->lock);
-
+    
     if (stream->type == VIDEO){
         free(stream->video.decoded_frame);
         free(stream->video.coded_frame);
@@ -409,7 +418,7 @@ int set_stream_video_data(stream_data_t *stream, codec_t codec, uint32_t width, 
     }
 
     if (stream->io_type == INPUT && stream->decoder == NULL){
-        stream->decoder = init_decoder(stream);
+        start_decoder(stream);
     } else if (stream->io_type == OUTPUT && stream->encoder == NULL){
         stream->encoder = init_encoder(stream);
     }
@@ -439,8 +448,8 @@ int add_stream(stream_list_t *list, stream_data_t *stream)
         error_msg("add_stream list->count < 0");
         ret = FALSE;
     }
-    pthread_rwlock_unlock(&list->lock);
     pthread_rwlock_unlock(&stream->lock);
+    pthread_rwlock_unlock(&list->lock);
     return ret;
 }
 
@@ -474,7 +483,6 @@ int remove_stream(stream_list_t *list, uint32_t id)
     }
 
     pthread_rwlock_wrlock(&stream->lock);
-
     if (stream->prev == NULL) {
         assert(list->first == stream);
         list->first = stream->next;
@@ -496,4 +504,23 @@ int remove_stream(stream_list_t *list, uint32_t id)
     pthread_rwlock_unlock(&stream->lock);
     
     return TRUE;
+}
+
+void set_stream_state(stream_data_t *stream, stream_state_t state) {
+    
+    // int ret = pthread_rwlock_trywrlock(&stream->lock);
+    // while (ret == EBUSY){
+    //     printf("Stream state lock EBUSY\n");
+    //     ret = pthread_rwlock_trywrlock(&stream->lock);
+    // }
+    pthread_rwlock_rdlock(&stream->lock); 
+    
+
+    if (state == NON_ACTIVE){
+        stream->state = state;
+    } else if (stream->state == NON_ACTIVE) {
+        stream->state = I_AWAIT;
+    }
+    
+    pthread_rwlock_rdlock(&stream->lock);
 }
