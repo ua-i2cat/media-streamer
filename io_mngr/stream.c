@@ -137,7 +137,7 @@ void *encoder_routine(void *arg)
     struct video_frame *frame = vf_alloc(1);
     if (frame == NULL) {
         error_msg("encoder_routine: vf_alloc error");
-        compress_done(&encoder->cs);
+        //compress_done(&encoder->cs);
         pthread_exit((void *)NULL);
     }
 
@@ -188,6 +188,11 @@ void *encoder_routine(void *arg)
 
 encoder_thread_t *init_encoder(stream_data_t *stream)
 {
+
+    if (stream->encoder == NULL) {
+        debug_msg("init_encoder: encoder already initialized");
+        return NULL;
+    }
     
     encoder_thread_t *encoder = malloc(sizeof(encoder_thread_t));
     if (encoder == NULL) {

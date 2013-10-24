@@ -197,6 +197,10 @@ void *transmitter_master_routine(void *arg)
     struct participant_data *participant = list->first;
     while (participant != NULL) {
         debug_msg("participant found, initializing its threads...\n");
+        int i = 0;
+        for (i = 0; i < participant->streams_count; i++) {
+            init_encoder(participant->streams[i]);
+        }
         init_transmission(participant);
         debug_msg("participant threads initialized\n");
         participant = participant->next;
@@ -210,11 +214,12 @@ void *transmitter_master_routine(void *arg)
         participant_data_t *ptc = list->first;
         while (ptc != NULL) {
             int i = 0;
-            while (i++ < ptc->streams_count) {
+            while (i < ptc->streams_count) {
                 stream_data_t *str = ptc->streams[i];
                 if (str->encoder != NULL && str->encoder->run) {
                     sem_post(&str->encoder->input_sem);
                 }
+                i++;
             }
             ptc = ptc->next;
         }
