@@ -22,8 +22,11 @@
 #define MTU 1300 // 1400
 
 typedef struct transmitter {
-    uint8_t run;
-    uint8_t fps;
+    pthread_t thread;
+    uint32_t run;
+    participant_list_t *participants;
+    float fps;
+    float wait_time;
     uint32_t recv_port;
     uint32_t ttl;
     uint64_t send_buffer_size;
@@ -31,7 +34,7 @@ typedef struct transmitter {
 } transmitter_t;
 
 
-transmitter_t *init_transmitter(participant_list_t *list);
+transmitter_t *init_transmitter(participant_list_t *list, float fps);
 int start_transmitter(transmitter_t *transmitter);
 int stop_transmitter(transmitter_t *transmitter);
 

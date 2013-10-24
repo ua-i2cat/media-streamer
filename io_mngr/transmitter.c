@@ -19,12 +19,37 @@ void transmitter_destroy_encoder_thread(encoder_thread_t **encoder);
 
 int init_transmission_rtp(participant_data_t *participant);
 
-pthread_t MASTER_THREAD;
-int RUN = 1;
 float WAIT_TIME;
 float FRAMERATE;
 sem_t FRAME_SEM;
 
+
+transmitter_t *init_transmitter(participant_list_t *list, float fps)
+{
+    transmitter_t *transmitter = malloc(sizeof(transmitter_t));
+    if (transmitter == NULL) {
+        error_msg("init_transmitter: malloc error");
+        return NULL;
+    }
+
+    transmitter->run = FALSE;
+    
+    if (fps == -1) {
+        transmitter->fps = DEFAULT_FPS;
+    } else {
+        transmitter->fps = fps;
+    }
+    transmitter->wait_time = (1.0/transmitter->fps)*1000000;
+
+    transmitter->recv_port = DEFAULT_RECV_PORT;
+    transmitter->ttl = DEFAULT_TTL;
+    transmitter->send_buffer_size = DEFAULT_SEND_BUFFER_SIZE;
+    transmitter->mtu = MTU;
+
+    transmitter->participants = list;
+
+    return transmitter;
+}
 
 int init_transmission_rtp(participant_data_t *participant)
 {
@@ -160,8 +185,9 @@ void *transmitter_rtp_routine(void *arg)
 void *transmitter_master_routine(void *arg)
 {
     debug_msg("transmitter master routine START\n");
-    struct participant_list *list = (struct participant_list *)arg;
+    transmitter_t *transmitter = (transmitter_t *)arg;
 
+    participant_list_t *list = transmitter->participants;
     struct participant_data *participant = list->first;
     while (participant != NULL) {
         debug_msg("participant found, initializing its threads...\n");
@@ -171,8 +197,8 @@ void *transmitter_master_routine(void *arg)
     }
 
     debug_msg("entering the master loop\n");
-    while (RUN) {
-        usleep(WAIT_TIME);
+    while (transmitter->run) {
+        usleep(transmitter->wait_time);
         
         pthread_rwlock_rdlock(&list->lock);
         participant_data_t *ptc = list->first;
@@ -183,10 +209,6 @@ void *transmitter_master_routine(void *arg)
                 if (str->encoder != NULL && str->encoder->run) {
                     sem_post(&str->encoder->input_sem);
                 }
-            }
-
-            if (!RUN) {
-                break;
             }
             ptc = ptc->next;
         }
@@ -204,23 +226,21 @@ void *transmitter_master_routine(void *arg)
     pthread_exit((void *)NULL);
 }
 
-int start_out_manager(participant_list_t *list, float framerate)
+int start_transmitter(transmitter_t *transmitter)
 {
-    RUN = 1;
-    FRAMERATE = framerate;
-    WAIT_TIME = (1.0/framerate) * 1000000;
+    transmitter->run = TRUE;
     debug_msg("creating the master thread...\n");
-    sem_init(&FRAME_SEM, 1, 0);
-    int ret = pthread_create(&MASTER_THREAD, NULL, transmitter_master_routine, list);
+    int ret = pthread_create(&transmitter->thread, NULL, transmitter_master_routine, transmitter);
     if (ret < 0) {
         error_msg("could not initiate the transmitter master thread\n");
     }
     return ret;
 }
 
-int stop_out_manager()
+int stop_transmitter(transmitter_t *transmitter)
 {
-    RUN = 0;
-    int ret = pthread_join(MASTER_THREAD, NULL);
+    transmitter->run = FALSE;
+    int ret = pthread_join(transmitter->thread, NULL);
+    free(transmitter);
     return ret;
 }
