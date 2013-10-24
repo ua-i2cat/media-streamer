@@ -57,6 +57,12 @@ int init_transmission_rtp(participant_data_t *participant)
     assert(participant->type == OUTPUT);
     assert(participant->protocol == RTP);
 
+    if (participant->rtp.run == TRUE) {
+        // If it's already initialized, do nothing
+        pthread_mutex_unlock(&participant->lock);
+        return TRUE;
+    }
+
     int ret = pthread_create(&participant->rtp.thread, NULL,
                              transmitter_rtp_routine, participant);
     participant->rtp.run = TRUE;
