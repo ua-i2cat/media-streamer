@@ -13,6 +13,31 @@
 
 #include "participants.h"
 
+#define DEFAULT_FPS 24
+#define DEFAULT_RECV_PORT 12006 // just trying to not interfere with anything
+#define DEFAULT_RTCP_BW 5 * 1024 * 1024 * 10
+#define DEFAULT_TTL 255
+#define DEFAULT_SEND_BUFFER_SIZE 1920 * 1080 * 4 * sizeof(char) * 10
+#define PIXEL_FORMAT RGB
+#define MTU 1300 // 1400
+
+typedef struct transmitter {
+    pthread_t thread;
+    uint32_t run;
+    participant_list_t *participants;
+    float fps;
+    float wait_time;
+    uint32_t recv_port;
+    uint32_t ttl;
+    uint64_t send_buffer_size;
+    uint32_t mtu;
+} transmitter_t;
+
+
+transmitter_t *init_transmitter(participant_list_t *list, float fps);
+int start_transmitter(transmitter_t *transmitter);
+int stop_transmitter(transmitter_t *transmitter);
+
 /**
  * @brief Initializes the output manager.
  *
@@ -49,5 +74,8 @@ int stop_out_manager(void);
  * @deprecated
  */
 void transmitter_destroy_encoder_thread(encoder_thread_t **encoder);
+
+int init_transmission(participant_data_t *participant);
+int stop_transmission(participant_data_t *participant);
 
 #endif

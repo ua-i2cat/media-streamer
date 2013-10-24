@@ -31,6 +31,8 @@ typedef struct participant_list {
 } participant_list_t;
 
 typedef struct rtp_session {
+    pthread_t thread;
+    uint8_t run;
     uint32_t port;
     char *addr;
     // TODO: rtp thread management
@@ -76,8 +78,5 @@ void destroy_participant(participant_data_t *src);
 
 int add_participant_stream(participant_data_t *participant, stream_data_t *stream);
 int remove_participant_stream(participant_data_t *participant, stream_data_t *stream);
-
-int init_transmission(participant_data_t *participant);
-int stop_transmission(participant_data_t *participant);
 
 #endif

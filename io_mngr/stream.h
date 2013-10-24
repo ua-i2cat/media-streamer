@@ -28,6 +28,9 @@ typedef struct encoder_thread {
 
     int index;
 
+    struct video_frame *frame;  // TODO: should be gone!
+                                // redundant with stream->coded_frame
+
     sem_t input_sem;
     sem_t output_sem;
 
