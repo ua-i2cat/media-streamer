@@ -21,6 +21,7 @@ participant_data_t *init_participant(uint32_t id, io_type_t type, participant_pr
     participant->type = type;
     participant->protocol = protocol;
     participant->streams_count = 0;
+    participant->active = I_AWAIT;
 
     if (protocol == RTP){
         //TODO: init RTP struct
@@ -216,7 +217,7 @@ int add_participant_stream(participant_data_t *participant, stream_data_t *strea
     
     int ret = FALSE;
     int i = 0;
-    while (i++ < MAX_PARTICIPANT_STREAMS) {
+    while (i < MAX_PARTICIPANT_STREAMS) {
         if (participant->streams[i] == NULL) {
             participant->streams[i] = stream;
             participant->streams_count++;
@@ -224,6 +225,7 @@ int add_participant_stream(participant_data_t *participant, stream_data_t *strea
             ret = TRUE;
             break;
         }
+        i++;
     }
 
     pthread_mutex_unlock(&participant->lock);

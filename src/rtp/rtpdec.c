@@ -416,6 +416,8 @@ cleanup:
 received_data_t* init_rx_data(){
     received_data_t *rx_data;
 
+    rx_data = malloc(sizeof(received_data_t));
+
     rx_data->frame_type = BFRAME;
     rx_data->info.width = 0;
     rx_data->info.height = 0;

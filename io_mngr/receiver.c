@@ -50,6 +50,7 @@ receiver_t *init_receiver(participant_list_t *participant_list, stream_list_t *s
 void *receiver_thread(receiver_t *receiver) {
 	struct pdb_e *cp;
 	participant_data_t *participant;
+	received_data_t *rx_data;
 
 	struct timeval curr_time;
 	struct timeval timeout;
@@ -60,7 +61,7 @@ void *receiver_thread(receiver_t *receiver) {
     timeout.tv_usec = 10000;
     uint32_t timestamp; //TODO: why is this used
 
-    received_data_t *rx_data = init_rx_data();
+    rx_data = init_rx_data();
 
     while(receiver->run){
         gettimeofday(&curr_time, NULL);
@@ -70,21 +71,24 @@ void *receiver_thread(receiver_t *receiver) {
 
 		timeout.tv_sec = 0;
 		timeout.tv_usec = 10000;
+
 	
 		//TODO: repàs dels locks en accedir a src
 		if (!rtp_recv_r(receiver->session, &timeout, timestamp)){
 			pdb_iter_t it;
 			cp = pdb_iter_init(receiver->part_db, &it);
-	    
+
 			while (cp != NULL) {
-	      
 				pthread_rwlock_rdlock(&receiver->participant_list->lock);
 				participant = get_participant_ssrc(receiver->participant_list, cp->ssrc);
 				pthread_rwlock_unlock(&receiver->participant_list->lock);
 
 				if (participant != NULL && participant->active > 0) {
+					printf("Participant not NULL and active>0\n");
 
-					if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data)) {	 
+					if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data)) {	
+						printf("if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, rx_data))\n");
+
 
 						gettimeofday(&curr_time, NULL);
 
@@ -93,6 +97,7 @@ void *receiver_thread(receiver_t *receiver) {
 							stream_data_t *stream = init_stream(VIDEO, INPUT, id, FALSE);
 							add_stream(receiver->stream_list, stream);
 							add_participant_stream(participant, stream);
+							participant->streams_count ++;
 						}
 
 						if (rx_data->info.width != 0 && rx_data->info.height != 0){
@@ -111,6 +116,7 @@ void *receiver_thread(receiver_t *receiver) {
 
 						if (participant->active == TRUE && rx_data->frame_type != BFRAME) {
 							
+							printf("Inside if (participant->active == TRUE && rx_data->frame_type != BFRAME)\n");
 							pthread_mutex_lock(&participant->lock);
 							pthread_rwlock_rdlock(&participant->streams[0]->lock);
 

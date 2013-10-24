@@ -101,8 +101,6 @@ void *decoder_th(void* stream){
             str->video.new_decoded_frame = TRUE;
             pthread_mutex_unlock(&str->video.new_decoded_frame_lock);
         }
-
-        pthread_rwlock_unlock(&str->lock);
     }
 
     pthread_exit((void *)NULL);    
@@ -137,7 +135,7 @@ void *encoder_routine(void *arg)
     struct video_frame *frame = vf_alloc(1);
     if (frame == NULL) {
         error_msg("encoder_routine: vf_alloc error");
-        compress_done(&encoder->cs);
+       // compress_done(&encoder->cs);
         pthread_exit((void *)NULL);
     }
 
