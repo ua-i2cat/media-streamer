@@ -132,12 +132,11 @@ int remove_participant(participant_list_t *list, uint32_t id){
     if (participant == NULL)
         return FALSE;
 
-    pthread_mutex_lock(&participant->lock);
-  
     if (participant->type == INPUT && participant->streams_count > 0){
         remove_participant_stream(participant, participant->streams[0]);
         //TODO: where to execute remove stream???
     }
+    pthread_mutex_lock(&participant->lock);
 
     if (participant->next == NULL && participant->previous == NULL) {
         assert(list->last == participant && list->first == participant);
@@ -166,20 +165,6 @@ int remove_participant(participant_list_t *list, uint32_t id){
     return TRUE;
 }
 
-// void set_active_participant(participant_data_t *participant, uint8_t active) {
-	
-//     pthread_mutex_lock(&participant->lock);
-//   	assert(active == TRUE || active == FALSE);
-
-// 	  if (active == FALSE){
-// 		    participant->active = active;
-// 	  } else if (participant->active == FALSE) {
-// 		    participant->active = I_AWAIT;
-// 	  }
-	
-// 	  pthread_mutex_unlock(&participant->lock);
-// }
-
 void destroy_participant_list(participant_list_t *list){
   participant_data_t *participant;
   
@@ -188,6 +173,7 @@ void destroy_participant_list(participant_list_t *list){
   while(participant != NULL){
     pthread_rwlock_wrlock(&list->lock);
     remove_participant(list, participant->id);
+    printf("remove_participant(list, participant->id);\n");
     pthread_rwlock_unlock(&list->lock);
     participant = participant->next;
   }

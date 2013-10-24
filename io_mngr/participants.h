@@ -14,7 +14,6 @@
 #include "stream.h"
 #include "debug.h"
 
-#define I_AWAIT 2
 #define MAX_PARTICIPANT_STREAMS 4
 
 typedef struct participant_data participant_data_t;

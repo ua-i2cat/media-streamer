@@ -42,6 +42,12 @@ typedef enum stream_type {
     VIDEO
 } stream_type_t;
 
+typedef enum stream_state{
+    ACTIVE,
+    I_AWAIT,
+    NON_ACTIVE
+} stream_state_t;
+
 typedef enum io_type {
     INPUT,
     OUTPUT
@@ -74,8 +80,8 @@ typedef struct stream_data {
     pthread_rwlock_t lock;
     stream_type_t type;
     io_type_t io_type;
+    stream_state_t state;
     uint32_t id;
-    uint8_t active;
     struct stream_data *prev;
     struct stream_data *next;
     union {
@@ -106,7 +112,7 @@ void destroy_encoder(encoder_thread_t *encoder);
 stream_list_t *init_stream_list(void);
 void destroy_stream_list(stream_list_t *list);
 
-stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, uint8_t active);
+stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, stream_state_t state);
 int destroy_stream(stream_data_t *stream);
 
 int set_stream_video_data(stream_data_t *stream, codec_t codec,
@@ -117,5 +123,6 @@ int add_stream(stream_list_t *list, stream_data_t *stream);
 int remove_stream(stream_list_t *list, uint32_t id);
 
 stream_data_t *get_stream_id(stream_list_t *list, uint32_t id);
+void set_stream_state(stream_data_t *stream, stream_state_t state);
 
 #endif
