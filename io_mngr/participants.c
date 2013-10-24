@@ -217,7 +217,7 @@ int add_participant_stream(participant_data_t *participant, stream_data_t *strea
     
     int ret = FALSE;
     int i = 0;
-    while (i++ < MAX_PARTICIPANT_STREAMS) {
+    while (i < MAX_PARTICIPANT_STREAMS) {
         if (participant->streams[i] == NULL) {
             participant->streams[i] = stream;
             participant->streams_count++;
@@ -225,6 +225,7 @@ int add_participant_stream(participant_data_t *participant, stream_data_t *strea
             ret = TRUE;
             break;
         }
+        i++;
     }
 
     pthread_mutex_unlock(&participant->lock);
