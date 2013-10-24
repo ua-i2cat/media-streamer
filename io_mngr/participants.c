@@ -3,6 +3,7 @@
 #include "transmitter.h"
 #include "video_decompress/libavcodec.h"
 #include "video_decompress.h"
+#include "debug.h"
 
 void destroy_decoder_thread(decoder_thread_t *dec_th);
 void destroy_participant(participant_data_t *src);
@@ -238,8 +239,8 @@ int remove_participant_stream(participant_data_t *participant, stream_data_t *st
     while (i++ < MAX_PARTICIPANT_STREAMS) {
         if (participant->streams[i] == stream) {
             participant->streams[i] = NULL;
+            assert(participant->streams_count > 0);
             participant->streams_count--;
-            assert(participant->streams_count >= 0);
             ret = TRUE;
             // TODO: this chunk of code moves the streams to the left
             int j = 0;

@@ -18,20 +18,20 @@
 #define PIXEL_FORMAT RGB
 #define MTU 1300 // 1400
 
-void *transmitter_encoder_routine(void *arg);
-void *transmitter_rtpenc_routine(void *arg);
+void *transmitter_rtp_routine(void *arg);
 int transmitter_init_threads(struct participant_data *participant);
 void *transmitter_master_routine(void *arg);
 
 void transmitter_dummy_callback(struct rtp *session, rtp_event *e);
 void transmitter_destroy_encoder_thread(encoder_thread_t **encoder);
 
+int init_transmission_rtp(participant_data_t *participant);
+
 pthread_t MASTER_THREAD;
 int RUN = 1;
 float WAIT_TIME;
 float FRAMERATE;
 sem_t FRAME_SEM;
-
 
 
 int init_transmission_rtp(participant_data_t *participant)
@@ -53,7 +53,6 @@ int init_transmission_rtp(participant_data_t *participant)
 
 int init_transmission(participant_data_t *participant)
 {
-    // TODO
     pthread_mutex_lock(&participant->lock);
     
     if (participant->type != OUTPUT) {
@@ -64,6 +63,7 @@ int init_transmission(participant_data_t *participant)
     int ret = TRUE;
 
     if (participant->protocol == RTSP) {
+        // TODO: implement RTSP transmission
         error_msg("init_transmission: transmission RTP support not ready yet");
         ret = FALSE;
     } else if (participant->protocol == RTP) {
@@ -74,83 +74,12 @@ int init_transmission(participant_data_t *participant)
     return ret;
 }
 
-int stop_transmission(participant_data_t *participant);
+int stop_transmission(participant_data_t *participant)
 {
     // TODO
     pthread_mutex_lock(&participant->lock);
 
     pthread_mutex_unlock(&participant->lock);
-}
-
-
-void *transmitter_encoder_routine(void *arg)
-{
-    struct participant_data *participant = (struct participant_data *)arg;
-    struct module cmod;
-
-    encoder_thread_t *encoder = participant->proc.encoder;
-
-    encoder->input_frame_length = vc_get_linesize(participant->width, PIXEL_FORMAT)*participant->height;
-    encoder->input_frame = malloc(encoder->input_frame_length); // TODO error handling
-
-    module_init_default(&cmod);
-
-    compress_init(&cmod, "libavcodec:codec=H.264", &encoder->sc);
-
-    struct video_frame *frame = vf_alloc(1);
-    int width = participant->width;
-    int height = participant->height;
-    vf_get_tile(frame, 0)->width=width;
-    vf_get_tile(frame, 0)->height=height;
-    frame->color_spec = PIXEL_FORMAT;
-    frame->fps = DEFAULT_FPS; // FIXME: if it's not set -> core dump.
-    frame->interlacing = PROGRESSIVE;
-
-    encoder->run = TRUE;
-    encoder->index = 0;
-    
-    while (RUN) {
-        sem_wait(&encoder->input_sem);
-        if (!RUN || !encoder->run) {
-            break;
-        }
-
-        // Lock while compressing ( = reading the data buffer)
-        pthread_mutex_lock(&participant->lock);
-        
-        frame->tiles[0].data = participant->frame;
-        frame->tiles[0].data_len = participant->frame_length;
-        struct video_frame *tx_frame;
-        int i = encoder->index;
-
-        tx_frame = compress_frame(encoder->sc, frame, i);
-
-        pthread_mutex_unlock(&participant->lock);
-        
-        i = (i + 1)%2;
-        encoder->index = i;
-        
-        while(1) {
-            pthread_mutex_lock(&encoder->lock);     
-            if (encoder->rtpenc->ready) {
-                pthread_mutex_unlock(&encoder->lock);
-                break;
-            }
-            pthread_mutex_unlock(&encoder->lock);
-        }
-
-        pthread_mutex_lock(&encoder->lock);     
-        encoder->frame = tx_frame;
-        pthread_mutex_unlock(&encoder->lock);
-        
-        sem_post(&encoder->output_sem);    
-    }
-
-    debug_msg(" encoder routine END\n");
-    int ret = 0;
-    module_done(CAST_MODULE(&cmod));
-    free(encoder->input_frame);
-    pthread_exit((void *)&ret);
 }
 
 void transmitter_dummy_callback(struct rtp *session, rtp_event *e)
@@ -159,11 +88,11 @@ void transmitter_dummy_callback(struct rtp *session, rtp_event *e)
     UNUSED(e);
 }
 
-void *transmitter_rtpenc_routine(void *arg)
+void *transmitter_rtp_routine(void *arg)
 {
     debug_msg(" transmitter rtpenc routine START\n");
-    struct participant_data *participant = (struct participant_data *)arg;
-    struct rtp_session *session = participant->session;
+    participant_data_t *participant = (struct participant_data *)arg;
+    rtp_session_t *session = &participant->rtp;
 
     char *mcast_if = NULL;
     double rtcp_bw = DEFAULT_RTCP_BW;
@@ -191,31 +120,42 @@ void *transmitter_rtpenc_routine(void *arg)
     double timestamp;
     gettimeofday(&start_time, NULL);
 
-    participant->proc.encoder->run = TRUE;
+    // Only one stream
 
-    while (RUN) {
-        encoder_thread_t *encoder = participant->proc.encoder;
-        sem_wait(&encoder->output_sem);
-        if (!RUN || !encoder->run) {
+    while (participant->rtp.run && participant->streams_count > 0) {
+
+        stream_data_t *stream = participant->streams[0];
+        assert(stream != NULL);
+        encoder_thread_t *encoder = stream->encoder;
+        assert(encoder != NULL);
+        
+
+        if (sem_wait(&encoder->output_sem) < 0) {
             break;
         }
 
+        pthread_rwlock_rdlock(&stream->video.lock);
+
+        /* implement something like this?
         pthread_mutex_lock(&encoder->lock);
         encoder->rtpenc->ready = 0;
         pthread_mutex_unlock(&encoder->lock);
+        */
 
-        pthread_mutex_lock(&encoder->lock);
         gettimeofday(&curr_time, NULL);
         rtp_update(rtp, curr_time);
         timestamp = tv_diff(curr_time, start_time)*90000;
         rtp_send_ctrl(rtp, timestamp, 0, curr_time);
 
-        tx_send_h264(tx_session, encoder->frame, rtp, FRAMERATE);
-        pthread_mutex_unlock(&encoder->lock);
+        tx_send_h264(tx_session, stream->encoder->frame, rtp, FRAMERATE);
 
+        /*
         pthread_mutex_lock(&encoder->lock);
         encoder->rtpenc->ready = 1;
         pthread_mutex_unlock(&encoder->lock);
+         */
+
+        pthread_rwlock_unlock(&stream->video.lock);
     }   
 
     rtp_send_bye(rtp);
@@ -223,75 +163,6 @@ void *transmitter_rtpenc_routine(void *arg)
     module_done(CAST_MODULE(&tmod));
     
     pthread_exit(NULL);
-}
-
-
-void transmitter_destroy_encoder_thread(encoder_thread_t **encoder)
-{
-    if (*encoder == NULL) {
-        return;
-    }
-
-    if (encoder[0]->run != TRUE) {
-        return;
-    }
-
-    sem_post(&encoder[0]->input_sem);
-    sem_post(&encoder[0]->output_sem);
-
-    // TODO: error control? reporting?
-    sem_destroy(&encoder[0]->input_sem);
-    sem_destroy(&encoder[0]->output_sem);
-
-    pthread_join(encoder[0]->rtpenc->thread, NULL);
-    pthread_join(encoder[0]->thread, NULL);
-
-    pthread_mutex_destroy(&encoder[0]->lock);
-
-    free(encoder[0]->rtpenc);
-    free(encoder[0]);
-
-    encoder[0] = NULL;
-
-}
-
-int transmitter_init_threads(struct participant_data *participant)
-{
-    participant->proc.encoder = malloc(sizeof(encoder_thread_t));
-    encoder_thread_t *encoder = participant->proc.encoder;
-    if (encoder == NULL) {
-        error_msg(" unsuccessful malloc\n");
-        return -1;
-    }
-    encoder->run = FALSE;
-    encoder->rtpenc = malloc(sizeof(rtpenc_thread_t));
-    rtpenc_thread_t *rtpenc = encoder->rtpenc;
-    if (rtpenc == NULL) {
-        error_msg(" unsuccessful malloc\n");
-        return -1;
-    }
-
-    pthread_mutex_init(&encoder->lock, NULL);
-    sem_init(&encoder->input_sem, 1, 0);
-    sem_init(&encoder->output_sem, 1, 0);
-
-    encoder->rtpenc->ready = 1;
-
-    int ret = 0;
-    ret = pthread_create(&encoder->thread, NULL,
-                transmitter_encoder_routine, participant);
-    if (ret < 0) {
-        // TODO
-    }
-    ret = pthread_create(&rtpenc->thread, NULL,
-                transmitter_rtpenc_routine, participant);
-    if (ret < 0) {
-        // TODO
-    }
-
-    encoder->run = TRUE;
-
-    return 0;
 }
 
 void *transmitter_master_routine(void *arg)
@@ -302,43 +173,39 @@ void *transmitter_master_routine(void *arg)
     struct participant_data *participant = list->first;
     while (participant != NULL) {
         debug_msg("participant found, initializing its threads...\n");
-        transmitter_init_threads(participant);
+        init_transmission(participant);
         debug_msg("participant threads initialized\n");
         participant = participant->next;
     }
 
     debug_msg("entering the master loop\n");
     while (RUN) {
-        struct participant_data *ptc = list->first;
         usleep(WAIT_TIME);
-
-        if (!RUN) {
-            break;
-        }
+        
+        pthread_rwlock_rdlock(&list->lock);
+        participant_data_t *ptc = list->first;
         while (ptc != NULL) {
-            if (ptc->proc.encoder != NULL) { // -> has a pair of threads
-                if (ptc->new_frame) { // -> has new data
-                    /* NOTE: following lines commented. If the new_frame
-                       flag is not set to zero again, the output threads
-                       will send any frame available when they check the
-                       input buffer */
-                    //pthread_mutex_lock(&ptc->lock);
-                    //ptc->new_frame = 0;
-                    //pthread_mutex_unlock(&ptc->lock);
-                    sem_post(&ptc->proc.encoder->input_sem);
+            int i = 0;
+            while (i++ < ptc->streams_count) {
+                stream_data_t *str = ptc->streams[i];
+                if (str->encoder != NULL && str->encoder->run) {
+                    sem_post(&str->encoder->input_sem);
                 }
-            } else {
-                transmitter_init_threads(ptc);
+            }
+
+            if (!RUN) {
+                break;
             }
             ptc = ptc->next;
         }
+        pthread_rwlock_unlock(&list->lock);
     }
 
     debug_msg(" terminating pairs of threads\n");
     pthread_rwlock_rdlock(&list->lock);
     participant = list->first;
     while (participant != NULL) {
-        transmitter_destroy_encoder_thread(&participant->proc.encoder);
+        stop_transmission(participant);
         participant = participant->next;
     }
     pthread_rwlock_unlock(&list->lock);

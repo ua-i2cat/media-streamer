@@ -31,6 +31,8 @@ typedef struct participant_list {
 } participant_list_t;
 
 typedef struct rtp_session {
+    pthread_t thread;
+    uint8_t run;
     uint32_t port;
     char *addr;
     // TODO: rtp thread management
