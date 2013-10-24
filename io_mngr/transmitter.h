@@ -50,4 +50,7 @@ int stop_out_manager(void);
  */
 void transmitter_destroy_encoder_thread(encoder_thread_t **encoder);
 
+int init_transmission(participant_data_t *participant);
+int stop_transmission(participant_data_t *participant);
+
 #endif
