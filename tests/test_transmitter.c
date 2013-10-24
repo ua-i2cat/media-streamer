@@ -105,25 +105,18 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    participant_list_t *list = init_participant_list();
-    if (list == NULL) {
-        error_msg(" could not initialize a participant list\n");
-    }
-    int ret = 0;
-    ret = add_participant(list, 0, 1920, 1080, H264, "127.0.0.1", 5004, OUTPUT);
-    if (ret < 0) {
-        error_msg(" could not add a new participant\n");
-        destroy_participant_list(list);
-        return -1;
-    }
-    /*ret = add_participant(list, 0, 854, 480, H264, "127.0.0.1", 6004, OUTPUT);
-    if (ret < 0) {
-        error_msg(" could not add a new participant\n");
-        destroy_participant_list(list);
-        return -1;
-    }*/
+    stream_list_t *streams = init_stream_list();
+    stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, TRUE);
+    set_stream_video_data(stream, H264, 1920, 1080);
+    add_stream(streams, stream);
 
+    participant_list_t *participants = init_participant_list();
+    add_participant(participants, 0, OUTPUT, RTP, "127.0.0.1", 8000);
 
+    transmitter_t *transmitter = init_transmitter(participants, 10.0);
+    start_transmitter(transmitter);
+
+    // Stuff ... 
     AVFormatContext *pformat_ctx = avformat_alloc_context();
     AVCodecContext codec_ctx;
     int video_stream = -1;
@@ -136,8 +129,6 @@ int main(int argc, char **argv)
 
     uint8_t *b1 = (uint8_t *)av_malloc(avpicture_get_size(codec_ctx.pix_fmt,
                         codec_ctx.width, codec_ctx.height)*sizeof(uint8_t));
-
-    start_out_manager(list, 5);
     
     int counter = 0;
     while(1) {
@@ -149,30 +140,34 @@ int main(int argc, char **argv)
 
         if (ret == 0) {
             counter++;
-            debug_msg(" new frame read!\n");
-            pthread_rwlock_wrlock(&list->lock);
-            struct participant_data *participant = list->first;
-            while (participant != NULL) {
-                if (pthread_mutex_trylock(&participant->lock) == 0) {
-                    participant->frame_length = vc_get_linesize(width, RGB)*height;
-                    memcpy(participant->frame, (char *)b1, participant->frame_length);
-                    participant->new_frame = 1;
-                    pthread_mutex_unlock(&participant->lock);
-                }
-                participant = participant->next;
+            printf("[test] new frame read!\n");
+            pthread_rwlock_rdlock(&streams->lock);
+            stream_data_t *str = streams->first;
+            while (str != NULL) {
+                printf("[test] stream: %d\n", str->id);
+                pthread_rwlock_wrlock(&str->video.lock);
+
+                str->video.coded_frame = b1;
+                str->video.coded_frame_len = vc_get_linesize(width, RGB)*height;
+
+                pthread_rwlock_unlock(&str->video.lock);
+                str = str->next;
             }
-            pthread_rwlock_unlock(&list->lock);
+            pthread_rwlock_unlock(&streams->lock);
             usleep(200000);
         } else {
             break;
         }
     }
     debug_msg(" deallocating resources and terminating threads\n");
-    stop_out_manager();
-    destroy_participant_list(list);
     av_free(pformat_ctx);
     av_free(b1);
     debug_msg(" done!\n");
+
+    stop_transmitter(transmitter);
+
+    destroy_participant_list(participants);
+    destroy_stream_list(streams);
 
     return 0;
 }
