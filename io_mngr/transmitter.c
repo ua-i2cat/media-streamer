@@ -32,6 +32,57 @@ float WAIT_TIME;
 float FRAMERATE;
 sem_t FRAME_SEM;
 
+
+
+int init_transmission_rtp(participant_data_t *participant)
+{
+    pthread_mutex_lock(&participant->lock);
+    assert(participant->type == OUTPUT);
+    assert(participant->protocol == RTP);
+
+    int ret = pthread_create(&participant->rtp.thread, NULL,
+                             transmitter_rtp_routine, participant);
+    participant->rtp.run = TRUE;
+    if (ret < 0) {
+        error_msg("init_transmission_rtp: pthread_create error");
+    }
+
+    pthread_mutex_unlock(&participant->lock);
+    return ret;
+}
+
+int init_transmission(participant_data_t *participant)
+{
+    // TODO
+    pthread_mutex_lock(&participant->lock);
+    
+    if (participant->type != OUTPUT) {
+        pthread_mutex_unlock(&participant->lock);
+        return FALSE;
+    }
+
+    int ret = TRUE;
+
+    if (participant->protocol == RTSP) {
+        error_msg("init_transmission: transmission RTP support not ready yet");
+        ret = FALSE;
+    } else if (participant->protocol == RTP) {
+        ret = init_transmission_rtp(participant);
+    }
+
+    pthread_mutex_unlock(&participant->lock);
+    return ret;
+}
+
+int stop_transmission(participant_data_t *participant);
+{
+    // TODO
+    pthread_mutex_lock(&participant->lock);
+
+    pthread_mutex_unlock(&participant->lock);
+}
+
+
 void *transmitter_encoder_routine(void *arg)
 {
     struct participant_data *participant = (struct participant_data *)arg;
