@@ -4,6 +4,7 @@
 #include "video_decompress/libavcodec.h"
 #include "video_decompress.h"
 #include "debug.h"
+#include <stdlib.h>
 
 void destroy_decoder_thread(decoder_thread_t *dec_th);
 void destroy_participant(participant_data_t *src);
@@ -21,11 +22,11 @@ participant_data_t *init_participant(uint32_t id, io_type_t type, participant_pr
     participant->next = participant->previous = NULL;
     participant->type = type;
     participant->protocol = protocol;
-    participant->streams_count = 0;
     participant->active = I_AWAIT;
 
     if (protocol == RTP){
         //TODO: init RTP struct
+        participant->rtp.run = FALSE;
         participant->rtp.port = port;
         participant->rtp.addr = addr;
 
@@ -36,6 +37,12 @@ participant_data_t *init_participant(uint32_t id, io_type_t type, participant_pr
 
     } else {
         //Error when introducing protocol
+    }
+
+    participant->streams_count = 0;
+    int i = 0;
+    for (i = 0; i < MAX_PARTICIPANT_STREAMS; i++) {
+        participant->streams[i] = NULL;
     }
     
     return participant;
