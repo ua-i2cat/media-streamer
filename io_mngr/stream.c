@@ -122,6 +122,10 @@ void *encoder_routine(void *arg)
     struct module cmod;
     module_init_default(&cmod);
 
+    //encoder->cs = malloc(sizeof(struct compress_state));
+    //assert(encoder->cs != NULL);
+
+    assert(encoder != NULL);
     compress_init(&cmod, "libavcodec:codec=H.264", &encoder->cs);
 
     struct video_frame *frame = vf_alloc(1);
@@ -138,11 +142,13 @@ void *encoder_routine(void *arg)
     frame->fps = DEFAULT_FPS; 
     frame->interlacing = PROGRESSIVE;
 
-    encoder->run = TRUE; // TODO: set to TRUE also in init_encoder!?
+    encoder->run = TRUE; 
     encoder->index = 0;
 
     while (encoder->run) {
+        printf("[encoder] waiting input_sem\n");
         sem_wait(&encoder->input_sem);
+        printf("[encoder] input_sem received\n");
         if (!encoder->run) {
             break;
         }
@@ -178,8 +184,9 @@ void *encoder_routine(void *arg)
 
 encoder_thread_t *init_encoder(stream_data_t *stream)
 {
+    printf("[encoder:%d] initializing encoder\n", stream->id);
 
-    if (stream->encoder == NULL) {
+    if (stream->encoder != NULL) {
         debug_msg("init_encoder: encoder already initialized");
         return NULL;
     }
@@ -196,13 +203,13 @@ encoder_thread_t *init_encoder(stream_data_t *stream)
         return NULL;
     }
 
-    if (sem_init(&encoder->input_sem, 1, 0)) {
+    if (sem_init(&encoder->input_sem, 1, 0) < 0) {
         error_msg("init_encoder: sem_init error");
         pthread_mutex_destroy(&encoder->lock);
         free(encoder);
         return NULL;
     }
-    if (sem_init(&encoder->output_sem, 1, 0)) {
+    if (sem_init(&encoder->output_sem, 1, 0) < 0) {
         error_msg("init_encoder: sem_init error");
         pthread_mutex_destroy(&encoder->lock);
         sem_destroy(&encoder->input_sem);
@@ -211,6 +218,13 @@ encoder_thread_t *init_encoder(stream_data_t *stream)
     }
 
     encoder->run = FALSE;
+    
+    printf("[stream:%d] encoder initialized but not assigned yet\n", stream->id);
+    // TODO assign the encoder here?
+    pthread_rwlock_wrlock(&stream->lock);
+    stream->encoder = encoder;
+    printf("[stream:%d] encoder assigned\n", stream->id);
+    pthread_rwlock_unlock(&stream->lock);
 
     int ret = 0;
     ret = pthread_create(&encoder->thread, NULL, encoder_routine, stream);
@@ -222,13 +236,7 @@ encoder_thread_t *init_encoder(stream_data_t *stream)
         free(encoder);
         return NULL;
     }
-    
-    encoder->run = TRUE;
 
-    // TODO assign the encoder here?
-    pthread_rwlock_wrlock(&stream->lock);
-    stream->encoder = encoder;
-    pthread_rwlock_unlock(&stream->lock);
     return encoder;
 }
 
