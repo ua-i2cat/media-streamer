@@ -19,9 +19,7 @@ void transmitter_destroy_encoder_thread(encoder_thread_t **encoder);
 
 int init_transmission_rtp(participant_data_t *participant);
 
-float WAIT_TIME;
-float FRAMERATE;
-sem_t FRAME_SEM;
+float FRAMERATE = 10; // XXX: should use the transmitter_t field instead
 
 
 transmitter_t *init_transmitter(participant_list_t *list, float fps)
@@ -53,16 +51,19 @@ transmitter_t *init_transmitter(participant_list_t *list, float fps)
 
 int init_transmission_rtp(participant_data_t *participant)
 {
-    pthread_mutex_lock(&participant->lock);
+    printf("[rtp] [trans] [ppant:%d] [init_transmission_rtp] before lock\n", participant->id);
+    //pthread_mutex_lock(&participant->lock);
+    printf("[rtp] [trans] [ppant:%d] [init_transmission_rtp] after lock\n", participant->id);
     assert(participant->type == OUTPUT);
     assert(participant->protocol == RTP);
 
     if (participant->rtp.run == TRUE) {
         // If it's already initialized, do nothing
-        pthread_mutex_unlock(&participant->lock);
+        //pthread_mutex_unlock(&participant->lock);
         return TRUE;
     }
 
+    printf("[rtp] [trans] [ppant:%d] [init_transmission_rtp] creating thread\n", participant->id);
     int ret = pthread_create(&participant->rtp.thread, NULL,
                              transmitter_rtp_routine, participant);
     participant->rtp.run = TRUE;
@@ -70,7 +71,7 @@ int init_transmission_rtp(participant_data_t *participant)
         error_msg("init_transmission_rtp: pthread_create error");
     }
 
-    pthread_mutex_unlock(&participant->lock);
+    //pthread_mutex_unlock(&participant->lock);
     return ret;
 }
 
@@ -90,6 +91,7 @@ int init_transmission(participant_data_t *participant)
         error_msg("init_transmission: transmission RTP support not ready yet");
         ret = FALSE;
     } else if (participant->protocol == RTP) {
+        printf("[rtp] [trans] [ppant:%d] [init_transmission] RTP protocol\n", participant->id);
         ret = init_transmission_rtp(participant);
     }
 
@@ -115,6 +117,7 @@ void *transmitter_rtp_routine(void *arg)
 {
     debug_msg(" transmitter rtpenc routine START\n");
     participant_data_t *participant = (struct participant_data *)arg;
+    printf("[rtp] [ppant:%d] START\n", participant->id);
     rtp_session_t *session = &participant->rtp;
 
     char *mcast_if = NULL;
@@ -145,7 +148,10 @@ void *transmitter_rtp_routine(void *arg)
 
     // Only one stream
 
+    printf("[rtp:%d] entering main bucle\n", participant->id);
     while (participant->rtp.run && participant->streams_count > 0) {
+
+        printf("[rtp:%d] inside main bucle\n", participant->id);
 
         stream_data_t *stream = participant->streams[0];
         assert(stream != NULL);
@@ -196,13 +202,13 @@ void *transmitter_master_routine(void *arg)
     participant_list_t *list = transmitter->participants;
     struct participant_data *participant = list->first;
     while (participant != NULL) {
-        debug_msg("participant found, initializing its threads...\n");
         int i = 0;
         for (i = 0; i < participant->streams_count; i++) {
+            printf("[trans] [master] initializing encoder for stream %d\n", participant->streams[i]->id);
             init_encoder(participant->streams[i]);
         }
+        printf("[trans] [master] initializing transmission for participant %d\n", participant->id);
         init_transmission(participant);
-        debug_msg("participant threads initialized\n");
         participant = participant->next;
     }
 
@@ -241,6 +247,7 @@ int start_transmitter(transmitter_t *transmitter)
 {
     transmitter->run = TRUE;
     debug_msg("creating the master thread...\n");
+    printf("[trans] creating the master thread\n");
     int ret = pthread_create(&transmitter->thread, NULL, transmitter_master_routine, transmitter);
     if (ret < 0) {
         error_msg("could not initiate the transmitter master thread\n");
