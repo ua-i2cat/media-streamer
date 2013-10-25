@@ -209,7 +209,13 @@ static void *sender_thread(void *arg)
         // Send the data away only if not consumed before.
         if (!consumed) {
             consumed = true;
-            audio_tx_send(d->tx_session, d->rtp_session, shared_frame);
+            // Iteratively compress-and-send, see audio/codec.c:210.
+            audio_frame2 *uncompressed = shared_frame;
+            audio_frame2 *compressed = NULL;
+            while((compressed = audio_codec_compress(d->audio_coder, uncompressed))) {
+                audio_tx_send(d->tx_session, d->rtp_session, compressed);
+                uncompressed = NULL;
+            }
         }
     }
     // Finish RTP session and exit.
@@ -327,6 +333,8 @@ int main(int argc, char *argv[])
     module_init_default(&mod);
     char *audio_fec = strdup(DEFAULT_AUDIO_FEC);
     sender_data->tx_session = tx_init(&mod, 1500, TX_MEDIA_AUDIO, audio_fec, NULL);
+    // Sender codec configuration
+    sender_data->audio_coder = audio_codec_init(audio_codec, AUDIO_CODER);
 
     // Launch them
     gettimeofday(&receiver_data->start_time, NULL);

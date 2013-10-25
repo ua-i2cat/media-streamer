@@ -116,6 +116,8 @@ static void *receiver_thread(void *arg)
     struct pdb_e *cp;
     audio_frame2 frame;
 
+    // Set to 0 to avoid free() faults, like audio/audio.c:467.
+    memset(&frame, 0, sizeof(audio_frame2));
 
     printf(" Receiver started.\n");
     while (!stop) {
@@ -289,6 +291,7 @@ int main(int argc, char *argv[])
     // Wait for them
     pthread_join(receiver_data->id, NULL);
     pthread_join(sender_data->id, NULL);
+
     printf("Done!\n");
 
 }
