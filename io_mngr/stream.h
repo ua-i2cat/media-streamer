@@ -9,7 +9,6 @@
 typedef struct decoder_thread {
     pthread_t thread;
     uint8_t run;
-    pthread_mutex_t lock;
     pthread_cond_t notify_frame;
     struct state_decompress *sd;
     uint32_t last_seqno;
@@ -107,6 +106,7 @@ encoder_thread_t *init_encoder(stream_data_t *stream);
 void start_decoder(stream_data_t *stream);
 
 void destroy_decoder(decoder_thread_t *decoder);
+void stop_stream_decoder(stream_data_t *stream);
 void destroy_encoder(encoder_thread_t *encoder);
 
 stream_list_t *init_stream_list(void);

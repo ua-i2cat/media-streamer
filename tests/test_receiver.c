@@ -3,71 +3,83 @@
 #include "io_mngr/receiver.h"
 
 FILE *F_video_rx=NULL;
-char *OUTPUT_PATH = "rx_frame.yuv";
-
+char *OUTPUT_PATH = "/home/palau/Videos/rx_frame.yuv";
 
 int main(){
-  participant_list_t *list;
+  participant_list_t *part_list;
+  stream_list_t *stream_list;
   receiver_t *receiver;
   
-  list = init_participant_list();
+  part_list = init_participant_list();
+  stream_list = init_stream_list();
   
-  add_participant(list, 1, 1280, 720, H264, NULL, 0, INPUT);
+  add_participant(part_list, 1, INPUT, RTP, NULL, 0);
   
-  receiver = init_receiver(list, 5004);
+  receiver = init_receiver(part_list, stream_list, 5004);
   
   if (start_receiver(receiver)) {
-  
-	printf("First 100 frames to disk\n");
+
+	printf("First 200 frames to disk\n");
 	  
     int i = 0;
-	while(i < 100){
-		usleep(100*100);
-		if (list->first->new_frame){
-			pthread_mutex_lock(&list->first->lock);
-			if (F_video_rx == NULL) {
-				printf("recording rx frame...\n");
-				F_video_rx = fopen(OUTPUT_PATH, "wb");
+	while(i < 200){
+		pthread_rwlock_rdlock(&stream_list->lock);
+		if (stream_list->first != NULL){
+			pthread_mutex_lock(&stream_list->first->video.new_decoded_frame_lock);
+			if (stream_list->first->video.new_decoded_frame){
+				if (F_video_rx == NULL) {
+					printf("recording rx frame...\n");
+					F_video_rx = fopen(OUTPUT_PATH, "wb");
+				}
+				pthread_rwlock_rdlock(&stream_list->first->video.lock);
+				fwrite(stream_list->first->video.decoded_frame, stream_list->first->video.decoded_frame_len, 1,F_video_rx);
+				pthread_rwlock_unlock(&stream_list->first->video.lock);
+				stream_list->first->video.new_decoded_frame = FALSE;
+				i++;
 			}
-			
-			list->first->new_frame = FALSE;
-			fwrite(list->first->frame, list->first->frame_length, 1,F_video_rx);
-			i++;
-			pthread_mutex_unlock(&list->first->lock);
+			pthread_mutex_unlock(&stream_list->first->video.new_decoded_frame_lock);
 		}
+		pthread_rwlock_unlock(&stream_list->lock);
     }
     
 	printf("Disabling flow\n");
-    set_active_participant(list->first, FALSE);
-	sleep(5);
-	set_active_participant(list->first, TRUE);
+    set_stream_state(stream_list->first, NON_ACTIVE);
+    printf("Flow disabled\n");
+	sleep(10);
 	printf("Enabling flow\n");
+	set_stream_state(stream_list->first, ACTIVE);
+	printf("Flow enabled\n");
     
-	printf("First 300 frames to disk\n");
+	printf("Next 400 frames to disk\n");
 	
-	i = 0;
-	while(i < 300){
-		usleep(10*1000);
-		if (list->first->new_frame){
-			pthread_mutex_lock(&list->first->lock);
-			if (F_video_rx == NULL) {
-				printf("recording rx frame...\n");
-				F_video_rx = fopen(OUTPUT_PATH, "wb");
+	i=0;
+	while(i < 400){
+		pthread_rwlock_rdlock(&stream_list->lock);
+		if (stream_list->first != NULL){
+			pthread_rwlock_rdlock(&stream_list->first->lock);
+			pthread_mutex_lock(&stream_list->first->video.new_decoded_frame_lock);
+			if (stream_list->first->video.new_decoded_frame){
+				if (F_video_rx == NULL) {
+					printf("recording rx frame...\n");
+					F_video_rx = fopen(OUTPUT_PATH, "wb");
+				}
+				pthread_rwlock_rdlock(&stream_list->first->video.lock);
+				fwrite(stream_list->first->video.decoded_frame, stream_list->first->video.decoded_frame_len, 1,F_video_rx);
+				pthread_rwlock_unlock(&stream_list->first->video.lock);
+				stream_list->first->video.new_decoded_frame = FALSE;
+				i++;
 			}
-			
-			list->first->new_frame = FALSE;
-			fwrite(list->first->frame, list->first->frame_length, 1,F_video_rx);
-			i++;
-			pthread_mutex_unlock(&list->first->lock);
+			pthread_mutex_unlock(&stream_list->first->video.new_decoded_frame_lock);
+			pthread_rwlock_unlock(&stream_list->first->lock);
 		}
+		pthread_rwlock_unlock(&stream_list->lock);
     }
     
-    printf("Stopping reciever\n");
     
     stop_receiver(receiver);
-	
-	printf("Awaiting decoders to finish\n");
-  
-    pthread_join(receiver->th_id, NULL);
+    destroy_stream_list(stream_list);
+    destroy_participant_list(part_list);
+
+	printf("Finished\n");
   }
 }
