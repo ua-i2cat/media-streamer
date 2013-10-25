@@ -105,14 +105,19 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    printf("[test] initializing streams list\n");
     stream_list_t *streams = init_stream_list();
     stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, TRUE);
     set_stream_video_data(stream, H264, 1920, 1080);
     add_stream(streams, stream);
 
+    printf("[test] initializing participants list\n");
     participant_list_t *participants = init_participant_list();
     add_participant(participants, 0, OUTPUT, RTP, "127.0.0.1", 8000);
 
+    add_participant_stream(participants->first, stream);
+
+    printf("[test] initializing transmitter\n");
     transmitter_t *transmitter = init_transmitter(participants, 10.0);
     start_transmitter(transmitter);
 
@@ -131,6 +136,8 @@ int main(int argc, char **argv)
                         codec_ctx.width, codec_ctx.height)*sizeof(uint8_t));
     
     int counter = 0;
+
+    printf("[test] entering main test loop\n");
     while(1) {
         int ret = read_frame(pformat_ctx, video_stream, &codec_ctx, b1);
 
