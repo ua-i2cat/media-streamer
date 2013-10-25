@@ -162,6 +162,8 @@ void *encoder_routine(void *arg)
         struct video_frame *tx_frame;
         tx_frame = compress_frame(encoder->cs, frame, encoder->index);
 
+        encoder->frame = tx_frame;
+
         video->coded_frame = (uint8_t *)vf_get_tile(tx_frame, 0)->data;
         video->coded_frame_len = vf_get_tile(tx_frame, 0)->data_len;
 
@@ -221,10 +223,10 @@ encoder_thread_t *init_encoder(stream_data_t *stream)
     
     printf("[stream:%d] encoder initialized but not assigned yet\n", stream->id);
     // TODO assign the encoder here?
-    pthread_rwlock_wrlock(&stream->lock);
+    //pthread_rwlock_wrlock(&stream->lock);
     stream->encoder = encoder;
     printf("[stream:%d] encoder assigned\n", stream->id);
-    pthread_rwlock_unlock(&stream->lock);
+    //pthread_rwlock_unlock(&stream->lock);
 
     int ret = 0;
     ret = pthread_create(&encoder->thread, NULL, encoder_routine, stream);
@@ -438,8 +440,12 @@ int set_stream_video_data(stream_data_t *stream, codec_t codec, uint32_t width, 
 
 int add_stream(stream_list_t *list, stream_data_t *stream)
 {
+    printf("[add_stream] acquiring list lock\n");
     pthread_rwlock_wrlock(&list->lock);
+    printf("[add_stream] list lock acquired\n");
+    printf("[add_stream] acquiring stream lock\n");
     pthread_rwlock_wrlock(&stream->lock);
+    printf("[add_stream] stream lock acquired\n");
     int ret = TRUE;
 
     if (list->count == 0) {
