@@ -113,7 +113,6 @@ void *receiver_thread(receiver_t *receiver) {
 						if (participant->streams[0]->state == ACTIVE && rx_data->frame_type != BFRAME) {
 							
 							pthread_mutex_lock(&participant->lock);
-							pthread_rwlock_rdlock(&participant->streams[0]->lock);
 
 							pthread_rwlock_wrlock(&participant->streams[0]->video.lock); 
 							memcpy(participant->streams[0]->video.coded_frame, rx_data->frame_buffer[0], rx_data->buffer_len[0]); //TODO: get rid of this magic number
@@ -127,7 +126,6 @@ void *receiver_thread(receiver_t *receiver) {
 							pthread_cond_signal(&participant->streams[0]->decoder->notify_frame);
 							pthread_mutex_unlock(&participant->streams[0]->video.new_coded_frame_lock);
 							
-							pthread_rwlock_unlock(&participant->streams[0]->lock);
 							pthread_mutex_unlock(&participant->lock);
 		    
 						} else {

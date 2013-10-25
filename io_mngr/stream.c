@@ -17,8 +17,6 @@ void *encoder_routine(void *arg);
 
 decoder_thread_t *init_decoder(stream_data_t *stream)
 {
-    pthread_rwlock_rdlock(&stream->lock);
-
 	decoder_thread_t *decoder;
 	struct video_desc des;
 
@@ -27,14 +25,12 @@ decoder_thread_t *init_decoder(stream_data_t *stream)
 	decoder = malloc(sizeof(decoder_thread_t));
     if (decoder == NULL) {
         error_msg("decoder malloc failed");
-        pthread_rwlock_unlock(&stream->lock);
         return NULL;
     }
 
 	decoder->run = FALSE;
     decoder->last_seqno = 0;
     
-    pthread_mutex_init(&decoder->lock, NULL);
     pthread_cond_init(&decoder->notify_frame, NULL);
 	
 	if (decompress_is_available(LIBAVCODEC_MAGIC)) {
@@ -44,7 +40,6 @@ decoder_thread_t *init_decoder(stream_data_t *stream)
             error_msg("decoder state decompress init failed");
             decompress_done(decoder->sd);
             free(decoder);
-            pthread_rwlock_unlock(&stream->lock);
             return NULL;
         }
 
@@ -62,18 +57,15 @@ decoder_thread_t *init_decoder(stream_data_t *stream)
             decompress_done(decoder->sd);
             free(decoder->sd);
             free(decoder);
-            pthread_rwlock_unlock(&stream->lock);
             return NULL;
         }
 
     } else {
 	    error_msg("decompress not available");
         free(decoder);
-        pthread_rwlock_unlock(&stream->lock);
         return NULL;
     }
 
-    pthread_rwlock_unlock(&stream->lock);
     return decoder;
 }
 
@@ -83,14 +75,13 @@ void *decoder_th(void* stream){
     while(str->decoder->run){
         
         pthread_mutex_lock(&str->video.new_coded_frame_lock);
-        while(!str->video.new_coded_frame){
+        while(!str->video.new_coded_frame && str->decoder->run){
             pthread_cond_wait(&str->decoder->notify_frame, &str->video.new_coded_frame_lock); //TODO: some timeout
         }
         str->video.new_coded_frame = FALSE;
         pthread_mutex_unlock(&str->video.new_coded_frame_lock);
 
         if (str->decoder->run){
-            pthread_rwlock_rdlock(&str->lock);
             pthread_rwlock_wrlock(&str->video.lock);
             decompress_frame(str->decoder->sd,(unsigned char *)str->video.decoded_frame, 
                 (unsigned char *)str->video.coded_frame, str->video.coded_frame_len, 0);
@@ -101,7 +92,6 @@ void *decoder_th(void* stream){
             pthread_mutex_lock(&str->video.new_decoded_frame_lock);
             str->video.new_decoded_frame = TRUE;
             pthread_mutex_unlock(&str->video.new_decoded_frame_lock);
-            pthread_rwlock_unlock(&str->lock);
         }
     }
 
@@ -244,15 +234,31 @@ encoder_thread_t *init_encoder(stream_data_t *stream)
 
 void destroy_decoder(decoder_thread_t *decoder)
 {
-    assert(decoder->run == FALSE);
+    if (decoder == NULL) {
+        return;
+    }
 
-    pthread_mutex_destroy(&decoder->lock);
     pthread_cond_destroy(&decoder->notify_frame);
-
     decompress_done(decoder->sd);
-
     free(decoder);
 }
+
+void stop_stream_decoder(stream_data_t *stream){
+    if (stream->decoder == NULL)
+        return;
+
+    stream->decoder->run = FALSE;
+
+    pthread_mutex_lock(&stream->video.new_coded_frame_lock);
+    stream->video.new_coded_frame = TRUE;
+    pthread_cond_signal(&stream->decoder->notify_frame);
+    pthread_mutex_unlock(&stream->video.new_coded_frame_lock);
+
+    pthread_join(stream->decoder->thread, NULL);
+
+    destroy_decoder(stream->decoder);
+}
+
 
 void destroy_encoder(encoder_thread_t *encoder)
 {
@@ -301,9 +307,7 @@ void destroy_stream_list(stream_list_t *list)
     stream_data_t *current = list->first;
     while (current != NULL) {
         stream_data_t *next = current->next;
-        printf("Before destroy_stream(current);\n");
         destroy_stream(current);
-        printf("After destroy_stream(current);\n");
         current = next;
     }
     pthread_rwlock_unlock(&list->lock);
@@ -318,10 +322,6 @@ stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, s
         error_msg("init_video_stream malloc error");
         return NULL;
     }
-
-   // pthread_rwlockattr_t *attr = malloc(sizeof(pthread_rwlockattr_t));
-   // pthread_rwlockattr_init(attr);
-   // pthread_rwlockattr_setkind_np(attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
 
     if (pthread_rwlock_init(&stream->lock, NULL) < 0) {
         error_msg("init_stream: pthread_rwlock_init error");
@@ -343,6 +343,12 @@ int destroy_stream(stream_data_t *stream)
 {
     pthread_rwlock_wrlock(&stream->lock);
     
+    if (stream->io_type == INPUT && stream->decoder != NULL){
+        stop_stream_decoder(stream);
+    } else if (stream->io_type == OUTPUT && stream->encoder != NULL){
+        destroy_encoder(stream->encoder);
+    }
+
     if (stream->type == VIDEO){
         free(stream->video.decoded_frame);
         free(stream->video.coded_frame);
@@ -353,11 +359,6 @@ int destroy_stream(stream_data_t *stream)
         //Free audio structures
     }
 
-    if (stream->io_type == INPUT && stream->decoder != NULL){
-        destroy_decoder(stream->decoder);
-    } else if (stream->io_type == OUTPUT && stream->encoder != NULL){
-        destroy_encoder(stream->encoder);
-    }
     pthread_rwlock_destroy(&stream->lock);
     free(stream);
     return TRUE;
@@ -508,13 +509,7 @@ int remove_stream(stream_list_t *list, uint32_t id)
 
 void set_stream_state(stream_data_t *stream, stream_state_t state) {
     
-    // int ret = pthread_rwlock_trywrlock(&stream->lock);
-    // while (ret == EBUSY){
-    //     printf("Stream state lock EBUSY\n");
-    //     ret = pthread_rwlock_trywrlock(&stream->lock);
-    // }
-    pthread_rwlock_rdlock(&stream->lock); 
-    
+    pthread_rwlock_wrlock(&stream->lock); 
 
     if (state == NON_ACTIVE){
         stream->state = state;
