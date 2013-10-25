@@ -19,7 +19,7 @@ void transmitter_destroy_encoder_thread(encoder_thread_t **encoder);
 
 int init_transmission_rtp(participant_data_t *participant);
 
-float FRAMERATE = 10; // XXX: should use the transmitter_t field instead
+float FRAMERATE = 10.0; // XXX: should use the transmitter_t field instead
 
 
 transmitter_t *init_transmitter(participant_list_t *list, float fps)
