@@ -106,9 +106,13 @@ int main(int argc, char **argv)
     }
 
     printf("[test] initializing streams list\n");
+    printf("[test] init_stream_list\n");
     stream_list_t *streams = init_stream_list();
+    printf("[test] init_stream\n");
     stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, TRUE);
+    printf("[test] set_stream_video_data\n");
     set_stream_video_data(stream, H264, 1920, 1080);
+    printf("[test] add_stream\n");
     add_stream(streams, stream);
 
     printf("[test] initializing participants list\n");
