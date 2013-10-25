@@ -19,7 +19,7 @@ int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pC
     pFormatCtx->iformat = av_find_input_format("rawvideo");
     unsigned int i;
 
-    av_dict_set(&rawdict, "video_size", "1920x1080", 0);
+    av_dict_set(&rawdict, "video_size", "1280x720", 0);
     av_dict_set(&rawdict, "pixel_format", "rgb24", 0);
 
     // Open video file
@@ -111,7 +111,7 @@ int main(int argc, char **argv)
     printf("[test] init_stream\n");
     stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, TRUE);
     printf("[test] set_stream_video_data\n");
-    set_stream_video_data(stream, H264, 1920, 1080);
+    set_stream_video_data(stream, H264, 1280, 720);
     printf("[test] add_stream\n");
     add_stream(streams, stream);
 
@@ -131,8 +131,8 @@ int main(int argc, char **argv)
     int video_stream = -1;
     av_register_all();
 
-    int width = 1920;
-    int height = 1080;
+    int width = 1280;
+    int height = 720;
 
     load_video(yuv_path, pformat_ctx, &codec_ctx, &video_stream);
 
@@ -158,14 +158,14 @@ int main(int argc, char **argv)
                 printf("[test] stream: %d\n", str->id);
                 pthread_rwlock_wrlock(&str->video.lock);
 
-                str->video.coded_frame = b1;
-                str->video.coded_frame_len = vc_get_linesize(width, RGB)*height;
+                str->video.decoded_frame = b1;
+                str->video.decoded_frame_len = vc_get_linesize(width, RGB)*height;
 
                 pthread_rwlock_unlock(&str->video.lock);
                 str = str->next;
             }
             pthread_rwlock_unlock(&streams->lock);
-            usleep(200000);
+            usleep(100000);
         } else {
             break;
         }
