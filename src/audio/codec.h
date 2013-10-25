@@ -60,16 +60,16 @@ typedef enum {
         AUDIO_DECODER
 } audio_codec_direction_t;
 
-//struct audio_codec {
-//        const audio_codec_t *supported_codecs;
-//        const int *supported_bytes_per_second;
-//        void *(*init)(audio_codec_t, audio_codec_direction_t, bool);
-//        audio_channel *(*compress)(void *, audio_channel *);
-//        audio_channel *(*decompress)(void *, audio_channel *);
-//        void (*done)(void *);
-//};
+struct audio_codec {
+        const audio_codec_t *supported_codecs;
+        const int *supported_bytes_per_second;
+        void *(*init)(audio_codec_t, audio_codec_direction_t, bool);
+        audio_channel *(*compress)(void *, audio_channel *);
+        audio_channel *(*decompress)(void *, audio_channel *);
+        void (*done)(void *);
+};
 
-//extern void (*register_audio_codec)(struct audio_codec *);
+extern void (*register_audio_codec)(struct audio_codec *);
 
 typedef struct {
         const char *name;
@@ -84,15 +84,15 @@ extern int audio_codec_info_len;
 
 struct audio_codec_state;
 
-//struct audio_codec_state *audio_codec_init(audio_codec_t audio_codec, audio_codec_direction_t);
-//struct audio_codec_state *audio_codec_reconfigure(struct audio_codec_state *old,
-//                audio_codec_t audio_codec, audio_codec_direction_t);
-//audio_frame2 *audio_codec_compress(struct audio_codec_state *, audio_frame2 *);
+struct audio_codec_state *audio_codec_init(audio_codec_t audio_codec, audio_codec_direction_t);
+struct audio_codec_state *audio_codec_reconfigure(struct audio_codec_state *old,
+                audio_codec_t audio_codec, audio_codec_direction_t);
+audio_frame2 *audio_codec_compress(struct audio_codec_state *, audio_frame2 *);
 audio_frame2 *audio_codec_decompress(struct audio_codec_state *, audio_frame2 *);
 //const int *audio_codec_get_supported_bps(struct audio_codec_state *);
 void audio_codec_done(struct audio_codec_state *);
 
-//void list_audio_codecs(void);
+void list_audio_codecs(void);
 
 #ifdef __cplusplus
 }

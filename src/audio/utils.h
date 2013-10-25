@@ -60,15 +60,15 @@ void audio_frame2_allocate(audio_frame2 *, int nr_channels, int max_size);
 void audio_frame2_free(audio_frame2 *);
 //void audio_frame_to_audio_frame2(audio_frame2 *, struct audio_frame *);
 
-//bool audio_desc_eq(struct audio_desc, struct audio_desc);
+bool audio_desc_eq(struct audio_desc, struct audio_desc);
 //struct audio_desc audio_desc_from_audio_frame(struct audio_frame *);
 //struct audio_desc audio_desc_from_audio_frame2(audio_frame2 *);
-//struct audio_desc audio_desc_from_audio_channel(audio_channel *);
+struct audio_desc audio_desc_from_audio_channel(audio_channel *);
 
-//void audio_channel_demux(audio_frame2 *, int, audio_channel*);
-//void audio_channel_mux(audio_frame2 *, int, audio_channel*);
+void audio_channel_demux(audio_frame2 *, int, audio_channel*);
+void audio_channel_mux(audio_frame2 *, int, audio_channel*);
 
-//audio_codec_t get_audio_codec_to_name(const char *name);
+audio_codec_t get_audio_codec_to_name(const char *name);
 const char *get_name_to_audio_codec(audio_codec_t codec);
 uint32_t get_audio_tag(audio_codec_t codec);
 audio_codec_t get_audio_codec_to_tag(uint32_t audio_tag);
@@ -78,7 +78,7 @@ audio_codec_t get_audio_codec_to_tag(uint32_t audio_tag);
  * 
  * The memory areas shouldn't (supposedly) overlap.
  */
-//void change_bps(char *out, int out_bps, const char *in, int in_bps, int in_len /* bytes */);
+void change_bps(char *out, int out_bps, const char *in, int in_bps, int in_len /* bytes */);
 
 /**
  * Makes n copies of first channel (interleaved).

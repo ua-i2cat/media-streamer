@@ -2,8 +2,8 @@ SUBDIRS = src io_mngr
 
 AM_CFLAGS = -std=gnu99 -g -lm -DHAVE_CONFIG_H -g -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
 
-#bin_PROGRAMS = receiver transmitter rec_trans audio_rtp_only audio_compression
-bin_PROGRAMS = receiver transmitter rec_trans audio_compression
+bin_PROGRAMS = receiver transmitter rec_trans audio_rtp_only audio_compression
+#bin_PROGRAMS = receiver transmitter rec_trans audio_compression
 
 
 receiver_SOURCES = tests/test_receiver.c
@@ -27,6 +27,6 @@ audio_rtp_only_LDFLAGS = -L./src -lrtp
 audio_rtp_only_DEPENDENCIES = src/librtp.la
 
 audio_compression_SOURCES = tests/audio_compression.c
-audio_compression_CFLAGS = $(AM_CFLAGS) -Isrc -Itests -Isrc/rtp -Isrc/utils -Isrc/audio
+audio_compression_CFLAGS = $(AM_CFLAGS) -Isrc -Itests -Isrc/rtp -Isrc/utils
 audio_compression_LDFLAGS = -L./src -lrtp -ladecompress
 audio_compression_DEPENDENCIES = src/librtp.la src/libadecompress.la

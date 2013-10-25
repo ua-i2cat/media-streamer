@@ -67,8 +67,8 @@
 //#error "This code will not run with a big-endian machine. Please report a bug to " PACKAGE_BUGREPORT " if you reach here."
 //#endif // WORDS_BIGENDIAN
 
-//static inline int32_t format_from_in_bps(const char *in, int bps);
-//static inline void format_to_out_bps(char *out, int bps, int32_t out_value);
+static inline int32_t format_from_in_bps(const char *in, int bps);
+static inline void format_to_out_bps(char *out, int bps, int32_t out_value);
 
 audio_frame2 *audio_frame2_init()
 {
@@ -118,13 +118,13 @@ void audio_frame2_free(audio_frame2 *frame)
         free(frame);
 }
 
-//bool audio_desc_eq(struct audio_desc a1, struct audio_desc a2) {
-//        return a1.bps == a2.bps &&
-//                a1.sample_rate == a2.sample_rate &&
-//                a1.ch_count == a2.ch_count &&
-//                a1.codec == a2.codec;
-//}
-//
+bool audio_desc_eq(struct audio_desc a1, struct audio_desc a2) {
+        return a1.bps == a2.bps &&
+                a1.sample_rate == a2.sample_rate &&
+                a1.ch_count == a2.ch_count &&
+                a1.codec == a2.codec;
+}
+
 //struct audio_desc audio_desc_from_audio_frame(struct audio_frame *frame) {
 //        return (struct audio_desc) { .bps = frame->bps,
 //                .sample_rate = frame->sample_rate,
@@ -140,71 +140,71 @@ void audio_frame2_free(audio_frame2 *frame)
 //                .codec = frame->codec
 //        };
 //}
-//
-//struct audio_desc audio_desc_from_audio_channel(audio_channel *channel) {
-//        return (struct audio_desc) { .bps = channel->bps,
-//                .sample_rate = channel->sample_rate,
-//                .ch_count = 1,
-//                .codec = channel->codec
-//        };
-//}
-//
-//static inline int32_t format_from_in_bps(const char * in, int bps) {
-//        int32_t in_value = 0;
-//        memcpy(&in_value, in, bps);
-//
-//        if(in_value >> (bps * 8 - 1) && bps != 4) { //negative
-//                in_value |= ((1<<(32 - bps * 8)) - 1) << (bps * 8);
-//        }
-//
-//        return in_value;
-//}
-//
-//static inline void format_to_out_bps(char *out, int bps, int32_t out_value) {
-//        uint32_t mask;
-//        if(bps == sizeof(uint32_t)) {
-//                mask = 0xffffffffu - 1;
-//        } else {
-//                mask = ((1 << (bps * 8)) - 1);
-//        }
-//
-//        if(out_value > (1 << (bps * 8 - 1)) -1) {
-//                out_value = (1 << (bps * 8 - 1)) -1;
-//        }
-//
-//        if(out_value < -(1 << (bps * 8 - 1))) {
-//                out_value = -(1 << (bps * 8 - 1));
-//        }
-//
-//        uint32_t out_value_formatted = (1 * (0x1 & (out_value >> 31))) << (bps * 8 - 1) | (out_value & mask);
-//
-//        memcpy(out, &out_value_formatted, bps);
-//}
-//
-//void change_bps(char *out, int out_bps, const char *in, int in_bps, int in_len /* bytes */)
-//{
-//        int i;
-//
-//        assert ((unsigned int) out_bps <= sizeof(int32_t));
-//
-//        for(i = 0; i < in_len / in_bps; i++) {
-//                int32_t in_value = format_from_in_bps(in, in_bps);
-//
-//                int32_t out_value;
-//
-//                if(in_bps > out_bps) {
-//                        out_value = in_value >> (in_bps * 8 - out_bps * 8);
-//                } else {
-//                        out_value = in_value << (out_bps * 8 - in_bps * 8);
-//                }
-//
-//                format_to_out_bps(out, out_bps, out_value);
-//
-//                in += in_bps;
-//                out += out_bps;
-//        }
-//}
-//
+
+struct audio_desc audio_desc_from_audio_channel(audio_channel *channel) {
+        return (struct audio_desc) { .bps = channel->bps,
+                .sample_rate = channel->sample_rate,
+                .ch_count = 1,
+                .codec = channel->codec
+        };
+}
+
+static inline int32_t format_from_in_bps(const char * in, int bps) {
+        int32_t in_value = 0;
+        memcpy(&in_value, in, bps);
+
+        if(in_value >> (bps * 8 - 1) && bps != 4) { //negative
+                in_value |= ((1<<(32 - bps * 8)) - 1) << (bps * 8);
+        }
+
+        return in_value;
+}
+
+static inline void format_to_out_bps(char *out, int bps, int32_t out_value) {
+        uint32_t mask;
+        if(bps == sizeof(uint32_t)) {
+                mask = 0xffffffffu - 1;
+        } else {
+                mask = ((1 << (bps * 8)) - 1);
+        }
+
+        if(out_value > (1 << (bps * 8 - 1)) -1) {
+                out_value = (1 << (bps * 8 - 1)) -1;
+        }
+
+        if(out_value < -(1 << (bps * 8 - 1))) {
+                out_value = -(1 << (bps * 8 - 1));
+        }
+
+        uint32_t out_value_formatted = (1 * (0x1 & (out_value >> 31))) << (bps * 8 - 1) | (out_value & mask);
+
+        memcpy(out, &out_value_formatted, bps);
+}
+
+void change_bps(char *out, int out_bps, const char *in, int in_bps, int in_len /* bytes */)
+{
+        int i;
+
+        assert ((unsigned int) out_bps <= sizeof(int32_t));
+
+        for(i = 0; i < in_len / in_bps; i++) {
+                int32_t in_value = format_from_in_bps(in, in_bps);
+
+                int32_t out_value;
+
+                if(in_bps > out_bps) {
+                        out_value = in_value >> (in_bps * 8 - out_bps * 8);
+                } else {
+                        out_value = in_value << (out_bps * 8 - in_bps * 8);
+                }
+
+                format_to_out_bps(out, out_bps, out_value);
+
+                in += in_bps;
+                out += out_bps;
+        }
+}
+
 //void copy_channel(char *out, const char *in, int bps, int in_len /* bytes */, int out_channel_count)
 //{
 //        int samples = in_len / bps;
@@ -371,33 +371,33 @@ void audio_frame2_free(audio_frame2 *frame)
 //                *outch++ = out_value;
 //        }
 //}
-//
-//void audio_channel_demux(audio_frame2 *frame, int index, audio_channel *channel)
-//{
-//        channel->data = frame->data[index];
-//        channel->data_len = frame->data_len[index];
-//        channel->codec = frame->codec;
-//        channel->bps = frame->bps;
-//        channel->sample_rate = frame->sample_rate;
-//}
-//
-//void audio_channel_mux(audio_frame2 *frame, int index, audio_channel *channel)
-//{
-//        frame->data[index] = channel->data;
-//        frame->data_len[index] = channel->data_len;
-//        frame->codec = channel->codec;
-//        frame->bps = channel->bps;
-//        frame->sample_rate = channel->sample_rate;
-//}
-//
-//audio_codec_t get_audio_codec_to_name(const char *codec) {
-//        for(int i = 0; i < audio_codec_info_len; ++i) {
-//                if(strcasecmp(audio_codec_info[i].name, codec) == 0) {
-//                        return i;
-//                }
-//        }
-//        return AC_NONE;
-//}
+
+void audio_channel_demux(audio_frame2 *frame, int index, audio_channel *channel)
+{
+        channel->data = frame->data[index];
+        channel->data_len = frame->data_len[index];
+        channel->codec = frame->codec;
+        channel->bps = frame->bps;
+        channel->sample_rate = frame->sample_rate;
+}
+
+void audio_channel_mux(audio_frame2 *frame, int index, audio_channel *channel)
+{
+        frame->data[index] = channel->data;
+        frame->data_len[index] = channel->data_len;
+        frame->codec = channel->codec;
+        frame->bps = channel->bps;
+        frame->sample_rate = channel->sample_rate;
+}
+
+audio_codec_t get_audio_codec_to_name(const char *codec) {
+        for(int i = 0; i < audio_codec_info_len; ++i) {
+                if(strcasecmp(audio_codec_info[i].name, codec) == 0) {
+                        return i;
+                }
+        }
+        return AC_NONE;
+}
 
 const char *get_name_to_audio_codec(audio_codec_t codec)
 {

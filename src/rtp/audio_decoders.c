@@ -60,9 +60,9 @@
 #include "rtp/rtp_callback.h"
 //#include "rtp/ptime.h"
 #include "rtp/pbuf.h"
-//#include "rtp/audio_decoders.h"
-//#include "audio/audio.h"
+#include "rtp/audio_decoders.h"
 #include "rtp/audio_frame2.h"
+// above rtp/audio_frame2.h substitutes that -> #include "audio/audio.h"
 
 int decode_audio_frame(struct coded_data *cdata, void *data)
 {

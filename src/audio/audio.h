@@ -107,14 +107,14 @@ typedef struct
         audio_codec_t codec;
 } audio_frame2;
 
-//typedef struct
-//{
-//        int bps;                /* bytes per sample */
-//        int sample_rate;
-//        char *data; /* data should be at least 4B aligned */
-//        int data_len;           /* size of useful data in buffer */
-//        audio_codec_t codec;
-//} audio_channel;
+typedef struct
+{
+        int bps;                /* bytes per sample */
+        int sample_rate;
+        char *data; /* data should be at least 4B aligned */
+        int data_len;           /* size of useful data in buffer */
+        audio_codec_t codec;
+} audio_channel;
 
 //struct module;
 

@@ -93,7 +93,6 @@ libvdecompress_la_SOURCES =  video_frame.c \
 							 video_decompress/null.c \
 							 utils/list.c \
 							 utils/resource_manager.cpp \
-							 utils/packet_counter.cpp \
 							 utils/worker.cpp
 #							 ../dxt_compress/dxt_common.c \
 #							 ../dxt_compress/dxt_decoder.c \
@@ -102,12 +101,13 @@ libvdecompress_la_SOURCES =  video_frame.c \
 #							 ../dxt_compress/dxt_util.c
 
 libadecompress_la_LDFLAGS = -version-info 0:1:0 -lpthread -lavcodec -lavutil
-libadecompress_la_CFLAGS = $(AM_CFLAGS) -I. -Iutils -Icompat
-libadecompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Iutils -Icompat
-libadecompress_la_SOURCES = debug.c \
-							 audio/codec.c \
-							 audio/utils.c \
-							 utils/packet_counter.cpp
+libadecompress_la_CFLAGS = $(AM_CFLAGS) -I. -Iutils -Icompat -Iaudio
+libadecompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Iutils -Icompat -Iaudio
+libadecompress_la_SOURCES = audio/codec.c \
+							 audio/utils.c  \
+							 audio/codec/dummy_pcm.c \
+							 audio/codec/libavcodec.c \
+							 utils/resource_manager.cpp
 
 ugincludedir = $(includedir)/ug-modules
 nobase_uginclude_HEADERS =	./tfrc.h \
@@ -117,7 +117,6 @@ nobase_uginclude_HEADERS =	./tfrc.h \
 							./utils/list.h \
 							./utils/h264_stream.h \
 							./utils/bs.h \
-							./utils/packet_counter.h \
 							./ntp.h \
 							./config.h \
 							./perf.h \
@@ -177,6 +176,8 @@ nobase_uginclude_HEADERS =	./tfrc.h \
                                                         ./audio/audio.h \
                                                         ./audio/utils.h \
                                                         ./audio/codec.h \
+							 audio/codec/dummy_pcm.h \
+							 audio/codec/libavcodec.h \
   						    ../dxt_compress/dxt_common.h \
 						    ../dxt_compress/dxt_decoder.h \
 						    ../dxt_compress/dxt_display.h \

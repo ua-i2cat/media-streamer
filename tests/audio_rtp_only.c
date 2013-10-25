@@ -114,10 +114,8 @@ static void *receiver_thread(void *arg)
     struct timeval timeout, curr_time;
     uint32_t ts;
     struct pdb_e *cp;
-    struct pbuf_audio_data pbuf_data;
+    audio_frame2 frame;
 
-    memset(&pbuf_data.buffer, 0, sizeof(struct audio_frame));
-    pbuf_data.decoder = audio_decoder_init(NULL, "mixauto", NULL);
 
     printf(" Receiver started.\n");
     while (!stop) {
@@ -128,14 +126,17 @@ static void *receiver_thread(void *arg)
         rtp_send_ctrl(d->rtp_session, ts, 0, curr_time);
         timeout.tv_sec = 0;
         timeout.tv_usec = 999999 / 59.94;
+
         // Get packets from network.
         rtp_recv_r(d->rtp_session, &timeout, ts);
+
         // Iterate throught participants
         pdb_iter_t it;
         cp = pdb_iter_init(d->participants, &it);
+
         while (cp != NULL) {
             // Get the data on pbuf and decode it on the frame using the callback.
-            if (audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame, &pbuf_data)) {
+            if (audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame, &frame)) {
                 // If decoded, mark it ready to consume.
                 consumed = false;
             }
@@ -143,18 +144,16 @@ static void *receiver_thread(void *arg)
             cp = pdb_iter_next(&it);
         }
         // Point shared_frame to the received frame.
-        shared_frame = get_audio_frame2_pointer(pbuf_data.decoder);
+        shared_frame = &frame;
         pdb_iter_done(&it);
         // Wait for sender to be ready.
         pthread_mutex_unlock(d->go);
         pthread_mutex_lock(d->wait);
     }
-    // Clean the pbuf_audio_data
-    free(pbuf_data.buffer.data);
-    audio_decoder_destroy(pbuf_data.decoder);
     // Finish RTP session and exit.
     rtp_done(d->rtp_session);
     printf(" Receiver stopped.\n");
+
     // Don't let the bro thread gets locked.
     pthread_mutex_unlock(d->go);
     pthread_exit((void *)NULL);

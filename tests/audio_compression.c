@@ -31,6 +31,7 @@
 #include "audio/codec.h"
 
 #define DEFAULT_AUDIO_FEC       "mult:3"
+#define OPT_AUDIO_CODEC (('A' << 8) | 'C')
 
 
 /**************************************
@@ -49,6 +50,9 @@ struct thread_data {
     struct pdb *participants;
     struct timeval start_time;
 
+    // Codec stuff
+    struct audio_codec_state * audio_coder;
+
     // Sender stuff
     struct tx *tx_session;
 
@@ -65,11 +69,31 @@ struct thread_data {
 
 // Prototypes
 extern int audio_pbuf_decode(struct pbuf *playout_buf, struct timeval curr_time, decode_frame_t decode_func, void *data);
+extern void list_audio_codecs(void);
+extern struct audio_codec_state *audio_codec_init(audio_codec_t audio_codec, audio_codec_direction_t);
+extern audio_codec_t get_audio_codec_to_name(const char *name);
+extern const char *get_name_to_audio_codec(audio_codec_t codec);
 
 static void usage(void)
 {
-    printf("Usage: audio_compression [-r <receive_port>] [-h <sendto_host>] [-s <sendto_port>]\n");
+    printf("Usage: audio_compression [-r <receive_port>] [-h <sendto_host>] [-s <sendto_port>] [--audio-codec <codec>|help]\n");
     printf(" By Txor >:D\n");
+}
+
+void list_audio_codecs(void) {
+    printf("Supported audio codecs:\n");
+    for(int i = 0; i < audio_codec_info_len; ++i) {
+        if(i != AC_NONE) {
+            printf("\t%s", audio_codec_info[i].name);
+            struct audio_codec_state *st = audio_codec_init(i, AUDIO_CODER);
+            if(!st) {
+                printf(" - unavailable");
+            } else {
+                audio_codec_done(st);
+            }
+            printf("\n");
+        }
+    }
 }
 
 // Crtl-C handler
@@ -121,8 +145,6 @@ static void *receiver_thread(void *arg)
     struct pdb_e *cp;
     audio_frame2 frame;
 
-// TODO: init the codec lazy bastard!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    struct audio_codec_state *codec = audio_codec_init(audio_codec, direction);
 
     printf(" Receiver started.\n");
     while (!stop) {
@@ -143,7 +165,7 @@ static void *receiver_thread(void *arg)
 
         while (cp != NULL) {
             // Get the data on pbuf and decode it on the frame using the callback.
-            if (audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame, frame)) {
+            if (audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame, &frame)) {
                 // If decoded, mark it ready to consume.
                 consumed = false;
             }
@@ -153,17 +175,15 @@ static void *receiver_thread(void *arg)
 
         // Save on shared_frame the result of audio_codec_decompress 
         // using the audio_frame2 from pbuf_data.decoder (received_frame).
-        shared_frame = audio_codec_decompress(pbuf_data->decoder->audio_decompress, frame);
+        if (!consumed) {
+            shared_frame = audio_codec_decompress(d->audio_coder, &frame);
+        }
         pdb_iter_done(&it);
 
         // Wait for sender to be ready.
         pthread_mutex_unlock(d->go);
         pthread_mutex_lock(d->wait);
     }
-    // Clean the pbuf_audio_data
-    free(pbuf_data.buffer.data);
-    audio_decoder_destroy(pbuf_data.decoder);
-
     // Finish RTP session and exit.
     rtp_done(d->rtp_session);
     printf(" Receiver stopped.\n");
@@ -215,11 +235,15 @@ int main(int argc, char *argv[])
     uint16_t sendto_port = PORT_AUDIO;
     uint16_t receive_port = PORT_AUDIO + 4;
 
+    // Default codec options
+    audio_codec_t audio_codec = AC_PCM;
+
     // Option processing
     static struct option getopt_options[] = {
         {"sendto_host", required_argument, 0, 'h'},
         {"receive_port", required_argument, 0, 'r'},
         {"sendto_port", required_argument, 0, 's'},
+        {"audio-codec", required_argument, 0, OPT_AUDIO_CODEC},
         {0, 0, 0, 0}
     };
     int ch;
@@ -236,6 +260,18 @@ int main(int argc, char *argv[])
             case 'r':
                 receive_port = atoi(optarg);
                 break;
+            case OPT_AUDIO_CODEC:
+                if(strcmp(optarg, "help") == 0) {
+                    list_audio_codecs();
+                    exit(0);
+                }
+                audio_codec = get_audio_codec_to_name(optarg);
+                if(audio_codec == AC_NONE) {
+                    fprintf(stderr, "Unknown audio codec entered: \"%s\"\n",
+                            optarg);
+                    exit(1);
+                }
+                break;
             case '?':
                 usage();
                 exit(0);
@@ -249,6 +285,7 @@ int main(int argc, char *argv[])
     printf("Host to send: %s\n", sendto_host);
     printf("Port to send: %i\n", sendto_port);
     printf("Port to receive: %i\n", receive_port);
+    printf("Codec: %s\n", get_name_to_audio_codec(audio_codec));
 
     // We will create two threads with one different RTP session each, similar than audio_cfg_init (audio/audio.c:180) does.
 
@@ -271,6 +308,8 @@ int main(int argc, char *argv[])
     receiver_data->go = &sender_mutex;
     // tx_session not used.
     receiver_data->tx_session = NULL;
+    // Receiver codec configuration
+    receiver_data->audio_coder = audio_codec_init(audio_codec, AUDIO_DECODER);
 
     // Sender RTP session stuff
     struct rtp *sender_session;
