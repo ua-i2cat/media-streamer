@@ -153,7 +153,6 @@ void *encoder_routine(void *arg)
             break;
         }
     
-        // TODO: create encoder input buffer
         pthread_mutex_lock(&encoder->lock);
         
         frame->tiles[0].data = (char *)video->decoded_frame;
@@ -167,16 +166,16 @@ void *encoder_routine(void *arg)
         video->coded_frame = (uint8_t *)vf_get_tile(tx_frame, 0)->data;
         video->coded_frame_len = vf_get_tile(tx_frame, 0)->data_len;
 
+        encoder->index = (encoder->index + 1) % 2;
         pthread_mutex_unlock(&encoder->lock);
 
-        encoder->index = (encoder->index + 1) % 2;
 
-        /* NOTE: now the encoder knows nothing about the RTP
-           thread, so the notify and pause strategy is implemented
-           only trough the input and ouput semaphores
-         */
-        sem_post(&encoder->output_sem);
-        sem_wait(&encoder->input_sem);
+        /*
+        pthread_mutex_lock(&stream->video.new_coded_frame_lock);
+        stream->video.new_coded_frame = TRUE;
+        pthread_cond_signal(&stream->encoder->notify_coded_frame);
+        pthread_mutex_unlock(&stream->video.new_coded_frame_lock);
+        */
     }
 
     module_done(CAST_MODULE(&cmod));
@@ -211,13 +210,6 @@ encoder_thread_t *init_encoder(stream_data_t *stream)
         free(encoder);
         return NULL;
     }
-    if (sem_init(&encoder->output_sem, 1, 0) < 0) {
-        error_msg("init_encoder: sem_init error");
-        pthread_mutex_destroy(&encoder->lock);
-        sem_destroy(&encoder->input_sem);
-        free(encoder);
-        return NULL;
-    }
 
     encoder->run = FALSE;
     
@@ -234,7 +226,6 @@ encoder_thread_t *init_encoder(stream_data_t *stream)
         error_msg("init_encoder: pthread_create error");
         pthread_mutex_destroy(&encoder->lock);
         sem_destroy(&encoder->input_sem);
-        sem_destroy(&encoder->output_sem);
         free(encoder);
         return NULL;
     }
@@ -285,10 +276,8 @@ void destroy_encoder(encoder_thread_t *encoder)
     encoder->run = FALSE;
 
     sem_post(&encoder->input_sem);
-    sem_post(&encoder->output_sem);
 
     sem_destroy(&encoder->input_sem);
-    sem_destroy(&encoder->output_sem);
 
     pthread_join(encoder->thread, NULL);
     

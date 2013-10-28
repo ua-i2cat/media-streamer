@@ -20,20 +20,15 @@ typedef struct encoder_thread {
 
     pthread_mutex_t lock;
 
-    /* TODO:
-       thread management:
-       - like the decoder?
-    */
+    /* semaphore used to force the encoding
+       thread to start/stop
+     */
+    sem_t input_sem;
 
     int index;
-
+    struct compress_state *cs;
     struct video_frame *frame;  // TODO: should be gone!
                                 // redundant with stream->coded_frame
-
-    sem_t input_sem;
-    sem_t output_sem;
-
-    struct compress_state *cs;
 } encoder_thread_t;
 
 typedef enum stream_type {

@@ -35,6 +35,7 @@ typedef struct rtp_session {
     uint8_t run;
     uint32_t port;
     char *addr;
+    sem_t semaphore;
     // TODO: rtp thread management
 } rtp_session_t;
 

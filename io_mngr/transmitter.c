@@ -146,6 +146,9 @@ void *transmitter_rtp_routine(void *arg)
     double timestamp;
     gettimeofday(&start_time, NULL);
 
+    sem_init(&participant->rtp.semaphore, 1, 0);
+    printf("SEM_INIT!!!!!!\n");
+
     // Only one stream
 
     printf("[rtp:%d] entering main bucle\n", participant->id);
@@ -157,36 +160,37 @@ void *transmitter_rtp_routine(void *arg)
         assert(stream != NULL);
         encoder_thread_t *encoder = stream->encoder;
         assert(encoder != NULL);
-        
 
-        if (sem_wait(&encoder->output_sem) < 0) {
-            break;
+        /*
+        pthread_mutex_lock(&stream->video.new_coded_frame_lock);
+       
+        while(!stream->video.new_coded_frame && participant->rtp.run) {
+            pthread_cond_wait(&stream->encoder->notify_coded_frame,
+                              &stream->video.new_coded_frame_lock);
+            //TODO: some timeout
         }
+        
+        stream->video.new_coded_frame = FALSE;
+        pthread_mutex_unlock(&stream->video.new_coded_frame_lock);
+        */
+
+        sem_wait(&participant->rtp.semaphore);
 
         pthread_rwlock_rdlock(&stream->video.lock);
-
-        /* implement something like this?
-        pthread_mutex_lock(&encoder->lock);
-        encoder->rtpenc->ready = 0;
-        pthread_mutex_unlock(&encoder->lock);
-        */
 
         gettimeofday(&curr_time, NULL);
         rtp_update(rtp, curr_time);
         timestamp = tv_diff(curr_time, start_time)*90000;
         rtp_send_ctrl(rtp, timestamp, 0, curr_time);
 
-        tx_send_h264(tx_session, stream->encoder->frame, rtp, FRAMERATE);
-
-        /*
-        pthread_mutex_lock(&encoder->lock);
-        encoder->rtpenc->ready = 1;
-        pthread_mutex_unlock(&encoder->lock);
-         */
-
+        // TODO: just protecting the initialization! should be outside
+        if (stream->encoder->frame != NULL) {
+            tx_send_h264(tx_session, stream->encoder->frame, rtp, FRAMERATE);
+        }
         pthread_rwlock_unlock(&stream->video.lock);
     }   
 
+    sem_destroy(&participant->rtp.semaphore);
     rtp_send_bye(rtp);
     rtp_done(rtp);
     module_done(CAST_MODULE(&tmod));
@@ -227,6 +231,7 @@ void *transmitter_master_routine(void *arg)
                 }
                 i++;
             }
+            sem_post(&ptc->rtp.semaphore);
             ptc = ptc->next;
         }
         pthread_rwlock_unlock(&list->lock);
