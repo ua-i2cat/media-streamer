@@ -122,7 +122,7 @@ int main(int argc, char **argv)
     add_participant_stream(participants->first, stream);
 
     printf("[test] initializing transmitter\n");
-    transmitter_t *transmitter = init_transmitter(participants, 10.0);
+    transmitter_t *transmitter = init_transmitter(participants, 25.0);
     start_transmitter(transmitter);
 
     // Stuff ... 
@@ -165,7 +165,7 @@ int main(int argc, char **argv)
                 str = str->next;
             }
             pthread_rwlock_unlock(&streams->lock);
-            usleep(100000);
+            usleep(40000);
         } else {
             break;
         }
