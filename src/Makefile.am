@@ -43,9 +43,6 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					compat/drand48.c \
 					utils/list.c \
 					utils/h264_stream.c
-#                                        audio/utils.c
-#                                        audio/codec.c 
-#					transmit.c
 
 libvcompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut -lGLU
 libvcompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_compress -Iutils -Icompat -I.. -I../dxt_compress

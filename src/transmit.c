@@ -708,7 +708,7 @@ void audio_tx_send(struct tx* tx, struct rtp *rtp_session, audio_frame2 * buffer
                 audio_hdr[3] = htonl(tmp);
 
                 /* fifth word */
-                audio_hdr[4] = htonl(get_audio_tag(buffer->codec));
+                audio_hdr[4] = htonl(rtp_get_audio_tag(buffer->codec));
 
                 do {
                         if(tx->fec_scheme == FEC_MULT) {

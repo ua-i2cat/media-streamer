@@ -26,7 +26,7 @@ audio_frame2 *rtp_audio_frame2_init(void);
 void rtp_audio_frame2_allocate(audio_frame2 *, int nr_channels, int max_size);
 void rtp_audio_frame2_free(audio_frame2 *);
 
-////uint32_t rtp_get_audio_tag(audio_codec_t codec);
+uint32_t rtp_get_audio_tag(audio_codec_t codec);
 audio_codec_t rtp_get_audio_codec_to_tag(uint32_t audio_tag);
 
 #endif // _AUDIO_FRAME2_H_
