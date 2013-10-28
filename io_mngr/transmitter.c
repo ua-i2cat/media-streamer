@@ -17,10 +17,12 @@ void *transmitter_master_routine(void *arg);
 void transmitter_dummy_callback(struct rtp *session, rtp_event *e);
 void transmitter_destroy_encoder_thread(encoder_thread_t **encoder);
 
-int init_transmission_rtp(participant_data_t *participant);
+int init_transmission_rtp(participant_data_t *participant, transmitter_t *transmitter);
 
-float FRAMERATE = 10.0; // XXX: should use the transmitter_t field instead
-
+typedef struct {
+    participant_data_t *participant;
+    transmitter_t *transmitter;
+} rtp_routine_params_t;
 
 transmitter_t *init_transmitter(participant_list_t *list, float fps)
 {
@@ -49,33 +51,35 @@ transmitter_t *init_transmitter(participant_list_t *list, float fps)
     return transmitter;
 }
 
-int init_transmission_rtp(participant_data_t *participant)
+int init_transmission_rtp(participant_data_t *participant, transmitter_t *transmitter)
 {
-    printf("[rtp] [trans] [ppant:%d] [init_transmission_rtp] before lock\n", participant->id);
-    //pthread_mutex_lock(&participant->lock);
-    printf("[rtp] [trans] [ppant:%d] [init_transmission_rtp] after lock\n", participant->id);
     assert(participant->type == OUTPUT);
     assert(participant->protocol == RTP);
 
     if (participant->rtp.run == TRUE) {
         // If it's already initialized, do nothing
-        //pthread_mutex_unlock(&participant->lock);
         return TRUE;
     }
 
-    printf("[rtp] [trans] [ppant:%d] [init_transmission_rtp] creating thread\n", participant->id);
+    rtp_routine_params_t *params = malloc(sizeof(rtp_routine_params_t));
+    if (params == NULL) {
+        error_msg("init_transmission_rtp: malloc error");
+        return FALSE;
+    }
+    params->participant = participant;
+    params->transmitter = transmitter;
+
     int ret = pthread_create(&participant->rtp.thread, NULL,
-                             transmitter_rtp_routine, participant);
+                             transmitter_rtp_routine, params);
     participant->rtp.run = TRUE;
     if (ret < 0) {
         error_msg("init_transmission_rtp: pthread_create error");
     }
 
-    //pthread_mutex_unlock(&participant->lock);
     return ret;
 }
 
-int init_transmission(participant_data_t *participant)
+int init_transmission(participant_data_t *participant, transmitter_t *transmitter)
 {
     pthread_mutex_lock(&participant->lock);
     
@@ -92,7 +96,7 @@ int init_transmission(participant_data_t *participant)
         ret = FALSE;
     } else if (participant->protocol == RTP) {
         printf("[rtp] [trans] [ppant:%d] [init_transmission] RTP protocol\n", participant->id);
-        ret = init_transmission_rtp(participant);
+        ret = init_transmission_rtp(participant, transmitter);
     }
 
     pthread_mutex_unlock(&participant->lock);
@@ -116,9 +120,12 @@ void transmitter_dummy_callback(struct rtp *session, rtp_event *e)
 void *transmitter_rtp_routine(void *arg)
 {
     debug_msg(" transmitter rtpenc routine START\n");
-    participant_data_t *participant = (struct participant_data *)arg;
-    printf("[rtp] [ppant:%d] START\n", participant->id);
+    rtp_routine_params_t *params = (rtp_routine_params_t *)arg;
+    transmitter_t *transmitter = params->transmitter;
+    participant_data_t *participant = params->participant;
     rtp_session_t *session = &participant->rtp;
+
+    printf("[rtp] [ppant:%d] START\n", participant->id);
 
     char *mcast_if = NULL;
     double rtcp_bw = DEFAULT_RTCP_BW;
@@ -185,7 +192,7 @@ void *transmitter_rtp_routine(void *arg)
 
         // TODO: just protecting the initialization! should be outside
         if (stream->encoder->frame != NULL) {
-            tx_send_h264(tx_session, stream->encoder->frame, rtp, FRAMERATE);
+            tx_send_h264(tx_session, stream->encoder->frame, rtp, transmitter->fps);
         }
         pthread_rwlock_unlock(&stream->video.lock);
     }   
@@ -212,7 +219,7 @@ void *transmitter_master_routine(void *arg)
             init_encoder(participant->streams[i]);
         }
         printf("[trans] [master] initializing transmission for participant %d\n", participant->id);
-        init_transmission(participant);
+        init_transmission(participant, transmitter);
         participant = participant->next;
     }
 
