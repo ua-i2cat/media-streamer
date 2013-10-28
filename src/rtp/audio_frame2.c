@@ -65,7 +65,8 @@
 //#include "audio/codec.h"
 //#include "audio/utils.h" 
 
-audio_codec_info_t audio_codec_info[] = {
+// Copy of audio_codec_info at audio/codec.h:67
+rtp_audio_codec_info_t rtp_audio_codec_info[] = {
     [AC_NONE] = { "(none)", 0 }, 
     [AC_PCM] = { "PCM", 0x0001 },
     [AC_ALAW] = { "A-law", 0x0006 },
@@ -77,15 +78,15 @@ audio_codec_info_t audio_codec_info[] = {
     [AC_G726] = { "G.726", 0x0045 },
 };
 
-int audio_codec_info_len = sizeof(audio_codec_info)/sizeof(audio_codec_info_t);
+int audio_codec_info_len = sizeof(rtp_audio_codec_info)/sizeof(rtp_audio_codec_info_t);
 
-audio_frame2 *audio_frame2_init()
+audio_frame2 *rtp_audio_frame2_init()
 {
     audio_frame2 *ret = (audio_frame2 *) calloc(1, sizeof(audio_frame2));
     return ret;
 }
 
-void audio_frame2_allocate(audio_frame2 *frame, int nr_channels, int max_size)
+void rtp_audio_frame2_allocate(audio_frame2 *frame, int nr_channels, int max_size)
 {
     assert(nr_channels <= MAX_AUDIO_CHANNELS);
 
@@ -103,7 +104,7 @@ void audio_frame2_allocate(audio_frame2 *frame, int nr_channels, int max_size)
     }
 }
 
-void audio_frame2_free(audio_frame2 *frame)
+void rtp_audio_frame2_free(audio_frame2 *frame)
 {
     if(!frame)
         return;
@@ -113,15 +114,15 @@ void audio_frame2_free(audio_frame2 *frame)
     free(frame);
 }
 
-uint32_t get_audio_tag(audio_codec_t codec)
-{
-    return audio_codec_info[codec].tag;
-}
+//uint32_t rtp_get_audio_tag(audio_codec_t codec)
+//{
+//    return audio_codec_info[codec].tag;
+//}
 
-audio_codec_t get_audio_codec_to_tag(uint32_t tag)
+audio_codec_t rtp_get_audio_codec_to_tag(uint32_t tag)
 {
     for(int i = 0; i < audio_codec_info_len; ++i) {
-        if(audio_codec_info[i].tag == tag) {
+        if(rtp_audio_codec_info[i].tag == tag) {
             return i;
         }
     }

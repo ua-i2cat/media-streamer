@@ -20,11 +20,12 @@
 #include "rtp/pbuf.h"
 #include "rtp/rtp_callback.h"
 #include "rtp/audio_decoders.h"
-#include "transmit.h"
-#include "audio/audio.h"
-#include "audio/codec.h"
+#include "rtp/audio_frame2.h"
+//#include "transmit.h"
+//#include "audio/audio.h"
+//#include "audio/codec.h"
 #include "module.h"
-#include "perf.h"
+//#include "perf.h"
 #include "tv.h"
 #include "pdb.h"
 
@@ -114,10 +115,11 @@ static void *receiver_thread(void *arg)
     struct timeval timeout, curr_time;
     uint32_t ts;
     struct pdb_e *cp;
-    audio_frame2 frame;
+    audio_frame2 *frame;
 
     // Set to 0 to avoid free() faults, like audio/audio.c:467.
-    memset(&frame, 0, sizeof(audio_frame2));
+    //memset(&frame, 0, sizeof(audio_frame2));
+    frame = rtp_audio_frame2_init();
 
     printf(" Receiver started.\n");
     while (!stop) {
@@ -138,7 +140,7 @@ static void *receiver_thread(void *arg)
 
         while (cp != NULL) {
             // Get the data on pbuf and decode it on the frame using the callback.
-            if (audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame, &frame)) {
+            if (audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame, frame)) {
                 // If decoded, mark it ready to consume.
                 consumed = false;
             }
@@ -146,7 +148,7 @@ static void *receiver_thread(void *arg)
             cp = pdb_iter_next(&it);
         }
         // Point shared_frame to the received frame.
-        shared_frame = &frame;
+        shared_frame = frame;
         pdb_iter_done(&it);
         // Wait for sender to be ready.
         pthread_mutex_unlock(d->go);

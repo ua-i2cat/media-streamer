@@ -45,6 +45,7 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					utils/h264_stream.c
 #                                        audio/utils.c
 #                                        audio/codec.c 
+#					transmit.c
 
 libvcompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut -lGLU
 libvcompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_compress -Iutils -Icompat -I.. -I../dxt_compress
@@ -176,8 +177,8 @@ nobase_uginclude_HEADERS =	./tfrc.h \
                                                         ./audio/audio.h \
                                                         ./audio/utils.h \
                                                         ./audio/codec.h \
-							 audio/codec/dummy_pcm.h \
-							 audio/codec/libavcodec.h \
+							./audio/codec/dummy_pcm.h \
+							./audio/codec/libavcodec.h \
   						    ../dxt_compress/dxt_common.h \
 						    ../dxt_compress/dxt_decoder.h \
 						    ../dxt_compress/dxt_display.h \

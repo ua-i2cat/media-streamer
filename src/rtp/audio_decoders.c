@@ -102,12 +102,12 @@ int decode_audio_frame(struct coded_data *cdata, void *data)
                 /*
                  * Reconfiguration
                  */
-                audio_codec_t audio_codec = get_audio_codec_to_tag(audio_tag);
+                audio_codec_t audio_codec = rtp_get_audio_codec_to_tag(audio_tag);
                 if (frame->ch_count != input_channels ||
                                 frame->bps != bps ||
                                 frame->sample_rate != sample_rate ||
                                 frame->codec != audio_codec) { 
-                        audio_frame2_allocate(frame, input_channels, sample_rate * bps/* 1 sec */); 
+                        rtp_audio_frame2_allocate(frame, input_channels, sample_rate * bps/* 1 sec */); 
                         frame->bps = bps;
                         frame->sample_rate = sample_rate;
                         frame->codec = audio_codec;
