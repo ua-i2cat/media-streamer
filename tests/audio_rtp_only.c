@@ -117,8 +117,6 @@ static void *receiver_thread(void *arg)
     struct pdb_e *cp;
     audio_frame2 *frame;
 
-    // Set to 0 to avoid free() faults, like audio/audio.c:467.
-    //memset(&frame, 0, sizeof(audio_frame2));
     frame = rtp_audio_frame2_init();
 
     printf(" Receiver started.\n");
