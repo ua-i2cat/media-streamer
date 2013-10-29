@@ -21,11 +21,7 @@
 #include "rtp/rtp_callback.h"
 #include "rtp/audio_decoders.h"
 #include "rtp/audio_frame2.h"
-//#include "transmit.h"
-//#include "audio/audio.h"
-//#include "audio/codec.h"
 #include "module.h"
-//#include "perf.h"
 #include "tv.h"
 #include "pdb.h"
 
@@ -201,7 +197,7 @@ int main(int argc, char *argv[])
     // Default network options
     char *sendto_host = "localhost";
     uint16_t sendto_port = PORT_AUDIO;
-    uint16_t receive_port = PORT_AUDIO + 4;
+    uint16_t receive_port = PORT_AUDIO + 1000;
 
     // Option processing
     static struct option getopt_options[] = {

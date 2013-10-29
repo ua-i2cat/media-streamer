@@ -49,3 +49,6 @@ m4/
 
 .cproject
 .project
+
+cscope.*
+tags

@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
     // Default network options
     char *sendto_host = "localhost";
     uint16_t sendto_port = PORT_AUDIO;
-    uint16_t receive_port = PORT_AUDIO + 4;
+    uint16_t receive_port = PORT_AUDIO + 1000;
 
     // u-law codec options
     audio_codec_t audio_codec = AC_MULAW;
