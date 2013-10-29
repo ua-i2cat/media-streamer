@@ -1,6 +1,6 @@
 /*
  *
- * Test program to retransmit audio using only RTP and compression.
+ * Test program to retransmit audio using only RTP and u-law compression.
  * Based on UltraGrid code.
  *
  *
@@ -32,7 +32,6 @@
 #include "audio/codec.h"
 
 #define DEFAULT_AUDIO_FEC       "mult:3"
-#define OPT_AUDIO_CODEC (('A' << 8) | 'C')
 
 
 /**************************************
@@ -77,24 +76,8 @@ extern const char *get_name_to_audio_codec(audio_codec_t codec);
 
 static void usage(void)
 {
-    printf("Usage: audio_compression [-r <receive_port>] [-h <sendto_host>] [-s <sendto_port>] [--audio-codec <codec>|help]\n");
+    printf("Usage: audio_u-law_only [-r <receive_port>] [-h <sendto_host>] [-s <sendto_port>]\n");
     printf(" By Txor >:D\n");
-}
-
-void list_audio_codecs(void) {
-    printf("Supported audio codecs:\n");
-    for(int i = 0; i < audio_codec_info_len; ++i) {
-        if(i != AC_NONE) {
-            printf("\t%s", audio_codec_info[i].name);
-            struct audio_codec_state *st = audio_codec_init(i, AUDIO_CODER);
-            if(!st) {
-                printf(" - unavailable");
-            } else {
-                audio_codec_done(st);
-            }
-            printf("\n");
-        }
-    }
 }
 
 // Crtl-C handler
@@ -135,7 +118,7 @@ static struct rtp *init_network(char *addr, int recv_port,
 //   Iterate by the participants,
 //     trying to decode an audio frame from stored RTP packets. 
 //     If it decodes an RTP packet,
-//       decompress it using the corresponding codec
+//       decompress it using u-law codec
 //       and flag up the mark (consumed).
 //   Once it's done, update the shared audio_frame2 poniter where the frame is.
 static void *receiver_thread(void *arg)
@@ -245,15 +228,14 @@ int main(int argc, char *argv[])
     uint16_t sendto_port = PORT_AUDIO;
     uint16_t receive_port = PORT_AUDIO + 4;
 
-    // Default codec options
-    audio_codec_t audio_codec = AC_PCM;
+    // u-law codec options
+    audio_codec_t audio_codec = AC_MULAW;
 
     // Option processing
     static struct option getopt_options[] = {
         {"sendto_host", required_argument, 0, 'h'},
         {"receive_port", required_argument, 0, 'r'},
         {"sendto_port", required_argument, 0, 's'},
-        {"audio-codec", required_argument, 0, OPT_AUDIO_CODEC},
         {0, 0, 0, 0}
     };
     int ch;
@@ -270,18 +252,6 @@ int main(int argc, char *argv[])
             case 'r':
                 receive_port = atoi(optarg);
                 break;
-            case OPT_AUDIO_CODEC:
-                if(strcmp(optarg, "help") == 0) {
-                    list_audio_codecs();
-                    exit(0);
-                }
-                audio_codec = get_audio_codec_to_name(optarg);
-                if(audio_codec == AC_NONE) {
-                    fprintf(stderr, "Unknown audio codec entered: \"%s\"\n",
-                            optarg);
-                    exit(1);
-                }
-                break;
             case '?':
                 usage();
                 exit(0);
@@ -291,7 +261,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    printf("Audio proxy over RTP and compression test!\n");
+    printf("Audio proxy over RTP and u-law compression test!\n");
     printf("Host to send: %s\n", sendto_host);
     printf("Port to send: %i\n", sendto_port);
     printf("Port to receive: %i\n", receive_port);
