@@ -25,19 +25,19 @@ int main(){
 	while(i < 200){
 		pthread_rwlock_rdlock(&stream_list->lock);
 		if (stream_list->first != NULL){
-			pthread_mutex_lock(&stream_list->first->video.new_decoded_frame_lock);
-			if (stream_list->first->video.new_decoded_frame){
+			pthread_mutex_lock(&stream_list->first->video->new_decoded_frame_lock);
+			if (stream_list->first->video->new_decoded_frame){
 				if (F_video_rx == NULL) {
 					printf("recording rx frame...\n");
 					F_video_rx = fopen(OUTPUT_PATH, "wb");
 				}
-				pthread_rwlock_rdlock(&stream_list->first->video.lock);
-				fwrite(stream_list->first->video.decoded_frame, stream_list->first->video.decoded_frame_len, 1,F_video_rx);
-				pthread_rwlock_unlock(&stream_list->first->video.lock);
-				stream_list->first->video.new_decoded_frame = FALSE;
+				pthread_rwlock_rdlock(&stream_list->first->video->decoded_frame_lock);
+				fwrite(stream_list->first->video->decoded_frame, stream_list->first->video->decoded_frame_len, 1,F_video_rx);
+				pthread_rwlock_unlock(&stream_list->first->video->decoded_frame_lock);
+				stream_list->first->video->new_decoded_frame = FALSE;
 				i++;
 			}
-			pthread_mutex_unlock(&stream_list->first->video.new_decoded_frame_lock);
+			pthread_mutex_unlock(&stream_list->first->video->new_decoded_frame_lock);
 		}
 		pthread_rwlock_unlock(&stream_list->lock);
     }
@@ -56,21 +56,19 @@ int main(){
 	while(i < 400){
 		pthread_rwlock_rdlock(&stream_list->lock);
 		if (stream_list->first != NULL){
-			pthread_rwlock_rdlock(&stream_list->first->lock);
-			pthread_mutex_lock(&stream_list->first->video.new_decoded_frame_lock);
-			if (stream_list->first->video.new_decoded_frame){
+			pthread_mutex_lock(&stream_list->first->video->new_decoded_frame_lock);
+			if (stream_list->first->video->new_decoded_frame){
 				if (F_video_rx == NULL) {
 					printf("recording rx frame...\n");
 					F_video_rx = fopen(OUTPUT_PATH, "wb");
 				}
-				pthread_rwlock_rdlock(&stream_list->first->video.lock);
-				fwrite(stream_list->first->video.decoded_frame, stream_list->first->video.decoded_frame_len, 1,F_video_rx);
-				pthread_rwlock_unlock(&stream_list->first->video.lock);
-				stream_list->first->video.new_decoded_frame = FALSE;
+				pthread_rwlock_rdlock(&stream_list->first->video->decoded_frame_lock);
+				fwrite(stream_list->first->video->decoded_frame, stream_list->first->video->decoded_frame_len, 1,F_video_rx);
+				pthread_rwlock_unlock(&stream_list->first->video->decoded_frame_lock);
+				stream_list->first->video->new_decoded_frame = FALSE;
 				i++;
 			}
-			pthread_mutex_unlock(&stream_list->first->video.new_decoded_frame_lock);
-			pthread_rwlock_unlock(&stream_list->first->lock);
+			pthread_mutex_unlock(&stream_list->first->video->new_decoded_frame_lock);
 		}
 		pthread_rwlock_unlock(&stream_list->lock);
     }
