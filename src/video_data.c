@@ -8,10 +8,119 @@
 #include "module.h"
 #include "debug.h"
 
+#define PIXEL_FORMAT RGB
+#define DEFAULT_FPS 25
 
 // private functions
 void *decoder_th(void* data);
 void *encoder_routine(void *arg);
+
+void *encoder_routine(void *arg)
+{
+    video_data_t *video = (video_data_t *)arg;
+    encoder_thread_t *encoder = video->encoder;
+
+    int width = video->width;
+    int height = video->height;
+
+    // decoded_frame len and memory already initialized
+
+    struct module cmod;
+    module_init_default(&cmod);
+
+    //encoder->cs = malloc(sizeof(struct compress_state));
+    //assert(encoder->cs != NULL);
+
+    assert(encoder != NULL);
+    compress_init(&cmod, "libavcodec:codec=H.264", &encoder->cs);
+
+    struct video_frame *frame = vf_alloc(1);
+    if (frame == NULL) {
+        error_msg("encoder_routine: vf_alloc error");
+        //compress_done(&encoder->cs);
+        pthread_exit((void *)NULL);
+    }
+
+    vf_get_tile(frame, 0)->width = width;
+    vf_get_tile(frame, 0)->height = height;
+    frame->color_spec = PIXEL_FORMAT;
+    // TODO: set default fps value. If it's not set -> core dump
+    frame->fps = DEFAULT_FPS; 
+    frame->interlacing = PROGRESSIVE;
+
+    encoder->run = TRUE; 
+    encoder->index = 0;
+
+    while (encoder->run) {
+        sem_wait(&encoder->input_sem);
+        if (!encoder->run) {
+            break;
+        }
+    
+        pthread_mutex_lock(&encoder->lock);
+        
+        frame->tiles[0].data = (char *)video->decoded_frame;
+        frame->tiles[0].data_len = video->decoded_frame_len;
+    
+        struct video_frame *tx_frame;
+        tx_frame = compress_frame(encoder->cs, frame, encoder->index);
+
+        encoder->frame = tx_frame;
+
+        video->coded_frame = (uint8_t *)vf_get_tile(tx_frame, 0)->data;
+        video->coded_frame_len = vf_get_tile(tx_frame, 0)->data_len;
+
+        encoder->index = (encoder->index + 1) % 2;
+        pthread_mutex_unlock(&encoder->lock);
+    }
+
+    module_done(CAST_MODULE(&cmod));
+    free(frame);
+    pthread_exit((void *)NULL);
+}
+encoder_thread_t *init_encoder(video_data_t *data)
+{
+    if (data->encoder != NULL) {
+        debug_msg("init_encoder: encoder already initialized");
+        return NULL;
+    }
+    
+    encoder_thread_t *encoder = malloc(sizeof(encoder_thread_t));
+    if (encoder == NULL) {
+        error_msg("init_encoder: malloc error");
+        return NULL;
+    }
+
+    if (pthread_mutex_init(&encoder->lock, NULL) < 0) {
+        error_msg("init_encoder: pthread_mutex_init error");
+        free(encoder);
+        return NULL;
+    }
+
+    if (sem_init(&encoder->input_sem, 1, 0) < 0) {
+        error_msg("init_encoder: sem_init error");
+        pthread_mutex_destroy(&encoder->lock);
+        free(encoder);
+        return NULL;
+    }
+
+    encoder->run = FALSE;
+    
+    // TODO assign the encoder here?
+    data->encoder = encoder;
+
+    int ret = 0;
+    ret = pthread_create(&encoder->thread, NULL, encoder_routine, data);
+    if (ret < 0) {
+        error_msg("init_encoder: pthread_create error");
+        pthread_mutex_destroy(&encoder->lock);
+        sem_destroy(&encoder->input_sem);
+        free(encoder);
+        return NULL;
+    }
+
+    return encoder;
+}
 
 decoder_thread_t *init_decoder(video_data_t *data){
 	decoder_thread_t *decoder;

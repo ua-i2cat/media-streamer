@@ -10,6 +10,7 @@ libiomanager_la_CFLAGS = $(AM_CFLAGS) -I. -I.. -I../src -I../src/rtp -I../src/ut
 libiomanager_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -I.. -I../src -i../src/rtp -I../src/utils
 libiomanager_la_SOURCES = stream.c \
 						  participants.c \
+						  transmitter.c \
 						  receiver.c \				 
 						  ../dxt_compress/dxt_util.c \
 						  ../dxt_compress/dxt_decoder.c \
@@ -18,7 +19,8 @@ libiomanager_la_SOURCES = stream.c \
 ugincludedir = $(includedir)/io_mngr
 uginclude_HEADERS =	receiver.h \
 					config_unix.h \
-					participants.h \				
+					participants.h \
+					transmitter.h \
 					stream.h \
 					../src/video.h \
 					../src/video_codec.h \

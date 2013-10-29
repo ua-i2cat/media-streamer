@@ -165,7 +165,7 @@ void *transmitter_rtp_routine(void *arg)
 
         stream_data_t *stream = participant->streams[0];
         assert(stream != NULL);
-        encoder_thread_t *encoder = stream->encoder;
+        encoder_thread_t *encoder = stream->video->encoder;
         assert(encoder != NULL);
 
         /*
@@ -183,7 +183,7 @@ void *transmitter_rtp_routine(void *arg)
 
         sem_wait(&participant->rtp.semaphore);
 
-        pthread_rwlock_rdlock(&stream->video.lock);
+        pthread_rwlock_rdlock(&stream->video->coded_frame_lock);
 
         gettimeofday(&curr_time, NULL);
         rtp_update(rtp, curr_time);
@@ -191,10 +191,10 @@ void *transmitter_rtp_routine(void *arg)
         rtp_send_ctrl(rtp, timestamp, 0, curr_time);
 
         // TODO: just protecting the initialization! should be outside
-        if (stream->encoder->frame != NULL) {
-            tx_send_h264(tx_session, stream->encoder->frame, rtp, transmitter->fps);
+        if (stream->video->encoder->frame != NULL) {
+            tx_send_h264(tx_session, stream->video->encoder->frame, rtp, transmitter->fps);
         }
-        pthread_rwlock_unlock(&stream->video.lock);
+        pthread_rwlock_unlock(&stream->video->coded_frame_lock);
     }   
 
     sem_destroy(&participant->rtp.semaphore);
@@ -216,7 +216,7 @@ void *transmitter_master_routine(void *arg)
         int i = 0;
         for (i = 0; i < participant->streams_count; i++) {
             printf("[trans] [master] initializing encoder for stream %d\n", participant->streams[i]->id);
-            init_encoder(participant->streams[i]);
+            init_encoder(participant->streams[i]->video);
         }
         printf("[trans] [master] initializing transmission for participant %d\n", participant->id);
         init_transmission(participant, transmitter);
@@ -233,8 +233,8 @@ void *transmitter_master_routine(void *arg)
             int i = 0;
             while (i < ptc->streams_count) {
                 stream_data_t *str = ptc->streams[i];
-                if (str->encoder != NULL && str->encoder->run) {
-                    sem_post(&str->encoder->input_sem);
+                if (str->video->encoder != NULL && str->video->encoder->run) {
+                    sem_post(&str->video->encoder->input_sem);
                 }
                 i++;
             }

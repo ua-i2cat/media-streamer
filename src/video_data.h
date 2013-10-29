@@ -1,5 +1,6 @@
 #include "config_unix.h"
 #include "types.h"
+#include <semaphore.h>
 
 
 typedef enum frame_type {
@@ -38,6 +39,7 @@ typedef struct encoder_thread {
     struct video_frame *frame;  // TODO: should be gone!
                                 // redundant with stream->coded_frame
 
+    sem_t input_sem;
     struct compress_state *cs;
 } encoder_thread_t;
 
@@ -69,7 +71,7 @@ typedef struct video_data {
 } video_data_t;
 
 decoder_thread_t *init_decoder(video_data_t *data);
-//encoder_thread_t *init_encoder(stream_data_t *stream);
+encoder_thread_t *init_encoder(video_data_t *data);
 
 void start_decoder(video_data_t *v_data);
 void destroy_decoder(decoder_thread_t *decoder);

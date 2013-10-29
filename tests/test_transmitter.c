@@ -111,7 +111,7 @@ int main(int argc, char **argv)
     printf("[test] init_stream\n");
     stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, TRUE);
     printf("[test] set_stream_video_data\n");
-    set_stream_video_data(stream, H264, 1280, 720);
+    set_video_data(stream->video, H264, 1280, 720);
     printf("[test] add_stream\n");
     add_stream(streams, stream);
 
@@ -121,6 +121,7 @@ int main(int argc, char **argv)
     add_participant(participants, 0, OUTPUT, RTP, "127.0.0.1", 9000);
 
     add_participant_stream(participants->first, stream);
+    add_participant_stream(participants->first->next, stream);
 
     printf("[test] initializing transmitter\n");
     transmitter_t *transmitter = init_transmitter(participants, 25.0);
@@ -157,12 +158,12 @@ int main(int argc, char **argv)
             stream_data_t *str = streams->first;
             while (str != NULL) {
                 printf("[test] stream: %d\n", str->id);
-                pthread_rwlock_wrlock(&str->video.lock);
+                pthread_rwlock_wrlock(&str->video->decoded_frame_lock);
 
-                str->video.decoded_frame = b1;
-                str->video.decoded_frame_len = vc_get_linesize(width, RGB)*height;
+                str->video->decoded_frame = b1;
+                str->video->decoded_frame_len = vc_get_linesize(width, RGB)*height;
 
-                pthread_rwlock_unlock(&str->video.lock);
+                pthread_rwlock_unlock(&str->video->decoded_frame_lock);
                 str = str->next;
             }
             pthread_rwlock_unlock(&streams->lock);
