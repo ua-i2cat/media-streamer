@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = librtp.la libvcompress.la libvdecompress.la libadecompress.la
+lib_LTLIBRARIES = librtp.la libvcompress.la libvdecompress.la libacompression.la
 
 
 AM_CFLAGS = -std=gnu99 -g -lm -DHAVE_CONFIG_H -g -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
@@ -98,10 +98,10 @@ libvdecompress_la_SOURCES =  video_frame.c \
 #							 ../dxt_compress/dxt_encoder.c \
 #							 ../dxt_compress/dxt_util.c
 
-libadecompress_la_LDFLAGS = -version-info 0:1:0 -lpthread -lavcodec -lavutil
-libadecompress_la_CFLAGS = $(AM_CFLAGS) -I. -Iutils -Icompat -Iaudio
-libadecompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Iutils -Icompat -Iaudio
-libadecompress_la_SOURCES = audio/codec.c \
+libacompression_la_LDFLAGS = -version-info 0:1:0 -lpthread -lavcodec -lavutil
+libacompression_la_CFLAGS = $(AM_CFLAGS) -I. -Iutils -Icompat -Iaudio
+libacompression_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Iutils -Icompat -Iaudio
+libacompression_la_SOURCES = audio/codec.c \
 							 audio/utils.c  \
 							 audio/codec/dummy_pcm.c \
 							 audio/codec/libavcodec.c \

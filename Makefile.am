@@ -27,5 +27,5 @@ audio_rtp_only_DEPENDENCIES = src/librtp.la
 
 audio_compression_SOURCES = tests/audio_compression.c
 audio_compression_CFLAGS = $(AM_CFLAGS) -Isrc -Itests -Isrc/rtp -Isrc/utils
-audio_compression_LDFLAGS = -L./src -lrtp -ladecompress
-audio_compression_DEPENDENCIES = src/librtp.la src/libadecompress.la
+audio_compression_LDFLAGS = -L./src -lrtp -lacompression
+audio_compression_DEPENDENCIES = src/librtp.la src/libacompression.la
