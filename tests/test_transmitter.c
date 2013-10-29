@@ -118,6 +118,7 @@ int main(int argc, char **argv)
     printf("[test] initializing participants list\n");
     participant_list_t *participants = init_participant_list();
     add_participant(participants, 0, OUTPUT, RTP, "127.0.0.1", 8000);
+    add_participant(participants, 0, OUTPUT, RTP, "127.0.0.1", 9000);
 
     add_participant_stream(participants->first, stream);
 
