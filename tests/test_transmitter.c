@@ -118,10 +118,10 @@ int main(int argc, char **argv)
     printf("[test] initializing participants list\n");
     participant_list_t *participants = init_participant_list();
     add_participant(participants, 0, OUTPUT, RTP, "127.0.0.1", 8000);
-    add_participant(participants, 0, OUTPUT, RTP, "127.0.0.1", 9000);
+    //add_participant(participants, 0, OUTPUT, RTP, "127.0.0.1", 9000);
 
     add_participant_stream(participants->first, stream);
-    add_participant_stream(participants->first->next, stream);
+    //add_participant_stream(participants->first->next, stream);
 
     printf("[test] initializing transmitter\n");
     transmitter_t *transmitter = init_transmitter(participants, 25.0);
@@ -144,9 +144,14 @@ int main(int argc, char **argv)
     int counter = 0;
 
     printf("[test] entering main test loop\n");
-    while(1) {
-        int ret = read_frame(pformat_ctx, video_stream, &codec_ctx, b1);
 
+    struct timeval a, b;
+
+    while(1) {
+    
+        gettimeofday(&a, NULL);
+        
+        int ret = read_frame(pformat_ctx, video_stream, &codec_ctx, b1);
         if (stop_at > 0 && counter == stop_at) {
             break;
         }
@@ -156,6 +161,7 @@ int main(int argc, char **argv)
             printf("[test] new frame read!\n");
             pthread_rwlock_rdlock(&streams->lock);
             stream_data_t *str = streams->first;
+            pthread_rwlock_unlock(&streams->lock);
             while (str != NULL) {
                 printf("[test] stream: %d\n", str->id);
                 pthread_rwlock_wrlock(&str->video->decoded_frame_lock);
@@ -163,13 +169,20 @@ int main(int argc, char **argv)
                 str->video->decoded_frame = b1;
                 str->video->decoded_frame_len = vc_get_linesize(width, RGB)*height;
 
+                sem_post(&str->video->encoder->input_sem);
                 pthread_rwlock_unlock(&str->video->decoded_frame_lock);
+
                 str = str->next;
             }
-            pthread_rwlock_unlock(&streams->lock);
-            usleep(40000);
         } else {
             break;
+        }
+        gettimeofday(&b, NULL);
+        float diff = b.tv_usec - a.tv_usec;
+        if (diff < 40000) {
+            usleep(40000 - diff);
+        } else {
+            usleep(0);
         }
     }
     debug_msg(" deallocating resources and terminating threads\n");

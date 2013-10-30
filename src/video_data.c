@@ -56,22 +56,26 @@ void *encoder_routine(void *arg)
         if (!encoder->run) {
             break;
         }
-    
-        pthread_mutex_lock(&encoder->lock);
+       
+        //pthread_rwlock_rdlock(&video->decoded_frame_lock);
+        pthread_rwlock_wrlock(&video->decoded_frame_lock);
         
         frame->tiles[0].data = (char *)video->decoded_frame;
         frame->tiles[0].data_len = video->decoded_frame_len;
-    
         struct video_frame *tx_frame;
         tx_frame = compress_frame(encoder->cs, frame, encoder->index);
+        
+        pthread_rwlock_unlock(&video->decoded_frame_lock);
 
+        pthread_rwlock_wrlock(&video->coded_frame_lock);
+        
         encoder->frame = tx_frame;
-
         video->coded_frame = (uint8_t *)vf_get_tile(tx_frame, 0)->data;
         video->coded_frame_len = vf_get_tile(tx_frame, 0)->data_len;
 
+        pthread_rwlock_unlock(&video->coded_frame_lock);
+        
         encoder->index = (encoder->index + 1) % 2;
-        pthread_mutex_unlock(&encoder->lock);
     }
 
     module_done(CAST_MODULE(&cmod));

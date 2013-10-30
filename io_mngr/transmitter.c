@@ -34,12 +34,12 @@ transmitter_t *init_transmitter(participant_list_t *list, float fps)
 
     transmitter->run = FALSE;
     
-    if (fps == -1) {
+    if (fps <= 0.0) {
         transmitter->fps = DEFAULT_FPS;
     } else {
         transmitter->fps = fps;
     }
-    transmitter->wait_time = (1.0/transmitter->fps)*1000000;
+    transmitter->wait_time = (1000000.0/transmitter->fps);
 
     transmitter->recv_port = DEFAULT_RECV_PORT;
     transmitter->ttl = DEFAULT_TTL;
@@ -161,30 +161,16 @@ void *transmitter_rtp_routine(void *arg)
     printf("[rtp:%d] entering main bucle\n", participant->id);
     while (participant->rtp.run && participant->streams_count > 0) {
 
-        printf("[rtp:%d] inside main bucle\n", participant->id);
-
         stream_data_t *stream = participant->streams[0];
         assert(stream != NULL);
         encoder_thread_t *encoder = stream->video->encoder;
         assert(encoder != NULL);
 
-        /*
-        pthread_mutex_lock(&stream->video.new_coded_frame_lock);
-       
-        while(!stream->video.new_coded_frame && participant->rtp.run) {
-            pthread_cond_wait(&stream->encoder->notify_coded_frame,
-                              &stream->video.new_coded_frame_lock);
-            //TODO: some timeout
-        }
-        
-        stream->video.new_coded_frame = FALSE;
-        pthread_mutex_unlock(&stream->video.new_coded_frame_lock);
-        */
-
         sem_wait(&participant->rtp.semaphore);
 
-        pthread_rwlock_rdlock(&stream->video->coded_frame_lock);
-
+        //pthread_rwlock_rdlock(&stream->video->coded_frame_lock);
+        pthread_rwlock_wrlock(&stream->video->coded_frame_lock);
+        
         gettimeofday(&curr_time, NULL);
         rtp_update(rtp, curr_time);
         timestamp = tv_diff(curr_time, start_time)*90000;
@@ -224,24 +210,28 @@ void *transmitter_master_routine(void *arg)
     }
 
     debug_msg("entering the master loop\n");
+
+    struct timeval a, b;
+
     while (transmitter->run) {
-        usleep(transmitter->wait_time);
-        
+        gettimeofday(&a, NULL);
+
         pthread_rwlock_rdlock(&list->lock);
         participant_data_t *ptc = list->first;
         while (ptc != NULL) {
-            int i = 0;
-            while (i < ptc->streams_count) {
-                stream_data_t *str = ptc->streams[i];
-                if (str->video->encoder != NULL && str->video->encoder->run) {
-                    sem_post(&str->video->encoder->input_sem);
-                }
-                i++;
-            }
             sem_post(&ptc->rtp.semaphore);
             ptc = ptc->next;
         }
         pthread_rwlock_unlock(&list->lock);
+        
+        gettimeofday(&b, NULL);
+        
+        float diff = b.tv_usec - a.tv_usec;
+        if (diff < transmitter->wait_time) {
+            usleep(transmitter->wait_time - diff);
+        } else {
+            usleep(0);
+        }
     }
 
     debug_msg(" terminating pairs of threads\n");
