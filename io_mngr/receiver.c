@@ -10,7 +10,7 @@
 
 void *receiver_thread(receiver_t *receiver);
 
-receiver_t *init_receiver(participant_list_t *participant_list, stream_list_t *stream_list, uint32_t port){
+receiver_t *init_receiver(stream_list_t *stream_list, uint32_t port){
     receiver_t *receiver;
     double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
     int ttl = 255; //TODO: get rid of magic numbers!
@@ -21,7 +21,7 @@ receiver_t *init_receiver(participant_list_t *participant_list, stream_list_t *s
     receiver->part_db = pdb_init();
     receiver->run = FALSE;
     receiver->port = port;
-    receiver->participant_list = participant_list;
+    receiver->participant_list = init_participant_list();
     receiver->stream_list = stream_list;
     
  
@@ -76,57 +76,60 @@ void *receiver_thread(receiver_t *receiver) {
 			while (cp != NULL) {
 				pthread_rwlock_rdlock(&receiver->participant_list->lock);
 				participant = get_participant_ssrc(receiver->participant_list, cp->ssrc);
+				if (participant == NULL){
+					participant = get_participant_non_init(receiver->participant_list);
+					if (participant != NULL){
+						set_participant(participant, cp->ssrc);
+						add_stream(receiver->stream_list, participant->streams[0]);
+					}
+				}
 				pthread_rwlock_unlock(&receiver->participant_list->lock);
 
 				if (participant != NULL) {
-
-					if (participant->streams_count == 0){ //In reception we only contemplate one stream per participant
-						int id = 0; //TODO: ID generation
-						stream_data_t *stream = init_stream(VIDEO, INPUT, id, I_AWAIT);
-						add_stream(receiver->stream_list, stream);
-						add_participant_stream(participant, stream);
-						participant->streams_count ++;
-					}
 
 					if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, participant->streams[0]->video)) {	
 
 						gettimeofday(&curr_time, NULL);
 
-						printf("Frame type == %d\n", participant->streams[0]->video->frame_type);
-
 						pthread_rwlock_wrlock(&participant->streams[0]->lock);
 
-						if (participant->streams[0]->video->decoder != NULL){
-							if (participant->streams[0]->state == I_AWAIT && participant->streams[0]->video->frame_type == INTRA){
-								participant->streams[0]->state = ACTIVE;
-								printf("From I_AWAIT to ACTIVE\n");
-							}
-
-							if (participant->streams[0]->state == ACTIVE && participant->streams[0]->video->frame_type != BFRAME) {
-
-								pthread_rwlock_rdlock(&participant->streams[0]->video->lock); 
-								participant->streams[0]->video->coded_frame_seqno ++;
-								pthread_rwlock_unlock(&participant->streams[0]->video->lock); 
-
-
-								pthread_mutex_lock(&participant->streams[0]->video->new_coded_frame_lock);
-								participant->streams[0]->video->new_coded_frame = TRUE;
-								pthread_cond_signal(&participant->streams[0]->video->decoder->notify_frame);
-								pthread_mutex_unlock(&participant->streams[0]->video->new_coded_frame_lock);
-							
- 							} else {
-								debug_msg("No support for Bframes\n"); //TODO: test it properly, it should not cause decoding damage
-							}
-
+						if (participant->streams[0]->video->decoder == NULL){
 							pthread_rwlock_unlock(&participant->streams[0]->lock);
 							pbuf_remove_first(cp->playout_buffer);
+							cp = pdb_iter_next(&it);
+							continue;
 						}
+						
+						if (participant->streams[0]->state == I_AWAIT && participant->streams[0]->video->frame_type == INTRA){
+							participant->streams[0]->state = ACTIVE;
+						}
+
+						if (participant->streams[0]->state == ACTIVE && participant->streams[0]->video->frame_type != BFRAME) {
+
+							pthread_rwlock_rdlock(&participant->streams[0]->video->lock); 
+							participant->streams[0]->video->coded_frame_seqno ++;
+							pthread_rwlock_unlock(&participant->streams[0]->video->lock); 
+
+
+							pthread_mutex_lock(&participant->streams[0]->video->new_coded_frame_lock);
+							participant->streams[0]->video->new_coded_frame = TRUE;
+							pthread_cond_signal(&participant->streams[0]->video->decoder->notify_frame);
+							pthread_mutex_unlock(&participant->streams[0]->video->new_coded_frame_lock);
+						
+						} else {
+							debug_msg("No support for Bframes\n"); //TODO: test it properly, it should not cause decoding damage
+						}
+
+						pthread_rwlock_unlock(&participant->streams[0]->lock);
+						pbuf_remove_first(cp->playout_buffer);
+						
 					}
 				} else {
 				//TODO: delete cp form pdb or ignore it
 				}
+
 				cp = pdb_iter_next(&it);
-			}
+			} 
 			pdb_iter_done(&it);
 		}
 	}

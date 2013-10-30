@@ -5,12 +5,11 @@
 #include "video_decompress.h"
 #include "debug.h"
 
-void destroy_decoder_thread(decoder_thread_t *dec_th);
 void destroy_participant(participant_data_t *src);
 int remove_participant(participant_list_t *list, uint32_t id);
 void destroy_participant_list(participant_list_t *list);
 
-participant_data_t *init_participant(uint32_t id, io_type_t type, participant_protocol_t protocol, char *addr, uint32_t port){
+participant_data_t *init_participant(uint32_t id, io_type_t type, char *addr, uint32_t port){
     participant_data_t *participant;
   
     participant = (participant_data_t *) malloc(sizeof(participant_data_t));
@@ -20,31 +19,18 @@ participant_data_t *init_participant(uint32_t id, io_type_t type, participant_pr
     participant->ssrc = 0;
     participant->next = participant->previous = NULL;
     participant->type = type;
-    participant->protocol = protocol;
     participant->streams_count = 0;
     participant->active = I_AWAIT;
-
-    if (protocol == RTP){
-        //TODO: init RTP struct
-        participant->rtp.port = port;
-        participant->rtp.addr = addr;
-
-    } else if (protocol == RTSP){
-        //TODO: init RTSP struct
-        participant->rtsp.port = port;
-        participant->rtsp.addr = addr;
-
-    } else {
-        //Error when introducing protocol
-    }
+    participant->rtp.port = port;
+    participant->rtp.addr = addr;
     
     return participant;
 }
 
-int add_participant(participant_list_t *list, int id, io_type_t part_type, participant_protocol_t prot_type, char *addr, uint32_t port){
+int add_participant(participant_list_t *list, int id, io_type_t part_type, char *addr, uint32_t port){
     struct participant_data *participant;
   
-    participant = init_participant(id, part_type, prot_type, addr, port);
+    participant = init_participant(id, part_type, addr, port);
   
     if (list->count == 0) {
     
@@ -108,16 +94,35 @@ participant_data_t *get_participant_ssrc(participant_list_t *list, uint32_t ssrc
   
   participant = list->first;
   while(participant != NULL){
-    if(participant->ssrc == ssrc){
+    if(participant->ssrc == ssrc)
       return participant;
-    }
-    if (participant->ssrc == 0){
-      return participant;
-    }
     participant = participant->next;
   }
 
   return NULL;
+}
+
+participant_data_t *get_participant_non_init(participant_list_t *list){
+    participant_data_t *participant;
+
+    participant = list->first;
+    while(participant != NULL){
+        if (participant->ssrc == 0 && participant->streams_count == 0)
+            return participant;
+        participant = participant->next;
+    }
+    return NULL;
+}
+
+int set_participant(participant_data_t *participant, uint32_t ssrc){
+    pthread_mutex_lock(&participant->lock);
+    participant->ssrc = ssrc;
+    uint32_t id = rand(); //TODO: ID generation
+    stream_data_t *stream = init_stream(VIDEO, INPUT, id, I_AWAIT);
+    pthread_mutex_unlock(&participant->lock);
+    add_participant_stream(participant, stream);
+    printf("Stream added to participant with ID: %u\n", id);
+    return TRUE;
 }
 
 int remove_participant(participant_list_t *list, uint32_t id){
