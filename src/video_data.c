@@ -323,17 +323,24 @@ video_data_t *init_video_data(video_type_t type){
 }
 
 int destroy_video_data(video_data_t *data){
-    pthread_rwlock_wrlock(&data->lock);
+    pthread_rwlock_rdlock(&data->lock);
      if (data->type == DECODER && data->decoder != NULL){
         stop_decoder(data);
     } else if (data->type == ENCODER && data->encoder != NULL){
         //destroy_encoder(stream->encoder);
     }
-
+    pthread_rwlock_wrlock(&data->decoded_frame_lock);
     free(data->decoded_frame);
+    pthread_rwlock_unlock(&data->decoded_frame_lock);
+
+    pthread_rwlock_wrlock(&data->coded_frame_lock);
     free(data->coded_frame);
+    pthread_rwlock_unlock(&data->coded_frame_lock);
+
     pthread_mutex_destroy(&data->new_coded_frame_lock);
     pthread_mutex_destroy(&data->new_decoded_frame_lock);
+    pthread_rwlock_destroy(&data->decoded_frame_lock);
+    pthread_rwlock_destroy(&data->coded_frame_lock);
     pthread_rwlock_unlock(&data->lock);
     pthread_rwlock_destroy(&data->lock);
     free(data);

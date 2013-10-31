@@ -18,11 +18,6 @@
 
 typedef struct participant_data participant_data_t;
 
-typedef enum {
-    RTP,
-    RTSP
-} participant_protocol_t;
-
 typedef struct participant_list {
     pthread_rwlock_t lock;
     int count;
@@ -52,32 +47,32 @@ struct participant_data {
     uint8_t active;
     participant_data_t *next;
     participant_data_t *previous;
-    participant_protocol_t protocol;
     io_type_t type;
-    union {
-        rtp_session_t rtp;
-        rtsp_session_t rtsp;
-    };
+    rtp_session_t rtp;
     // One participant may have more than one stream.
-    uint8_t streams_count;
-    stream_data_t *streams[MAX_PARTICIPANT_STREAMS];
+    uint8_t has_stream;
+    stream_data_t *stream;
 };
 
 
 participant_list_t *init_participant_list(void);
 void destroy_participant_list(participant_list_t *list);
 
-int add_participant(participant_list_t *list, int id, io_type_t part_type, participant_protocol_t prot_type, char *addr, uint32_t port);
+int add_participant(participant_list_t *list, int id, io_type_t part_type, char *addr, uint32_t port);
 int remove_participant(participant_list_t *list, uint32_t id);
 
 participant_data_t *get_participant_id(participant_list_t *list, uint32_t id);
 participant_data_t *get_participant_ssrc(participant_list_t *list, uint32_t ssrc);
+participant_data_t *get_participant_non_init(participant_list_t *list);
+int get_participant_stream_id(participant_list_t *list, uint32_t part_id);
 
-participant_data_t *init_participant(uint32_t id, io_type_t type, participant_protocol_t protocol, char *addr, uint32_t port);
+int set_participant(participant_data_t *participant, uint32_t ssrc);
+
+participant_data_t *init_participant(uint32_t id, io_type_t type, char *addr, uint32_t port);
 void set_active_participant(participant_data_t *participant, uint8_t active);
 void destroy_participant(participant_data_t *src);
 
 int add_participant_stream(participant_data_t *participant, stream_data_t *stream);
-int remove_participant_stream(participant_data_t *participant, stream_data_t *stream);
+int remove_participant_stream(participant_data_t *participant);
 
 #endif

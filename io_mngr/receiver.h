@@ -13,6 +13,7 @@ typedef struct receiver {
 
 int start_receiver(receiver_t *recv);
 
-receiver_t *init_receiver(participant_list_t *participant_list, stream_list_t *stream_list, uint32_t port);
+receiver_t *init_receiver(stream_list_t *stream_list, uint32_t port);
 
 int stop_receiver(receiver_t *receiver);
+
