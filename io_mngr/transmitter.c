@@ -157,6 +157,7 @@ void *transmitter_rtp_routine(void *arg)
     printf("SEM_INIT!!!!!!\n");
 
     // Only one stream
+    uint32_t last_seqno = 0;
 
     printf("[rtp:%d] entering main bucle\n", participant->id);
     while (participant->rtp.run && participant->streams_count > 0) {
@@ -166,20 +167,25 @@ void *transmitter_rtp_routine(void *arg)
         encoder_thread_t *encoder = stream->video->encoder;
         assert(encoder != NULL);
 
-        sem_wait(&participant->rtp.semaphore);
+        //sem_wait(&participant->rtp.semaphore);
+        sem_wait(&participant->streams[0]->video->encoder->output_sem);
 
-        //pthread_rwlock_rdlock(&stream->video->coded_frame_lock);
-        pthread_rwlock_wrlock(&stream->video->coded_frame_lock);
-        
-        gettimeofday(&curr_time, NULL);
-        rtp_update(rtp, curr_time);
-        timestamp = tv_diff(curr_time, start_time)*90000;
-        rtp_send_ctrl(rtp, timestamp, 0, curr_time);
+        pthread_rwlock_rdlock(&stream->video->coded_frame_lock);
 
         // TODO: just protecting the initialization! should be outside
         if (stream->video->encoder->frame != NULL) {
-            tx_send_h264(tx_session, stream->video->encoder->frame, rtp, transmitter->fps);
+            //if (stream->video->coded_frame_seqno != last_seqno) {
+                
+                gettimeofday(&curr_time, NULL);
+                rtp_update(rtp, curr_time);
+                timestamp = tv_diff(curr_time, start_time)*90000;
+                rtp_send_ctrl(rtp, timestamp, 0, curr_time);
+
+                tx_send_h264(tx_session, stream->video->encoder->frame, rtp, transmitter->fps);
+                last_seqno = stream->video->coded_frame_seqno;
+            //}
         }
+
         pthread_rwlock_unlock(&stream->video->coded_frame_lock);
     }   
 
@@ -225,12 +231,9 @@ void *transmitter_master_routine(void *arg)
         pthread_rwlock_unlock(&list->lock);
         
         gettimeofday(&b, NULL);
-        
-        float diff = b.tv_usec - a.tv_usec;
+        long diff = (b.tv_sec - a.tv_sec)*1000000 + b.tv_usec - a.tv_usec;
         if (diff < transmitter->wait_time) {
             usleep(transmitter->wait_time - diff);
-        } else {
-            usleep(0);
         }
     }
 

@@ -158,27 +158,35 @@ int main(int argc, char **argv)
 
         if (ret == 0) {
             counter++;
-            printf("[test] new frame read!\n");
-            pthread_rwlock_rdlock(&streams->lock);
-            stream_data_t *str = streams->first;
-            pthread_rwlock_unlock(&streams->lock);
-            while (str != NULL) {
+            //pthread_rwlock_rdlock(&streams->lock);
+            //stream_data_t *str = streams->first;
+            //pthread_rwlock_unlock(&streams->lock);
+
+            pthread_rwlock_wrlock(&stream->video->decoded_frame_lock);
+            stream->video->decoded_frame_len = vc_get_linesize(width, RGB)*height;
+            memcpy(stream->video->decoded_frame, b1, stream->video->decoded_frame_len); 
+            pthread_rwlock_unlock(&stream->video->decoded_frame_lock);
+
+            sem_post(&stream->video->encoder->input_sem);
+
+            /*while (str != NULL) {
                 printf("[test] stream: %d\n", str->id);
                 pthread_rwlock_wrlock(&str->video->decoded_frame_lock);
+
 
                 str->video->decoded_frame = b1;
                 str->video->decoded_frame_len = vc_get_linesize(width, RGB)*height;
 
-                sem_post(&str->video->encoder->input_sem);
                 pthread_rwlock_unlock(&str->video->decoded_frame_lock);
 
+                sem_post(&str->video->encoder->input_sem);
                 str = str->next;
-            }
+            }*/
         } else {
             break;
         }
         gettimeofday(&b, NULL);
-        float diff = b.tv_usec - a.tv_usec;
+        long diff = (b.tv_sec - a.tv_sec)*1000000 + b.tv_usec - a.tv_usec;
         if (diff < 40000) {
             usleep(40000 - diff);
         } else {

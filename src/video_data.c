@@ -51,31 +51,47 @@ void *encoder_routine(void *arg)
     encoder->run = TRUE; 
     encoder->index = 0;
 
+    struct timeval a, b;
+
     while (encoder->run) {
         sem_wait(&encoder->input_sem);
+        
+        gettimeofday(&a, NULL);
+
         if (!encoder->run) {
             break;
         }
        
-        //pthread_rwlock_rdlock(&video->decoded_frame_lock);
-        pthread_rwlock_wrlock(&video->decoded_frame_lock);
-        
+        pthread_rwlock_rdlock(&video->decoded_frame_lock);
         frame->tiles[0].data = (char *)video->decoded_frame;
         frame->tiles[0].data_len = video->decoded_frame_len;
-        struct video_frame *tx_frame;
-        tx_frame = compress_frame(encoder->cs, frame, encoder->index);
-        
         pthread_rwlock_unlock(&video->decoded_frame_lock);
-
-        pthread_rwlock_wrlock(&video->coded_frame_lock);
         
+        struct timeval a, b;
+        struct video_frame *tx_frame;
+        
+        gettimeofday(&a, NULL);
+        tx_frame = compress_frame(encoder->cs, frame, encoder->index);
+        gettimeofday(&b, NULL);
+
+        printf("coding time: %ldus\n", (b.tv_sec - a.tv_sec)*1000000 + b.tv_usec - a.tv_usec);
+        
+        pthread_rwlock_wrlock(&video->coded_frame_lock);
         encoder->frame = tx_frame;
         video->coded_frame = (uint8_t *)vf_get_tile(tx_frame, 0)->data;
         video->coded_frame_len = vf_get_tile(tx_frame, 0)->data_len;
-
+        video->coded_frame_seqno++;
         pthread_rwlock_unlock(&video->coded_frame_lock);
         
+        sem_post(&encoder->output_sem);
         encoder->index = (encoder->index + 1) % 2;
+
+        gettimeofday(&b, NULL);
+
+        //long diff = (b.tv_sec - a.tv_sec)*1000000 + b.tv_usec - a.tv_usec;
+        //if (diff < 40000) {
+        //    usleep(40000 - diff);
+        //}
     }
 
     module_done(CAST_MODULE(&cmod));
@@ -107,6 +123,13 @@ encoder_thread_t *init_encoder(video_data_t *data)
         free(encoder);
         return NULL;
     }
+    
+    if (sem_init(&encoder->output_sem, 1, 0) < 0) {
+        error_msg("init_encoder: sem_init error");
+        pthread_mutex_destroy(&encoder->lock);
+        free(encoder);
+        return NULL;
+    }
 
     encoder->run = FALSE;
     
@@ -119,6 +142,7 @@ encoder_thread_t *init_encoder(video_data_t *data)
         error_msg("init_encoder: pthread_create error");
         pthread_mutex_destroy(&encoder->lock);
         sem_destroy(&encoder->input_sem);
+        sem_destroy(&encoder->output_sem);
         free(encoder);
         return NULL;
     }
