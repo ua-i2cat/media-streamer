@@ -54,5 +54,5 @@
 struct coded_data;
 
 int decode_audio_frame(struct coded_data *cdata, void *data);
-int decode_audio_frame_ulaw(struct coded_data *cdata, void *data);
+int decode_audio_frame_mulaw(struct coded_data *cdata, void *data);
 

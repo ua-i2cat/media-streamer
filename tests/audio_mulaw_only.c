@@ -150,7 +150,7 @@ static void *receiver_thread(void *arg)
 
         while (cp != NULL) {
             // Get the data on pbuf and decode it on the frame using the callback.
-            if (audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame, frame)) {
+            if (audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame_mulaw, frame)) {
                 // If decoded, mark it ready to consume.
                 consumed = false;
             }
@@ -200,7 +200,7 @@ static void *sender_thread(void *arg)
             audio_frame2 *uncompressed = shared_frame;
             audio_frame2 *compressed = NULL;
             while((compressed = audio_codec_compress(d->audio_coder, uncompressed))) {
-                audio_tx_send(d->tx_session, d->rtp_session, compressed);
+                audio_tx_send_mulaw(d->tx_session, d->rtp_session, compressed);
                 uncompressed = NULL;
             }
         }
@@ -225,8 +225,8 @@ int main(int argc, char *argv[])
 
     // Default network options
     char *sendto_host = "localhost";
-    uint16_t sendto_port = PORT_AUDIO;
-    uint16_t receive_port = PORT_AUDIO + 1000;
+    uint16_t receive_port = PORT_AUDIO;
+    uint16_t sendto_port = PORT_AUDIO + 1000;
 
     // u-law codec options
     audio_codec_t audio_codec = AC_MULAW;
