@@ -19,8 +19,7 @@ participant_data_t *init_participant(uint32_t id, io_type_t type, char *addr, ui
     participant->ssrc = 0;
     participant->next = participant->previous = NULL;
     participant->type = type;
-    participant->streams_count = 0;
-    participant->active = I_AWAIT;
+    participant->has_stream = FALSE;
     participant->rtp.port = port;
     participant->rtp.addr = addr;
     
@@ -31,6 +30,8 @@ int add_participant(participant_list_t *list, int id, io_type_t part_type, char 
     struct participant_data *participant;
   
     participant = init_participant(id, part_type, addr, port);
+
+    pthread_rwlock_wrlock(&list->lock);
   
     if (list->count == 0) {
     
@@ -47,9 +48,11 @@ int add_participant(participant_list_t *list, int id, io_type_t part_type, char 
         list->last = participant;
 
     } else{
-      //TODO: error_msg
-      return FALSE;
+        //TODO: error_msg
+        pthread_rwlock_unlock(&list->lock);
+        return FALSE;
     }
+    pthread_rwlock_unlock(&list->lock);
   
     return TRUE;
 }
@@ -107,7 +110,7 @@ participant_data_t *get_participant_non_init(participant_list_t *list){
 
     participant = list->first;
     while(participant != NULL){
-        if (participant->ssrc == 0 && participant->streams_count == 0)
+        if (participant->ssrc == 0 && !participant->has_stream)
             return participant;
         participant = participant->next;
     }
@@ -117,9 +120,9 @@ participant_data_t *get_participant_non_init(participant_list_t *list){
 int set_participant(participant_data_t *participant, uint32_t ssrc){
     pthread_mutex_lock(&participant->lock);
     participant->ssrc = ssrc;
+    pthread_mutex_unlock(&participant->lock);
     uint32_t id = rand(); //TODO: ID generation
     stream_data_t *stream = init_stream(VIDEO, INPUT, id, I_AWAIT);
-    pthread_mutex_unlock(&participant->lock);
     add_participant_stream(participant, stream);
     printf("Stream added to participant with ID: %u\n", id);
     return TRUE;
@@ -137,10 +140,6 @@ int remove_participant(participant_list_t *list, uint32_t id){
     if (participant == NULL)
         return FALSE;
 
-    if (participant->type == INPUT && participant->streams_count > 0){
-        remove_participant_stream(participant, participant->streams[0]);
-        //TODO: where to execute remove stream???
-    }
     pthread_mutex_lock(&participant->lock);
 
     if (participant->next == NULL && participant->previous == NULL) {
@@ -178,7 +177,6 @@ void destroy_participant_list(participant_list_t *list){
   while(participant != NULL){
     pthread_rwlock_wrlock(&list->lock);
     remove_participant(list, participant->id);
-    printf("remove_participant(list, participant->id);\n");
     pthread_rwlock_unlock(&list->lock);
     participant = participant->next;
   }
@@ -194,57 +192,33 @@ int add_participant_stream(participant_data_t *participant, stream_data_t *strea
 {
     pthread_mutex_lock(&participant->lock);
 
-    if (participant->streams_count == MAX_PARTICIPANT_STREAMS) {
-      error_msg("Max number of streams per participant reached.\n");
-      pthread_mutex_unlock(&participant->lock);
-      return FALSE;
-    }
-
-    /* TODO: if remove_participant_stream moves streams to the left,
-       there should be no need to seek a free position 
-     
-       => simplify insertion
-
-     */
-    
-    int ret = FALSE;
-    int i = 0;
-    while (i < MAX_PARTICIPANT_STREAMS) {
-        if (participant->streams[i] == NULL) {
-            participant->streams[i] = stream;
-            participant->streams_count++;
-            assert(participant->streams_count <= MAX_PARTICIPANT_STREAMS);
-            ret = TRUE;
-            break;
-        }
-        i++;
-    }
+    participant->stream = stream;
+    participant->has_stream = TRUE;
 
     pthread_mutex_unlock(&participant->lock);
-    return ret;
+    return TRUE;
 }
 
-int remove_participant_stream(participant_data_t *participant, stream_data_t *stream)
+int remove_participant_stream(participant_data_t *participant)
 {
     pthread_mutex_lock(&participant->lock);
-    int ret = FALSE;
-    int i = 0;
-    while (i++ < MAX_PARTICIPANT_STREAMS) {
-        if (participant->streams[i] == stream) {
-            participant->streams[i] = NULL;
-            assert(participant->streams_count > 0);
-            participant->streams_count--;
-            ret = TRUE;
-            // TODO: this chunk of code moves the streams to the left
-            int j = 0;
-            for (j = i; j < MAX_PARTICIPANT_STREAMS - 1;) {
-                if (participant->streams[j + 1] != NULL) {
-                    participant->streams[j] = participant->streams[j + 1];
-                }
-            }
-            break;
-        }
-    }
+
+    participant->stream = NULL;
+    participant->has_stream = FALSE;
+    
     pthread_mutex_unlock(&participant->lock);
-    return ret;
+
+    return TRUE;
+}
+
+int get_participant_stream_id(participant_list_t *list, uint32_t part_id){
+    participant_data_t *participant;
+
+    participant = get_participant_id(list, part_id);
+
+    if (participant != NULL){
+        return participant->stream->id;
+    }
+
+    return -1;
 }

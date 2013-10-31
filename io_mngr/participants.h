@@ -49,8 +49,8 @@ struct participant_data {
     io_type_t type;
     rtp_session_t rtp;
     // One participant may have more than one stream.
-    uint8_t streams_count;
-    stream_data_t *streams[MAX_PARTICIPANT_STREAMS];
+    uint8_t has_stream;
+    stream_data_t *stream;
 };
 
 
@@ -63,6 +63,7 @@ int remove_participant(participant_list_t *list, uint32_t id);
 participant_data_t *get_participant_id(participant_list_t *list, uint32_t id);
 participant_data_t *get_participant_ssrc(participant_list_t *list, uint32_t ssrc);
 participant_data_t *get_participant_non_init(participant_list_t *list);
+int get_participant_stream_id(participant_list_t *list, uint32_t part_id);
 
 int set_participant(participant_data_t *participant, uint32_t ssrc);
 
@@ -71,6 +72,6 @@ void set_active_participant(participant_data_t *participant, uint8_t active);
 void destroy_participant(participant_data_t *src);
 
 int add_participant_stream(participant_data_t *participant, stream_data_t *stream);
-int remove_participant_stream(participant_data_t *participant, stream_data_t *stream);
+int remove_participant_stream(participant_data_t *participant);
 
 #endif

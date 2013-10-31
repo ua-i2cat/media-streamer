@@ -80,47 +80,47 @@ void *receiver_thread(receiver_t *receiver) {
 					participant = get_participant_non_init(receiver->participant_list);
 					if (participant != NULL){
 						set_participant(participant, cp->ssrc);
-						add_stream(receiver->stream_list, participant->streams[0]);
+						add_stream(receiver->stream_list, participant->stream);
 					}
 				}
 				pthread_rwlock_unlock(&receiver->participant_list->lock);
 
 				if (participant != NULL) {
 
-					if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, participant->streams[0]->video)) {	
+					if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, participant->stream->video)) {	
 
 						gettimeofday(&curr_time, NULL);
 
-						pthread_rwlock_wrlock(&participant->streams[0]->lock);
+						pthread_rwlock_wrlock(&participant->stream->lock);
 
-						if (participant->streams[0]->video->decoder == NULL){
-							pthread_rwlock_unlock(&participant->streams[0]->lock);
+						if (participant->stream->video->decoder == NULL){
+							pthread_rwlock_unlock(&participant->stream->lock);
 							pbuf_remove_first(cp->playout_buffer);
 							cp = pdb_iter_next(&it);
 							continue;
 						}
 						
-						if (participant->streams[0]->state == I_AWAIT && participant->streams[0]->video->frame_type == INTRA){
-							participant->streams[0]->state = ACTIVE;
+						if (participant->stream->state == I_AWAIT && participant->stream->video->frame_type == INTRA){
+							participant->stream->state = ACTIVE;
 						}
 
-						if (participant->streams[0]->state == ACTIVE && participant->streams[0]->video->frame_type != BFRAME) {
+						if (participant->stream->state == ACTIVE && participant->stream->video->frame_type != BFRAME) {
 
-							pthread_rwlock_rdlock(&participant->streams[0]->video->lock); 
-							participant->streams[0]->video->coded_frame_seqno ++;
-							pthread_rwlock_unlock(&participant->streams[0]->video->lock); 
+							pthread_rwlock_rdlock(&participant->stream->video->lock); 
+							participant->stream->video->coded_frame_seqno ++;
+							pthread_rwlock_unlock(&participant->stream->video->lock); 
 
 
-							pthread_mutex_lock(&participant->streams[0]->video->new_coded_frame_lock);
-							participant->streams[0]->video->new_coded_frame = TRUE;
-							pthread_cond_signal(&participant->streams[0]->video->decoder->notify_frame);
-							pthread_mutex_unlock(&participant->streams[0]->video->new_coded_frame_lock);
+							pthread_mutex_lock(&participant->stream->video->new_coded_frame_lock);
+							participant->stream->video->new_coded_frame = TRUE;
+							pthread_cond_signal(&participant->stream->video->decoder->notify_frame);
+							pthread_mutex_unlock(&participant->stream->video->new_coded_frame_lock);
 						
 						} else {
 							debug_msg("No support for Bframes\n"); //TODO: test it properly, it should not cause decoding damage
 						}
 
-						pthread_rwlock_unlock(&participant->streams[0]->lock);
+						pthread_rwlock_unlock(&participant->stream->lock);
 						pbuf_remove_first(cp->playout_buffer);
 						
 					}
