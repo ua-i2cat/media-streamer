@@ -53,8 +53,11 @@ void *encoder_routine(void *arg)
 
     struct timeval a, b;
 
+    sem_wait(&encoder->input_sem);
+   
+    long wait_time = 5000 //40000;
+
     while (encoder->run) {
-        sem_wait(&encoder->input_sem);
         
         gettimeofday(&a, NULL);
 
@@ -63,18 +66,15 @@ void *encoder_routine(void *arg)
         }
        
         pthread_rwlock_rdlock(&video->decoded_frame_lock);
+
+
         frame->tiles[0].data = (char *)video->decoded_frame;
         frame->tiles[0].data_len = video->decoded_frame_len;
         pthread_rwlock_unlock(&video->decoded_frame_lock);
         
-        struct timeval a, b;
         struct video_frame *tx_frame;
-        
-        gettimeofday(&a, NULL);
         tx_frame = compress_frame(encoder->cs, frame, encoder->index);
-        gettimeofday(&b, NULL);
 
-        printf("coding time: %ldus\n", (b.tv_sec - a.tv_sec)*1000000 + b.tv_usec - a.tv_usec);
         
         pthread_rwlock_wrlock(&video->coded_frame_lock);
         encoder->frame = tx_frame;
@@ -88,10 +88,10 @@ void *encoder_routine(void *arg)
 
         gettimeofday(&b, NULL);
 
-        //long diff = (b.tv_sec - a.tv_sec)*1000000 + b.tv_usec - a.tv_usec;
-        //if (diff < 40000) {
-        //    usleep(40000 - diff);
-        //}
+        long diff = (b.tv_sec - a.tv_sec)*1000000 + b.tv_usec - a.tv_usec;
+        if (diff < wait_time) {
+            usleep(wait_time - diff);
+        }
     }
 
     module_done(CAST_MODULE(&cmod));
