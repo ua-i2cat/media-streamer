@@ -157,11 +157,12 @@ void *transmitter_rtp_routine(void *arg)
         encoder_thread_t *encoder = stream->video->encoder;
         assert(encoder != NULL);
 
-        pthread_cond_wait(&participant->stream->video->encoder->output_cond, &participant->stream->video->encoder->output_lock); // TODO: extra cond. protection
+        // TODO: add protection against spurious wakes. They should not be harmful in this scenario though.
+        pthread_cond_wait(&participant->stream->video->encoder->output_cond, &participant->stream->video->encoder->output_lock);
 
         pthread_rwlock_rdlock(&stream->video->coded_frame_lock);
 
-        // TODO: just protecting the initialization! should be outside
+        // TODO: just protecting the initialization! should be outside maybe?
         if (stream->video->encoder->frame != NULL) {
             if (stream->video->coded_frame_seqno != last_seqno) {
                 
