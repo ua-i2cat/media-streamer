@@ -120,10 +120,16 @@ int main(int argc, char **argv)
     start_transmitter(transmitter);
 
     add_participant(transmitter->participants, 0, OUTPUT, "127.0.0.1", 8000);
-    add_participant_stream(transmitter->participants->first, stream);
-    
+    add_participant_stream(transmitter->participants->first, stream);    
+
+    init_transmission(transmitter->participants->first, transmitter);
+
     add_participant(transmitter->participants, 1, OUTPUT, "127.0.0.1", 9000);
     add_participant_stream(transmitter->participants->last, stream);
+
+    init_transmission(transmitter->participants->last, transmitter);
+
+    init_encoder(stream->video);
     
     printf("[test_transmitter] transmitter->participants->first->id: %d\n", transmitter->participants->first->id);
     printf("[test_transmitter] transmitter->participants->last->id: %d\n", transmitter->participants->last->id);

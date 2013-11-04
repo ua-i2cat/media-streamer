@@ -146,9 +146,6 @@ void *transmitter_rtp_routine(void *arg)
     double timestamp;
     gettimeofday(&start_time, NULL);
 
-    sem_init(&participant->rtp.semaphore, 1, 0);
-    printf("SEM_INIT!!!!!!\n");
-
     // Only one stream
     uint32_t last_seqno = 0;
 
@@ -181,7 +178,6 @@ void *transmitter_rtp_routine(void *arg)
         pthread_rwlock_unlock(&stream->video->coded_frame_lock);
     }   
 
-    sem_destroy(&participant->rtp.semaphore);
     rtp_send_bye(rtp);
     rtp_done(rtp);
     module_done(CAST_MODULE(&tmod));
