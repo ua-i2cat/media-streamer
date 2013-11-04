@@ -55,7 +55,7 @@ void *encoder_routine(void *arg)
 
     sem_wait(&encoder->input_sem);
    
-    long wait_time = 5000 //40000;
+    long wait_time = 5000; //40000;
 
     while (encoder->run) {
         

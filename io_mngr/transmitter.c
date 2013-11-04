@@ -7,7 +7,6 @@
 #include "module.h"
 #include "debug.h"
 #include "tv.h"
-
 #include <stdlib.h>
 
 void *transmitter_rtp_routine(void *arg);
@@ -24,7 +23,7 @@ typedef struct {
     transmitter_t *transmitter;
 } rtp_routine_params_t;
 
-transmitter_t *init_transmitter(participant_list_t *list, float fps)
+transmitter_t *init_transmitter(stream_list_t *stream_list, float fps)
 {
     transmitter_t *transmitter = malloc(sizeof(transmitter_t));
     if (transmitter == NULL) {
@@ -46,7 +45,8 @@ transmitter_t *init_transmitter(participant_list_t *list, float fps)
     transmitter->send_buffer_size = DEFAULT_SEND_BUFFER_SIZE;
     transmitter->mtu = MTU;
 
-    transmitter->participants = list;
+    transmitter->participants = init_participant_list();
+    transmitter->stream_list = stream_list;
 
     return transmitter;
 }
@@ -54,7 +54,6 @@ transmitter_t *init_transmitter(participant_list_t *list, float fps)
 int init_transmission_rtp(participant_data_t *participant, transmitter_t *transmitter)
 {
     assert(participant->type == OUTPUT);
-    assert(participant->protocol == RTP);
 
     if (participant->rtp.run == TRUE) {
         // If it's already initialized, do nothing
@@ -90,14 +89,9 @@ int init_transmission(participant_data_t *participant, transmitter_t *transmitte
 
     int ret = TRUE;
 
-    if (participant->protocol == RTSP) {
-        // TODO: implement RTSP transmission
-        error_msg("init_transmission: transmission RTP support not ready yet");
-        ret = FALSE;
-    } else if (participant->protocol == RTP) {
-        printf("[rtp] [trans] [ppant:%d] [init_transmission] RTP protocol\n", participant->id);
-        ret = init_transmission_rtp(participant, transmitter);
-    }
+    printf("[rtp] [trans] [ppant:%d] [init_transmission] RTP protocol\n", participant->id);
+    ret = init_transmission_rtp(participant, transmitter);
+    
 
     pthread_mutex_unlock(&participant->lock);
     return ret;
@@ -160,15 +154,15 @@ void *transmitter_rtp_routine(void *arg)
     uint32_t last_seqno = 0;
 
     printf("[rtp:%d] entering main bucle\n", participant->id);
-    while (participant->rtp.run && participant->streams_count > 0) {
+    while (participant->rtp.run && participant->has_stream) {
 
-        stream_data_t *stream = participant->streams[0];
+        stream_data_t *stream = participant->stream;
         assert(stream != NULL);
         encoder_thread_t *encoder = stream->video->encoder;
         assert(encoder != NULL);
 
         //sem_wait(&participant->rtp.semaphore);
-        sem_wait(&participant->streams[0]->video->encoder->output_sem);
+        sem_wait(&participant->stream->video->encoder->output_sem);
 
         pthread_rwlock_rdlock(&stream->video->coded_frame_lock);
 
@@ -205,11 +199,9 @@ void *transmitter_master_routine(void *arg)
     participant_list_t *list = transmitter->participants;
     struct participant_data *participant = list->first;
     while (participant != NULL) {
-        int i = 0;
-        for (i = 0; i < participant->streams_count; i++) {
-            printf("[trans] [master] initializing encoder for stream %d\n", participant->streams[i]->id);
-            init_encoder(participant->streams[i]->video);
-        }
+        printf("[trans] [master] initializing encoder for stream %d\n", participant->stream->id);
+        init_encoder(participant->stream->video);
+    
         printf("[trans] [master] initializing transmission for participant %d\n", participant->id);
         init_transmission(participant, transmitter);
         participant = participant->next;

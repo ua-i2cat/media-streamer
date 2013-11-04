@@ -109,7 +109,7 @@ int main(int argc, char **argv)
     printf("[test] init_stream_list\n");
     stream_list_t *streams = init_stream_list();
     printf("[test] init_stream\n");
-    stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, TRUE);
+    stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE);
     printf("[test] set_stream_video_data\n");
     set_video_data(stream->video, H264, 1280, 720);
     printf("[test] add_stream\n");
@@ -117,16 +117,17 @@ int main(int argc, char **argv)
 
     printf("[test] initializing participants list\n");
     participant_list_t *participants = init_participant_list();
-    add_participant(participants, 0, OUTPUT, RTP, "127.0.0.1", 8000);
     //add_participant(participants, 0, OUTPUT, RTP, "127.0.0.1", 9000);
 
-    add_participant_stream(participants->first, stream);
     //add_participant_stream(participants->first->next, stream);
 
     printf("[test] initializing transmitter\n");
-    transmitter_t *transmitter = init_transmitter(participants, 25.0);
+    transmitter_t *transmitter = init_transmitter(streams, 25.0);
     start_transmitter(transmitter);
 
+    add_participant(transmitter->participants, 0, OUTPUT, "127.0.0.1", 8000);
+    add_participant_stream(transmitter->participants->first, stream);
+    
     // Stuff ... 
     AVFormatContext *pformat_ctx = avformat_alloc_context();
     AVCodecContext codec_ctx;

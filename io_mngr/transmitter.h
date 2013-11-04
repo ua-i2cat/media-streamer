@@ -25,6 +25,7 @@ typedef struct transmitter {
     pthread_t thread;
     uint32_t run;
     participant_list_t *participants;
+    stream_list_t *stream_list;
     float fps;
     float wait_time;
     uint32_t recv_port;
@@ -34,7 +35,7 @@ typedef struct transmitter {
 } transmitter_t;
 
 
-transmitter_t *init_transmitter(participant_list_t *list, float fps);
+transmitter_t *init_transmitter(stream_list_t *list, float fps);
 int start_transmitter(transmitter_t *transmitter);
 int stop_transmitter(transmitter_t *transmitter);
 

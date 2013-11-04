@@ -34,12 +34,6 @@ typedef struct rtp_session {
     // TODO: rtp thread management
 } rtp_session_t;
 
-typedef struct rtsp_session {
-    uint32_t port;
-    char *addr;
-    // TODO: rtsp thread management
-} rtsp_session_t;
-
 struct participant_data {
     pthread_mutex_t lock;
     uint32_t ssrc;
