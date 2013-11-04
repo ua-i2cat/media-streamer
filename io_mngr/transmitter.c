@@ -218,3 +218,15 @@ int stop_transmitter(transmitter_t *transmitter)
     free(transmitter);
     return TRUE;
 }
+
+int add_transmitter_participant(transmitter_t *transmitter, uint32_t id, char *addr, uint32_t port)
+{
+    if (add_participant(transmitter->participants, id, OUTPUT, addr, port) < 0) {
+        return FALSE;
+    }
+    participant_data_t *participant = get_participant_id(transmitter->participants, id);
+    if (participant == NULL) {
+        return FALSE;
+    }
+    return init_transmission(participant, transmitter);
+}

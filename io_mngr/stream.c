@@ -103,6 +103,7 @@ int add_stream(stream_list_t *list, stream_data_t *stream)
     }
     pthread_rwlock_unlock(&stream->lock);
     pthread_rwlock_unlock(&list->lock);
+
     return ret;
 }
 

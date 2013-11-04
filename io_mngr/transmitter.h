@@ -38,44 +38,9 @@ transmitter_t *init_transmitter(stream_list_t *list, float fps);
 int start_transmitter(transmitter_t *transmitter);
 int stop_transmitter(transmitter_t *transmitter);
 
-/**
- * @brief Initializes the output manager.
- *
- * It starts the compressor and rtp threads for each of the members of
- * <em>list</em> (if any). If the list is modified at runtime, the necessary
- * threads will be destroyed or created.
- *
- * After initialization, the output manager threads will remain asleep waiting
- * until a notify_out_manager() call is done.
- *
- * @param list initial list of output participants
- *
- */
-int start_out_manager(participant_list_t *list, float framerate);
-
-/**
- * @brief Stops the out manager, freeing its allocated resources.
- *
- * Destroys any remaining thread and frees any allocated resource for the
- * remaining participants in the list originally specified through
- * start_out_manager().
- * 
- */
-int stop_out_manager(void);
-
-/**
- * @brief Frees the resources allocated by a certain encoder thread and ends
- *        the thread itself.
- *
- * @param encoder points to the encoder to be freed.
- *
- * @note exposed as an API function to allow its use from, for example,
- *       <em>remove_participant</em>.
- * @deprecated
- */
-void transmitter_destroy_encoder_thread(encoder_thread_t **encoder);
-
 int init_transmission(participant_data_t *participant, transmitter_t *transmitter);
 int stop_transmission(participant_data_t *participant);
+
+int add_transmitter_participant(transmitter_t *transmitter, uint32_t id, char *addr, uint32_t port);
 
 #endif

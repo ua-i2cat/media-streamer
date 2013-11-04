@@ -119,15 +119,15 @@ int main(int argc, char **argv)
     transmitter_t *transmitter = init_transmitter(streams, 25.0);
     start_transmitter(transmitter);
 
-    add_participant(transmitter->participants, 0, OUTPUT, "127.0.0.1", 8000);
+    add_transmitter_participant(transmitter, 0, "127.0.0.1", 8000);
     add_participant_stream(transmitter->participants->first, stream);    
 
-    init_transmission(transmitter->participants->first, transmitter);
+    //init_transmission(transmitter->participants->first, transmitter);
 
-    add_participant(transmitter->participants, 1, OUTPUT, "127.0.0.1", 9000);
+    add_transmitter_participant(transmitter, 1, "127.0.0.1", 9000);
     add_participant_stream(transmitter->participants->last, stream);
 
-    init_transmission(transmitter->participants->last, transmitter);
+    //init_transmission(transmitter->participants->last, transmitter);
 
     init_encoder(stream->video);
     

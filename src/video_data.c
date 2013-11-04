@@ -387,7 +387,11 @@ int set_video_data(video_data_t *data, codec_t codec, uint32_t width, uint32_t h
             //TODO: reconfigure decoder
         }
     }else if (data->type == ENCODER){
-
+        if (data->encoder == NULL) {
+            init_encoder(data);
+        } else {
+            
+        }
     }
 
     pthread_rwlock_unlock(&data->lock);
