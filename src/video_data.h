@@ -40,7 +40,8 @@ typedef struct encoder_thread {
                                 // redundant with stream->coded_frame
 
     sem_t input_sem;
-    sem_t output_sem;
+    pthread_mutex_t output_lock;
+    pthread_cond_t output_cond;
     struct compress_state *cs;
 } encoder_thread_t;
 

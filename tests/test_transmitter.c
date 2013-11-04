@@ -115,18 +115,18 @@ int main(int argc, char **argv)
     printf("[test] add_stream\n");
     add_stream(streams, stream);
 
-    printf("[test] initializing participants list\n");
-    participant_list_t *participants = init_participant_list();
-    //add_participant(participants, 0, OUTPUT, RTP, "127.0.0.1", 9000);
-
-    //add_participant_stream(participants->first->next, stream);
-
     printf("[test] initializing transmitter\n");
     transmitter_t *transmitter = init_transmitter(streams, 25.0);
     start_transmitter(transmitter);
 
     add_participant(transmitter->participants, 0, OUTPUT, "127.0.0.1", 8000);
     add_participant_stream(transmitter->participants->first, stream);
+    
+    add_participant(transmitter->participants, 1, OUTPUT, "127.0.0.1", 9000);
+    add_participant_stream(transmitter->participants->last, stream);
+    
+    printf("[test_transmitter] transmitter->participants->first->id: %d\n", transmitter->participants->first->id);
+    printf("[test_transmitter] transmitter->participants->last->id: %d\n", transmitter->participants->last->id);
     
     // Stuff ... 
     AVFormatContext *pformat_ctx = avformat_alloc_context();
@@ -159,9 +159,6 @@ int main(int argc, char **argv)
 
         if (ret == 0) {
             counter++;
-            //pthread_rwlock_rdlock(&streams->lock);
-            //stream_data_t *str = streams->first;
-            //pthread_rwlock_unlock(&streams->lock);
 
             pthread_rwlock_wrlock(&stream->video->decoded_frame_lock);
             stream->video->decoded_frame_len = vc_get_linesize(width, RGB)*height;
@@ -169,25 +166,12 @@ int main(int argc, char **argv)
             pthread_rwlock_unlock(&stream->video->decoded_frame_lock);
 
             sem_post(&stream->video->encoder->input_sem);
-
-            /*while (str != NULL) {
-                printf("[test] stream: %d\n", str->id);
-                pthread_rwlock_wrlock(&str->video->decoded_frame_lock);
-
-
-                str->video->decoded_frame = b1;
-                str->video->decoded_frame_len = vc_get_linesize(width, RGB)*height;
-
-                pthread_rwlock_unlock(&str->video->decoded_frame_lock);
-
-                sem_post(&str->video->encoder->input_sem);
-                str = str->next;
-            }*/
         } else {
             break;
         }
         gettimeofday(&b, NULL);
         long diff = (b.tv_sec - a.tv_sec)*1000000 + b.tv_usec - a.tv_usec;
+
         if (diff < 40000) {
             usleep(40000 - diff);
         } else {
@@ -201,7 +185,6 @@ int main(int argc, char **argv)
 
     stop_transmitter(transmitter);
 
-    destroy_participant_list(participants);
     destroy_stream_list(streams);
 
     return 0;

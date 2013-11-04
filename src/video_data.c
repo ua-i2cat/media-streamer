@@ -83,7 +83,8 @@ void *encoder_routine(void *arg)
         video->coded_frame_seqno++;
         pthread_rwlock_unlock(&video->coded_frame_lock);
         
-        sem_post(&encoder->output_sem);
+        //sem_post(&encoder->output_sem);
+        pthread_cond_broadcast(&encoder->output_cond);
         encoder->index = (encoder->index + 1) % 2;
 
         gettimeofday(&b, NULL);
@@ -124,9 +125,19 @@ encoder_thread_t *init_encoder(video_data_t *data)
         return NULL;
     }
     
-    if (sem_init(&encoder->output_sem, 1, 0) < 0) {
-        error_msg("init_encoder: sem_init error");
+    if (pthread_mutex_init(&encoder->output_lock, NULL) < 0) {
+        error_msg("init_encoder: pthread_mutex_init error");
         pthread_mutex_destroy(&encoder->lock);
+        sem_destroy(&encoder->input_sem);
+        free(encoder);
+        return NULL;
+    }
+
+    if (pthread_cond_init(&encoder->output_cond, NULL) < 0) {
+        error_msg("init_encoder: pthread_cond_init error");
+        pthread_mutex_destroy(&encoder->output_lock);
+        pthread_mutex_destroy(&encoder->lock);
+        sem_destroy(&encoder->input_sem);
         free(encoder);
         return NULL;
     }
@@ -142,7 +153,8 @@ encoder_thread_t *init_encoder(video_data_t *data)
         error_msg("init_encoder: pthread_create error");
         pthread_mutex_destroy(&encoder->lock);
         sem_destroy(&encoder->input_sem);
-        sem_destroy(&encoder->output_sem);
+        pthread_mutex_destroy(&encoder->output_lock);
+        pthread_cond_destroy(&encoder->output_cond);
         free(encoder);
         return NULL;
     }

@@ -161,14 +161,13 @@ void *transmitter_rtp_routine(void *arg)
         encoder_thread_t *encoder = stream->video->encoder;
         assert(encoder != NULL);
 
-        //sem_wait(&participant->rtp.semaphore);
-        sem_wait(&participant->stream->video->encoder->output_sem);
+        pthread_cond_wait(&participant->stream->video->encoder->output_cond, &participant->stream->video->encoder->output_lock); // TODO: extra cond. protection
 
         pthread_rwlock_rdlock(&stream->video->coded_frame_lock);
 
         // TODO: just protecting the initialization! should be outside
         if (stream->video->encoder->frame != NULL) {
-            //if (stream->video->coded_frame_seqno != last_seqno) {
+            if (stream->video->coded_frame_seqno != last_seqno) {
                 
                 gettimeofday(&curr_time, NULL);
                 rtp_update(rtp, curr_time);
@@ -177,7 +176,7 @@ void *transmitter_rtp_routine(void *arg)
 
                 tx_send_h264(tx_session, stream->video->encoder->frame, rtp, transmitter->fps);
                 last_seqno = stream->video->coded_frame_seqno;
-            //}
+            }
         }
 
         pthread_rwlock_unlock(&stream->video->coded_frame_lock);
@@ -208,26 +207,6 @@ void *transmitter_master_routine(void *arg)
     }
 
     debug_msg("entering the master loop\n");
-
-    struct timeval a, b;
-
-    while (transmitter->run) {
-        gettimeofday(&a, NULL);
-
-        pthread_rwlock_rdlock(&list->lock);
-        participant_data_t *ptc = list->first;
-        while (ptc != NULL) {
-            sem_post(&ptc->rtp.semaphore);
-            ptc = ptc->next;
-        }
-        pthread_rwlock_unlock(&list->lock);
-        
-        gettimeofday(&b, NULL);
-        long diff = (b.tv_sec - a.tv_sec)*1000000 + b.tv_usec - a.tv_usec;
-        if (diff < transmitter->wait_time) {
-            usleep(transmitter->wait_time - diff);
-        }
-    }
 
     debug_msg(" terminating pairs of threads\n");
     pthread_rwlock_rdlock(&list->lock);
