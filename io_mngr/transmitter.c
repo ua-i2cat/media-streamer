@@ -11,7 +11,6 @@
 
 void *transmitter_rtp_routine(void *arg);
 int transmitter_init_threads(struct participant_data *participant);
-void *transmitter_master_routine(void *arg);
 
 void transmitter_dummy_callback(struct rtp *session, rtp_event *e);
 void transmitter_destroy_encoder_thread(encoder_thread_t **encoder);
@@ -190,11 +189,10 @@ void *transmitter_rtp_routine(void *arg)
     pthread_exit(NULL);
 }
 
-void *transmitter_master_routine(void *arg)
+int start_transmitter(transmitter_t *transmitter)
 {
-    debug_msg("transmitter master routine START\n");
-    transmitter_t *transmitter = (transmitter_t *)arg;
-
+    transmitter->run = TRUE;
+    
     participant_list_t *list = transmitter->participants;
     struct participant_data *participant = list->first;
     while (participant != NULL) {
@@ -206,35 +204,21 @@ void *transmitter_master_routine(void *arg)
         participant = participant->next;
     }
 
-    debug_msg("entering the master loop\n");
-
-    debug_msg(" terminating pairs of threads\n");
-    pthread_rwlock_rdlock(&list->lock);
-    participant = list->first;
-    while (participant != NULL) {
-        stop_transmission(participant);
-        participant = participant->next;
-    }
-    pthread_rwlock_unlock(&list->lock);
-    pthread_exit((void *)NULL);
-}
-
-int start_transmitter(transmitter_t *transmitter)
-{
-    transmitter->run = TRUE;
-    debug_msg("creating the master thread...\n");
-    printf("[trans] creating the master thread\n");
-    int ret = pthread_create(&transmitter->thread, NULL, transmitter_master_routine, transmitter);
-    if (ret < 0) {
-        error_msg("could not initiate the transmitter master thread\n");
-    }
-    return ret;
+    
+    return TRUE;
 }
 
 int stop_transmitter(transmitter_t *transmitter)
 {
     transmitter->run = FALSE;
-    int ret = pthread_join(transmitter->thread, NULL);
+    
+    pthread_rwlock_rdlock(&transmitter->participants->lock);
+    participant_data_t *participant = transmitter->participants->first;
+    while (participant != NULL) {
+        stop_transmission(participant);
+        participant = participant->next;
+    }
+    pthread_rwlock_unlock(&transmitter->participants->lock);
     free(transmitter);
-    return ret;
+    return TRUE;
 }
