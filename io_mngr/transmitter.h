@@ -22,7 +22,6 @@
 #define MTU 1300 // 1400
 
 typedef struct transmitter {
-    pthread_t thread;
     uint32_t run;
     participant_list_t *participants;
     stream_list_t *stream_list;
