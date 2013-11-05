@@ -58,7 +58,6 @@ int add_participant(participant_list_t *list, int id, io_type_t part_type, char 
 }
 
 void destroy_participant(participant_data_t *src){
-  
     pthread_mutex_destroy(&src->lock);
   
     free(src);
@@ -130,6 +129,8 @@ int set_participant(participant_data_t *participant, uint32_t ssrc){
 
 int remove_participant(participant_list_t *list, uint32_t id){
     participant_data_t *participant;
+
+    pthread_rwlock_wrlock(&list->lock);
   
     if (list->count == 0) {
         return FALSE;
@@ -165,6 +166,8 @@ int remove_participant(participant_list_t *list, uint32_t id){
     pthread_mutex_unlock(&participant->lock);
   
     destroy_participant(participant);
+
+    pthread_rwlock_unlock(&list->lock);
   
     return TRUE;
 }
@@ -218,9 +221,10 @@ int get_participant_from_stream_id(participant_list_t *list, uint32_t stream_id)
     participant = list->first;
 
     while(participant != NULL){
-        if (participant->stream->id == stream_id)
+        if (participant->stream->id == stream_id){
             pthread_rwlock_unlock(&list->lock);
             return participant->id;
+        }
         participant = participant->next;
     }
     pthread_rwlock_unlock(&list->lock);

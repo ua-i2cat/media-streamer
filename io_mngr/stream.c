@@ -121,12 +121,15 @@ stream_data_t *get_stream_id(stream_list_t *list, uint32_t id)
 int remove_stream(stream_list_t *list, uint32_t id)
 {
     pthread_rwlock_wrlock(&list->lock);
-    
     if (list->count == 0) {
         pthread_rwlock_unlock(&list->lock);
         return FALSE;
     }
+    pthread_rwlock_unlock(&list->lock);
+
     stream_data_t *stream = get_stream_id(list, id);
+
+    pthread_rwlock_wrlock(&list->lock);
     if (stream == NULL) {
         pthread_rwlock_unlock(&list->lock);
         return FALSE;
@@ -150,8 +153,8 @@ int remove_stream(stream_list_t *list, uint32_t id)
     list->count--;
     pthread_rwlock_unlock(&list->lock);
     
-    destroy_stream(stream);
     pthread_rwlock_unlock(&stream->lock);
+    destroy_stream(stream);
     
     return TRUE;
 }

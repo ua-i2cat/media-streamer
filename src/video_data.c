@@ -186,14 +186,12 @@ decoder_thread_t *init_decoder(video_data_t *data){
             return NULL;
         }
 
-        pthread_rwlock_rdlock(&data->lock);
         des.width = data->width;
         des.height = data->height;
         des.color_spec  = data->codec;
         des.tile_count = 0;
         des.interlacing = data->interlacing;
         des.fps = data->fps; // TODO XXX
-        pthread_rwlock_unlock(&data->lock);
 
         if (!decompress_reconfigure(decoder->sd, des, 16, 8, 0, vc_get_linesize(des.width, RGB), RGB)) {
             error_msg("decoder decompress reconfigure failed");
@@ -333,7 +331,8 @@ video_data_t *init_video_data(video_type_t type){
 }
 
 int destroy_video_data(video_data_t *data){
-    pthread_rwlock_rdlock(&data->lock);
+    pthread_rwlock_wrlock(&data->lock);
+
      if (data->type == DECODER && data->decoder != NULL){
         stop_decoder(data);
     } else if (data->type == ENCODER && data->encoder != NULL){
@@ -351,6 +350,7 @@ int destroy_video_data(video_data_t *data){
     pthread_mutex_destroy(&data->new_decoded_frame_lock);
     pthread_rwlock_destroy(&data->decoded_frame_lock);
     pthread_rwlock_destroy(&data->coded_frame_lock);
+
     pthread_rwlock_unlock(&data->lock);
     pthread_rwlock_destroy(&data->lock);
     free(data);

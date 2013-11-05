@@ -79,7 +79,6 @@ void *receiver_thread(receiver_t *receiver) {
 				if (participant == NULL){
 					participant = get_participant_non_init(receiver->participant_list);
 					if (participant != NULL){
-						printf("Creating new participant\n");
 						set_participant(participant, cp->ssrc);
 						add_stream(receiver->stream_list, participant->stream);
 					}
@@ -107,9 +106,9 @@ void *receiver_thread(receiver_t *receiver) {
 
 						if (participant->stream->state == ACTIVE && participant->stream->video->frame_type != BFRAME) {
 
-							pthread_rwlock_rdlock(&participant->stream->video->lock); 
+							pthread_rwlock_wrlock(&participant->stream->video->coded_frame_lock); 
 							participant->stream->video->coded_frame_seqno ++;
-							pthread_rwlock_unlock(&participant->stream->video->lock); 
+							pthread_rwlock_unlock(&participant->stream->video->coded_frame_lock); 
 
 
 							pthread_mutex_lock(&participant->stream->video->new_coded_frame_lock);
