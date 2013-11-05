@@ -852,8 +852,8 @@ void audio_tx_send_mulaw(struct tx* tx, struct rtp *rtp_session, audio_frame2 * 
                         data_len = tx->mtu - 40;
                         if(pos + data_len >= (unsigned int) buffer->data_len[channel]) {
                                 data_len = buffer->data_len[channel] - pos;
-                                if(channel == buffer->ch_count - 1)
-                                        m = 1;
+//                                if(channel == buffer->ch_count - 1)
+//                                        m = 1;
                         }
 //                        audio_hdr[1] = htonl(pos);
                         pos += data_len;

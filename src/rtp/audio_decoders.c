@@ -148,6 +148,11 @@ int decode_audio_frame_mulaw(struct coded_data *cdata, void *data)
         // TODO: Implement multi channel processing.
         int channel = 0;
 
+        // Reconfiguration (initially only once).
+        if (frame->bps != 1 || frame->sample_rate != 8000 || frame->ch_count != 1) {
+                rtp_audio_frame2_allocate(frame, 1, 8000 * 1);
+        }
+
         // Default configuration
         frame->bps = 1;
         frame->sample_rate = 8000;

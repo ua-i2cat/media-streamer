@@ -33,6 +33,10 @@
 
 #define DEFAULT_AUDIO_FEC       "mult:3"
 
+// For debug pourpouses
+#define RECEIVER_ENABLE 1   // Receive code.
+#define SENDER_ENABLE 1     // Send code.
+
 
 /**************************************
  *     Variables 
@@ -133,6 +137,7 @@ static void *receiver_thread(void *arg)
 
     printf(" Receiver started.\n");
     while (!stop) {
+#if RECEIVER_ENABLE
         // Preparate timeouts and perform RTP session maintenance.
         gettimeofday(&curr_time, NULL);
         ts = tv_diff(curr_time, d->start_time) * 90000;
@@ -150,7 +155,7 @@ static void *receiver_thread(void *arg)
 
         while (cp != NULL) {
             // Get the data on pbuf and decode it on the frame using the callback.
-            if (audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame_mulaw, frame)) {
+            if (rtp_audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame_mulaw, frame)) {
                 // If decoded, mark it ready to consume.
                 consumed = false;
             }
@@ -164,12 +169,14 @@ static void *receiver_thread(void *arg)
             shared_frame = audio_codec_decompress(d->audio_coder, frame);
         }
         pdb_iter_done(&it);
+#endif //RECEIVER_ENABLE
 
         // Wait for sender to be ready.
         pthread_mutex_unlock(d->go);
         pthread_mutex_lock(d->wait);
     }
     // Finish RTP session and exit.
+    rtp_audio_frame2_free(frame);
     rtp_done(d->rtp_session);
     printf(" Receiver stopped.\n");
 
@@ -193,6 +200,7 @@ static void *sender_thread(void *arg)
         // Wait for receiver to be ready.
         pthread_mutex_unlock(d->go);
         pthread_mutex_lock(d->wait);
+#if SENDER_ENABLE
         // Send the data away only if not consumed before.
         if (!consumed) {
             consumed = true;
@@ -204,6 +212,7 @@ static void *sender_thread(void *arg)
                 uncompressed = NULL;
             }
         }
+#endif //SENDER_ENABLE
     }
     // Finish RTP session and exit.
     rtp_done(d->rtp_session);
