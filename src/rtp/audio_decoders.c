@@ -83,7 +83,7 @@ int decode_audio_frame(struct coded_data *cdata, void *data)
 /*
  * Second version that uses external audio configuration,
  * now it uses a struct state_audio_decoder instead an audio_frame2.
- * TODO: Process multi-channel.
+ * It does multi-channel handling.
  */
 int decode_audio_frame_mulaw(struct coded_data *cdata, void *data)
 {
@@ -91,37 +91,50 @@ int decode_audio_frame_mulaw(struct coded_data *cdata, void *data)
 
     if(!cdata) return false;
 
-    // TODO: Implement multi channel processing.
-    int channel = 0;
-
     // Reconfiguration.
     if (audio->frame->bps != audio->desc->bps ||
-                audio->frame->sample_rate != audio->desc->sample_rate ||
-                audio->frame->ch_count != audio->desc->ch_count) {
+            audio->frame->sample_rate != audio->desc->sample_rate ||
+            audio->frame->ch_count != audio->desc->ch_count)
+    {
         rtp_audio_frame2_allocate(audio->frame, audio->desc->ch_count, audio->desc->sample_rate * audio->desc->bps);
         audio->frame->bps = audio->desc->bps;
         audio->frame->sample_rate = audio->desc->sample_rate;
         audio->frame->ch_count = audio->desc->ch_count;
     }
 
-    // Initial setup to iteratively copy
-    audio->frame->data_len[channel] = 0;
-    char *to = audio->frame->data[channel];
+    /*
+     * Unoptimized version of the multi-channel handling.
+     * TODO: Optimize it! It's a matrix transpose.
+     *       Take a look at http://stackoverflow.com/questions/1777901/array-interleaving-problem
+     */
+
+    // Initial setup
+    for (int ch = 0 ; ch < audio->frame->ch_count ; ch ++) {
+        audio->frame->data_len[ch] = 0;
+    }
 
     while (cdata != NULL) {
-        // Get the data to copy into the frame.
-        char *from = cdata->data->data;
-        unsigned int length = cdata->data->data_len;
-
-        // See if the data fits.
-        if (audio->frame->data_len[channel] + length <= audio->frame->max_size) {
-            // Copy the data
-            memcpy(to, from, length);
-            // Update the pointer and the counter.
-            to += length;
-            audio->frame->data_len[channel] += length;
+        // Check that data on cdata->data->data is congruent with 0 modulus audio->frame->ch_count.
+        if (cdata->data->data_len % audio->frame->ch_count != 0) {
+            // printf something?
+            return false;
+        }
+        int samples_copied = 0;
+        // If there is space on the current audio_frame2 buffer.
+        if (cdata->data->data_len <= audio->frame->max_size - samples_copied) {
+            // For each group of samples.
+            for (int g = 0 ; g < (cdata->data->data_len / audio->frame->ch_count) ; g++) {
+                // Iterate throught each channel.
+                for (int ch = 0 ; ch < audio->frame->ch_count ; ch ++) {
+                    // Copy the current sample from the RTP packet to the audio_frame2.
+                    (uint8_t)audio->frame->data[ch] = (uint8_t)cdata->data->data[samples_copied + ch];
+                    // Update audio_frame2 channel lenght.
+                    audio->frame->data_len[ch]++;
+                }
+                samples_copied++;
+            }
         } else {
-            // Filled it out, exit now.
+            // Filled audio_frame2 out, exit now.
             return true;
         }
 
