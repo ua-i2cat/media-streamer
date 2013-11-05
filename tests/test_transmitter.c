@@ -19,7 +19,7 @@ int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pC
     pFormatCtx->iformat = av_find_input_format("rawvideo");
     unsigned int i;
 
-    av_dict_set(&rawdict, "video_size", "1920x1080", 0);
+    av_dict_set(&rawdict, "video_size", "1280x720", 0);
     av_dict_set(&rawdict, "pixel_format", "rgb24", 0);
 
     // Open video file
@@ -105,74 +105,93 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    participant_list_t *list = init_participant_list();
-    if (list == NULL) {
-        error_msg(" could not initialize a participant list\n");
-    }
-    int ret = 0;
-    ret = add_participant(list, 0, 1920, 1080, H264, "127.0.0.1", 5004, OUTPUT);
-    if (ret < 0) {
-        error_msg(" could not add a new participant\n");
-        destroy_participant_list(list);
-        return -1;
-    }
-    /*ret = add_participant(list, 0, 854, 480, H264, "127.0.0.1", 6004, OUTPUT);
-    if (ret < 0) {
-        error_msg(" could not add a new participant\n");
-        destroy_participant_list(list);
-        return -1;
-    }*/
+    printf("[test] initializing streams list\n");
+    printf("[test] init_stream_list\n");
+    stream_list_t *streams = init_stream_list();
+    printf("[test] init_stream\n");
+    stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE);
+    printf("[test] set_stream_video_data\n");
+    set_video_data(stream->video, H264, 1280, 720);
+    printf("[test] add_stream\n");
+    add_stream(streams, stream);
 
+    printf("[test] initializing transmitter\n");
+    transmitter_t *transmitter = init_transmitter(streams, 25.0);
+    start_transmitter(transmitter);
 
+    add_transmitter_participant(transmitter, 0, "127.0.0.1", 8000);
+    add_participant_stream(transmitter->participants->first, stream);    
+
+    //init_transmission(transmitter->participants->first, transmitter);
+
+    add_transmitter_participant(transmitter, 1, "127.0.0.1", 9000);
+    add_participant_stream(transmitter->participants->last, stream);
+
+    //init_transmission(transmitter->participants->last, transmitter);
+
+    init_encoder(stream->video);
+    
+    printf("[test_transmitter] transmitter->participants->first->id: %d\n", transmitter->participants->first->id);
+    printf("[test_transmitter] transmitter->participants->last->id: %d\n", transmitter->participants->last->id);
+    
+    // Stuff ... 
     AVFormatContext *pformat_ctx = avformat_alloc_context();
     AVCodecContext codec_ctx;
     int video_stream = -1;
     av_register_all();
 
-    int width = 1920;
-    int height = 1080;
+    int width = 1280;
+    int height = 720;
 
     load_video(yuv_path, pformat_ctx, &codec_ctx, &video_stream);
 
     uint8_t *b1 = (uint8_t *)av_malloc(avpicture_get_size(codec_ctx.pix_fmt,
                         codec_ctx.width, codec_ctx.height)*sizeof(uint8_t));
-
-    start_out_manager(list, 5);
     
     int counter = 0;
-    while(1) {
-        int ret = read_frame(pformat_ctx, video_stream, &codec_ctx, b1);
 
+    printf("[test] entering main test loop\n");
+
+    struct timeval a, b;
+
+    while(1) {
+    
+        gettimeofday(&a, NULL);
+        
+        int ret = read_frame(pformat_ctx, video_stream, &codec_ctx, b1);
         if (stop_at > 0 && counter == stop_at) {
             break;
         }
 
         if (ret == 0) {
             counter++;
-            debug_msg(" new frame read!\n");
-            pthread_rwlock_wrlock(&list->lock);
-            struct participant_data *participant = list->first;
-            while (participant != NULL) {
-                if (pthread_mutex_trylock(&participant->lock) == 0) {
-                    participant->frame_length = vc_get_linesize(width, RGB)*height;
-                    memcpy(participant->frame, (char *)b1, participant->frame_length);
-                    participant->new_frame = 1;
-                    pthread_mutex_unlock(&participant->lock);
-                }
-                participant = participant->next;
-            }
-            pthread_rwlock_unlock(&list->lock);
-            usleep(200000);
+
+            pthread_rwlock_wrlock(&stream->video->decoded_frame_lock);
+            stream->video->decoded_frame_len = vc_get_linesize(width, RGB)*height;
+            memcpy(stream->video->decoded_frame, b1, stream->video->decoded_frame_len); 
+            pthread_rwlock_unlock(&stream->video->decoded_frame_lock);
+
+            sem_post(&stream->video->encoder->input_sem);
         } else {
             break;
         }
+        gettimeofday(&b, NULL);
+        long diff = (b.tv_sec - a.tv_sec)*1000000 + b.tv_usec - a.tv_usec;
+
+        if (diff < 40000) {
+            usleep(40000 - diff);
+        } else {
+            usleep(0);
+        }
     }
     debug_msg(" deallocating resources and terminating threads\n");
-    stop_out_manager();
-    destroy_participant_list(list);
     av_free(pformat_ctx);
     av_free(b1);
     debug_msg(" done!\n");
+
+    stop_transmitter(transmitter);
+
+    destroy_stream_list(streams);
 
     return 0;
 }
