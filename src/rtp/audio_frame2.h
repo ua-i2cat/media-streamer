@@ -2,7 +2,7 @@
  * FILE:    rtp/audio_frame2.h
  * AUTHORS: Jordi "Txor" Casas Ríos   <jordi.casas@i2cat.net>
  *
- * Provide to RTP library some coupled tools from audio subsystem.
+ * Provide some coupled tools from audio subsystem to RTP library.
  *
  */
 
