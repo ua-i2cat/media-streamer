@@ -58,7 +58,6 @@ void *encoder_routine(void *arg)
     long wait_time = 5000; //40000;
 
     while (encoder->run) {
-        
         gettimeofday(&a, NULL);
 
         if (!encoder->run) {
@@ -66,8 +65,6 @@ void *encoder_routine(void *arg)
         }
        
         pthread_rwlock_rdlock(&video->decoded_frame_lock);
-
-
         frame->tiles[0].data = (char *)video->decoded_frame;
         frame->tiles[0].data_len = video->decoded_frame_len;
         pthread_rwlock_unlock(&video->decoded_frame_lock);

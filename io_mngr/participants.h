@@ -56,7 +56,7 @@ int remove_participant(participant_list_t *list, uint32_t id);
 participant_data_t *get_participant_id(participant_list_t *list, uint32_t id);
 participant_data_t *get_participant_ssrc(participant_list_t *list, uint32_t ssrc);
 participant_data_t *get_participant_non_init(participant_list_t *list);
-int get_participant_stream_id(participant_list_t *list, uint32_t part_id);
+int get_participant_from_stream_id(participant_list_t *list, uint32_t stream_id);
 
 int set_participant(participant_data_t *participant, uint32_t ssrc);
 

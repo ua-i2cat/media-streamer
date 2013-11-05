@@ -121,7 +121,7 @@ int set_participant(participant_data_t *participant, uint32_t ssrc){
     pthread_mutex_lock(&participant->lock);
     participant->ssrc = ssrc;
     pthread_mutex_unlock(&participant->lock);
-    uint32_t id = rand(); //TODO: ID generation
+    uint32_t id = rand(); 
     stream_data_t *stream = init_stream(VIDEO, INPUT, id, I_AWAIT);
     add_participant_stream(participant, stream);
     printf("Stream added to participant with ID: %u\n", id);
@@ -211,13 +211,16 @@ int remove_participant_stream(participant_data_t *participant)
     return TRUE;
 }
 
-int get_participant_stream_id(participant_list_t *list, uint32_t part_id){
+int get_participant_from_stream_id(participant_list_t *list, uint32_t stream_id){
     participant_data_t *participant;
+    int i=0;
 
-    participant = get_participant_id(list, part_id);
+    participant = list->first;
 
-    if (participant != NULL){
-        return participant->stream->id;
+    while(participant != NULL){
+        if (participant->stream->id == stream_id)
+            return participant->id;
+        participant = participant->next;
     }
 
     return -1;

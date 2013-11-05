@@ -78,12 +78,8 @@ int destroy_stream(stream_data_t *stream)
 
 int add_stream(stream_list_t *list, stream_data_t *stream)
 {
-    printf("[add_stream] acquiring list lock\n");
     pthread_rwlock_wrlock(&list->lock);
-    printf("[add_stream] list lock acquired\n");
-    printf("[add_stream] acquiring stream lock\n");
     pthread_rwlock_wrlock(&stream->lock);
-    printf("[add_stream] stream lock acquired\n");
     int ret = TRUE;
 
     if (list->count == 0) {

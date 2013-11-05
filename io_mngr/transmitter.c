@@ -74,7 +74,7 @@ int init_transmission_rtp(participant_data_t *participant, transmitter_t *transm
         error_msg("init_transmission_rtp: pthread_create error");
     }
 
-    return ret;
+    return TRUE;
 }
 
 int init_transmission(participant_data_t *participant, transmitter_t *transmitter)
@@ -88,9 +88,7 @@ int init_transmission(participant_data_t *participant, transmitter_t *transmitte
 
     int ret = TRUE;
 
-    printf("[rtp] [trans] [ppant:%d] [init_transmission] RTP protocol\n", participant->id);
     ret = init_transmission_rtp(participant, transmitter);
-    
 
     pthread_mutex_unlock(&participant->lock);
     return ret;
@@ -117,8 +115,6 @@ void *transmitter_rtp_routine(void *arg)
     transmitter_t *transmitter = params->transmitter;
     participant_data_t *participant = params->participant;
     rtp_session_t *session = &participant->rtp;
-
-    printf("[rtp] [ppant:%d] START\n", participant->id);
 
     char *mcast_if = NULL;
     double rtcp_bw = DEFAULT_RTCP_BW;
@@ -149,7 +145,6 @@ void *transmitter_rtp_routine(void *arg)
     // Only one stream
     uint32_t last_seqno = 0;
 
-    printf("[rtp:%d] entering main bucle\n", participant->id);
     while (participant->rtp.run && participant->has_stream) {
 
         stream_data_t *stream = participant->stream;

@@ -79,6 +79,7 @@ void *receiver_thread(receiver_t *receiver) {
 				if (participant == NULL){
 					participant = get_participant_non_init(receiver->participant_list);
 					if (participant != NULL){
+						printf("Creating new participant\n");
 						set_participant(participant, cp->ssrc);
 						add_stream(receiver->stream_list, participant->stream);
 					}
