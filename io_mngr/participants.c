@@ -213,15 +213,17 @@ int remove_participant_stream(participant_data_t *participant)
 
 int get_participant_from_stream_id(participant_list_t *list, uint32_t stream_id){
     participant_data_t *participant;
-    int i=0;
+    pthread_rwlock_rdlock(&list->lock);
 
     participant = list->first;
 
     while(participant != NULL){
         if (participant->stream->id == stream_id)
+            pthread_rwlock_unlock(&list->lock);
             return participant->id;
         participant = participant->next;
     }
+    pthread_rwlock_unlock(&list->lock);
 
     return -1;
 }

@@ -290,6 +290,7 @@ video_data_t *init_video_data(video_type_t type){
     data->decoded_frame_seqno = 0;
     data->coded_frame_seqno = 0;
     data->type = type;
+    data->decoder = NULL; //As decoder and encoder are union, this is valid for both
 
     // locks initialization
     if (pthread_rwlock_init(&data->lock, NULL) < 0) {
@@ -390,7 +391,6 @@ int set_video_data(video_data_t *data, codec_t codec, uint32_t width, uint32_t h
             
         }
     }
-
     pthread_rwlock_unlock(&data->lock);
     return TRUE;
 }
