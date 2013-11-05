@@ -227,10 +227,10 @@ void *decoder_th(void* data){
             pthread_rwlock_wrlock(&v_data->decoded_frame_lock);
             decompress_frame(v_data->decoder->sd,(unsigned char *)v_data->decoded_frame, 
                 (unsigned char *)v_data->coded_frame, v_data->coded_frame_len, 0);
-            v_data->decoder->last_seqno = v_data->coded_frame_seqno; 
             v_data->decoded_frame_seqno ++;
             pthread_rwlock_unlock(&v_data->decoded_frame_lock);
             pthread_rwlock_unlock(&v_data->coded_frame_lock);
+
 
             pthread_mutex_lock(&v_data->new_decoded_frame_lock);
             v_data->new_decoded_frame = TRUE;
@@ -286,6 +286,8 @@ video_data_t *init_video_data(video_type_t type){
     data->decoded_frame_len = 0;
     data->decoded_frame = NULL;
     data->decoded_frame_seqno = 0;
+    data->new_coded_frame = FALSE;
+    data->new_decoded_frame = FALSE;
     data->coded_frame_seqno = 0;
     data->type = type;
     data->decoder = NULL; //As decoder and encoder are union, this is valid for both
