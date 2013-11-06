@@ -107,12 +107,10 @@ void *receiver_thread(receiver_t *receiver) {
 
 						if (participant->stream->state == ACTIVE && participant->stream->video->frame_type != BFRAME) {
 
-							pthread_rwlock_wrlock(&participant->stream->video->coded_frame_lock); 
-							participant->stream->video->coded_frame_seqno ++;
-							pthread_rwlock_unlock(&participant->stream->video->coded_frame_lock); 
 
 							pthread_mutex_lock(&participant->stream->video->new_coded_frame_lock);
 							participant->stream->video->new_coded_frame = TRUE;
+							participant->stream->video->coded_frame_seqno ++;
 							pthread_cond_signal(&participant->stream->video->decoder->notify_frame);
 							pthread_mutex_unlock(&participant->stream->video->new_coded_frame_lock);
 						
