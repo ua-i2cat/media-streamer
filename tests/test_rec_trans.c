@@ -27,7 +27,6 @@ int main(){
     in_part         = init_participant(1, INPUT, NULL, 0);
     
     add_stream(out_str_list, out_str);
-    start_transmitter(transmitter); //TODO: is this needed?
     c_start_server(server);
     
     add_participant(receiver->participant_list, in_part);
