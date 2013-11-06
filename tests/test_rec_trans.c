@@ -2,74 +2,72 @@
 #include "io_mngr/participants.h"
 #include "io_mngr/receiver.h"
 #include "io_mngr/transmitter.h"
+#include "io_mngr/c_basicRTSPOnlyServer.h"
 
 int main(){
-  participant_list_t *rec_list, *trans_list;
-  receiver_t *receiver;
-  rtsp_serv_t *server;
-  participant_data_t *participant_tmpl, *pt, *participant;
-  
-  rec_list = init_participant_list();
-  trans_list = init_participant_list();
-  participant_tmpl = init_participant(0, 0, 0, 0, H264, NULL, 0, OUTPUT);
-  
-  server = malloc(sizeof(rtsp_serv_t));
-  
-  server->descriptionString = "i2CAT Rocks!";
-  server->streamName = "i2catrocks";
-  server->port = 8554;
-  server->participant_tmpl = participant_tmpl;
-  server->list = trans_list;
-  
-  participant = init_participant(0, 1, 0, 0, H264, NULL, 0, INPUT);
-  add_participant(rec_list, participant);
-
-  receiver = init_receiver(rec_list, 6004);
-  
-  if (start_receiver(receiver)) {
-  
-	printf("Transmit up to 100000 frames\n");
-	
-    int i = 0;
-	while(i < 100000){
-		usleep(5*1000);
-
-        pthread_mutex_lock(&rec_list->first->lock);
-		if (rec_list->first->new_frame){
-     
-			pthread_rwlock_wrlock(&trans_list->lock);
-			if (server->participant_tmpl->width == 0 || server->participant_tmpl->height == 0){
-				pthread_mutex_lock(&server->participant_tmpl->lock);
-				server->participant_tmpl->width = rec_list->first->width;
-				server->participant_tmpl->height = rec_list->first->height;
-				pthread_mutex_unlock(&server->participant_tmpl->lock);
-				start_out_manager(trans_list, 25, server);
-			}
-	
-			pt = trans_list->first;
-			while(pt != NULL){
-				if (trans_list->count != 0 && pthread_mutex_trylock(&pt->lock) == 0) {
-					memcpy(pt->frame, (char *) rec_list->first->frame, rec_list->first->frame_length);
-					pt->new_frame = TRUE;
-					rec_list->first->new_frame = FALSE;
-					i++;
-					pthread_mutex_unlock(&pt->lock);
-				}
-				pt = pt->next;
-			}
-            pthread_rwlock_unlock(&trans_list->lock); 
-            
-        }
-        pthread_mutex_unlock(&rec_list->first->lock);
-	}
-  }
     
+    stream_list_t *in_str_list;
+    stream_data_t *in_str;
+    receiver_t *receiver;
     
+    stream_list_t *out_str_list;
+    stream_data_t *out_str;
+    transmitter_t *transmitter;
+    
+    rtsp_serv_t *server = (rtsp_serv_t*) malloc(sizeof(rtsp_serv_t));
+    
+    participant_data_t *in_part;
+    
+    in_str_list     = init_stream_list();
+    out_str_list    = init_stream_list();
+    out_str         = init_stream(VIDEO, OUTPUT, 0, ACTIVE, "i2catrocks");
+    transmitter     = init_transmitter(out_str_list, 20.0);
+    server          = init_rtsp_server(8554, out_str_list, transmitter);
+    receiver        = init_receiver(in_str_list, 5004);
+    in_part         = init_participant(1, INPUT, NULL, 0);
+    
+    add_stream(out_str_list, out_str);
+    start_transmitter(transmitter); //TODO: is this needed?
+    c_start_server(server);
+    
+    add_participant(receiver->participant_list, in_part);
 
-  printf(" deallocating resources and terminating threads\n");
-  stop_out_manager();
-  stop_receiver(receiver);
-  destroy_participant_list(trans_list);
-  destroy_participant_list(rec_list);
-  pthread_join(receiver->th_id, NULL);
+    
+    if (start_receiver(receiver)) {
+
+        while(1){
+            pthread_rwlock_rdlock(&in_str_list->lock);
+            in_str = in_str_list->first;
+            if (in_str == NULL){
+                pthread_rwlock_unlock(&in_str_list->lock);
+                continue;   
+            } else if (out_str->video == NULL) {
+                pthread_rwlock_wrlock(&out_str_list->lock);
+                set_video_data(out_str->video, in_str->video->codec, in_str->video->width, in_str->video->height);
+                init_encoder(out_str->video);
+                pthread_rwlock_unlock(&out_str_list->lock);
+            }
+            pthread_mutex_lock(&in_str->video->new_decoded_frame_lock);
+            if (in_str->video->new_decoded_frame){            
+                pthread_rwlock_rdlock(&in_str->video->decoded_frame_lock);
+                pthread_rwlock_wrlock(&out_str->video->decoded_frame_lock);
+                
+                memcpy(out_str->video->decoded_frame, in_str->video->decoded_frame, in_str->video->decoded_frame_len);
+                out_str->video->decoded_frame_len = in_str->video->decoded_frame_len;
+
+                pthread_rwlock_unlock(&out_str->video->decoded_frame_lock);
+                pthread_rwlock_unlock(&in_str->video->decoded_frame_lock);
+                in_str->video->new_decoded_frame = FALSE;
+                out_str->video->new_decoded_frame = TRUE;
+            }
+            pthread_mutex_unlock(&in_str->video->new_decoded_frame_lock);
+            pthread_rwlock_unlock(&in_str_list->lock);
+        }       
+        
+    }
+    
+    stop_transmitter(transmitter);
+    destroy_stream_list(out_str_list);
+    stop_receiver(receiver);
+    destroy_stream_list(in_str_list);
 }

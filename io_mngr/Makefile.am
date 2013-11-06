@@ -11,7 +11,7 @@ libiomanager_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -I.. -I../src -I../src/rtp -I../sr
 libiomanager_la_SOURCES = stream.c \
 						  participants.c \
 						  transmitter.c \
-						  receiver.c \ 
+						  receiver.c \
 						  BasicRTSPOnlyServer.cpp \
 						  BasicRTSPOnlySubsession.cpp \
 						  c_basicRTSPOnlyServer.cpp \

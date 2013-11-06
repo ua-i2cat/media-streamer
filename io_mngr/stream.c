@@ -45,11 +45,17 @@ stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, s
         free(stream);
         return NULL;
     }
+    
+    if (stream_name == NULL){
+        stream->stream_name = NULL;
+    } else {
+        stream->stream_name = strdup(stream_name);
+    }
+    
     stream->id = id;
     stream->type = type;
     stream->io_type = io_type;
     stream->state = state;
-	stream->stream_name = strdup(stream_name);
     stream->prev = NULL;
     stream->next = NULL;
 

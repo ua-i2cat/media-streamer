@@ -136,8 +136,6 @@ int main(int argc, char **argv)
 	server->streams = streams;
 	server->transmitter = transmitter;
     
-    c_init_server(server);
-
     init_encoder(stream->video);
     
     c_start_server(server);

@@ -182,7 +182,7 @@ int start_transmitter(transmitter_t *transmitter)
     transmitter->run = TRUE;
     
     participant_list_t *list = transmitter->participants;
-    struct participant_data *participant = list->first;
+    participant_data_t *participant = list->first;
     while (participant != NULL) {
         printf("[trans] [master] initializing encoder for stream %d\n", participant->stream->id);
         init_encoder(participant->stream->video);
