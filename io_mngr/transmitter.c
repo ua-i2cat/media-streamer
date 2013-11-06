@@ -89,6 +89,8 @@ int stop_transmission(participant_data_t *participant)
     pthread_mutex_lock(&participant->lock);
 
     participant->rtp.run = FALSE;
+    assert(participant->stream->video->encoder != NULL);
+    pthread_cond_broadcast(&participant->stream->video->encoder->output_cond);
     pthread_join(participant->rtp.thread, NULL);
 
     // TODO: signaling may be required?
@@ -184,10 +186,7 @@ int start_transmitter(transmitter_t *transmitter)
     participant_list_t *list = transmitter->participants;
     participant_data_t *participant = list->first;
     while (participant != NULL) {
-        printf("[trans] [master] initializing encoder for stream %d\n", participant->stream->id);
         init_encoder(participant->stream->video);
-    
-        printf("[trans] [master] initializing transmission for participant %d\n", participant->id);
         init_transmission(participant, transmitter);
         participant = participant->next;
     }
