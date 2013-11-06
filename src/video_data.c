@@ -352,7 +352,7 @@ int destroy_video_data(video_data_t *data){
      if (data->type == DECODER && data->decoder != NULL){
         stop_decoder(data);
     } else if (data->type == ENCODER && data->encoder != NULL){
-        //destroy_encoder(stream->encoder);
+        stop_encoder(data);
     }
     pthread_rwlock_wrlock(&data->decoded_frame_lock);
     free(data->decoded_frame);
