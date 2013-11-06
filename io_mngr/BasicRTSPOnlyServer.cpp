@@ -43,8 +43,6 @@ int init_server(int port, stream_list_t* streams, transmitter_t* transmitter) {
 	
 	char* url = rtspServer->rtspURL(sms);
     *env << "\n\"" << stream->stream_name << "\" stream, from a UDP Transport Stream input source \n\t(";
-    *env << "unicast;";
-    //*env << " port " << startPortNum << ")\n";
     *env << "Play this stream using the URL \"" << url << "\"\n";
     delete[] url;
 	
@@ -63,4 +61,4 @@ void *start_server(void *args){
 	return NULL;
 }
 
-//TODO:Update server method
+//TODO:Update server method and stop server method

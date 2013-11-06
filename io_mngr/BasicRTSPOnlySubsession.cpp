@@ -55,7 +55,7 @@ void BasicRTSPOnlySubsession
 	char const* mediaType = "video";
 	uint8_t rtpPayloadType = 96;
 	AddressString ipAddressStr(fServerAddressForSDP);
-	char* rtpmapLine = "a=rtpmap:96 H264/90000\n";
+	char* rtpmapLine = strdup("a=rtpmap:96 H264/90000\n");
 	char const* auxSDPLine = "";
 
 	char const* const sdpFmt =
@@ -126,36 +126,20 @@ void BasicRTSPOnlySubsession::startStream(unsigned clientSessionId,
 	if (dst == NULL){
 		return;
 	} else {
-		pthread_rwlock_wrlock(&fTransmitter->participants->lock);
-        add_transmitter_participant(fTransmitter, clientSessionId,  inet_ntoa(dst->addr), ntohs(dst->rtpPort.num()));
-		add_participant_stream(fTransmitter->participants->first, fStream);
-        init_transmission(fTransmitter->participants->first, fTransmitter);
-		pthread_rwlock_unlock(&fTransmitter->participants->lock);
+        participant_data_t *participant;
+        participant = init_participant(clientSessionId, OUTPUT, inet_ntoa(dst->addr), ntohs(dst->rtpPort.num()));
+        add_participant_stream(participant, fStream);
+        add_transmitter_participant(fTransmitter, participant);
+        init_transmission(participant, fTransmitter);
 	}
 }
 
-void BasicRTSPOnlySubsession::pauseStream(unsigned clientSessionId, void* streamToken){
-// 	Destinations* dst = 
-// 		(Destinations*)(fDestinationsHashTable->Lookup((char const*)clientSessionId));
-// 	if (dst == NULL){
-// 		return;
-// 	} else {
-// 		stream_data_t *participant;
-// 		pthread_rwlock_wrlock(&list->lock);
-// 		remove_participant_ssrc(list, clientSessionId);
-// 		pthread_rwlock_unlock(&list->lock);
-// 	}
-}
-
 void BasicRTSPOnlySubsession::deleteStream(unsigned clientSessionId, void*& streamToken){
-// 	Destinations* dst = 
-// 		(Destinations*)(fDestinationsHashTable->Lookup((char const*)clientSessionId));
-// 	if (dst == NULL){
-// 		return;
-// 	} else {
-// 		stream_data_t *participant;
-// 		pthread_rwlock_wrlock(&list->lock);
-// 		remove_participant_ssrc(list, clientSessionId);
-// 		pthread_rwlock_unlock(&list->lock);
-// 	}
+    Destinations* dst = 
+        (Destinations*)(fDestinationsHashTable->Lookup((char const*)clientSessionId));
+    if (dst == NULL){
+        return;
+    } else {
+        destroy_transmitter_participant(fTransmitter, clientSessionId);
+    }
 }

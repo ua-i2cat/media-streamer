@@ -10,6 +10,7 @@ extern "C" {
 #endif
 
 #include "transmitter.h"
+#include "participants.h"
 
 #ifdef __cplusplus
 }
@@ -56,8 +57,6 @@ protected:
 								  unsigned& rtpTimestamp, 
 								  ServerRequestAlternativeByteHandler* serverRequestAlternativeByteHandler,
 								  void* serverRequestAlternativeByteHandlerClientData);
-	
-	virtual void pauseStream(unsigned clientSessionId, void* streamToken);
 	
 	virtual void deleteStream(unsigned clientSessionId, void*& streamToken);
 

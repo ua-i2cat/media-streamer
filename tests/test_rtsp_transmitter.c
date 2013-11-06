@@ -110,7 +110,7 @@ int main(int argc, char **argv)
     printf("[test] init_stream_list\n");
     stream_list_t *streams = init_stream_list();
     printf("[test] init_stream\n");
-    stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE, "i2CATRocks");
+    stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE, "i2catrocks");
     printf("[test] set_stream_video_data\n");
     set_video_data(stream->video, H264, 1280, 720);
     printf("[test] add_stream\n");
