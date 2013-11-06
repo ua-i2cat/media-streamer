@@ -32,7 +32,7 @@ void destroy_stream_list(stream_list_t *list)
     free(list);
 }
 
-stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, stream_state_t state)
+stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, stream_state_t state, char *stream_name)
 {
     stream_data_t *stream = malloc(sizeof(stream_data_t));
     if (stream == NULL) {
@@ -49,6 +49,7 @@ stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, s
     stream->type = type;
     stream->io_type = io_type;
     stream->state = state;
+	stream->stream_name = strdup(stream_name);
     stream->prev = NULL;
     stream->next = NULL;
 
@@ -72,6 +73,7 @@ int destroy_stream(stream_data_t *stream)
     }
 
     pthread_rwlock_destroy(&stream->lock);
+	free(stream->stream_name);
     free(stream);
     return TRUE;
 }

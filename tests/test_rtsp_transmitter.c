@@ -2,6 +2,7 @@
 #include "transmitter.h"
 #include "video_compress.h"
 #include "debug.h"
+#include "c_basicRTSPOnlyServer.h"
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 
@@ -119,20 +120,30 @@ int main(int argc, char **argv)
     transmitter_t *transmitter = init_transmitter(streams, 25.0);
     start_transmitter(transmitter);
 
-    add_transmitter_participant(transmitter, 0, "127.0.0.1", 8000);
-    add_participant_stream(transmitter->participants->first, stream);    
+    //add_transmitter_participant(transmitter, 0, "127.0.0.1", 8000);
+    //add_participant_stream(transmitter->participants->first, stream);    
 
     //init_transmission(transmitter->participants->first, transmitter);
 
-    add_transmitter_participant(transmitter, 1, "127.0.0.1", 9000);
-    add_participant_stream(transmitter->participants->last, stream);
+    //add_transmitter_participant(transmitter, 1, "127.0.0.1", 9000);
+    //add_participant_stream(transmitter->participants->last, stream);
 
     //init_transmission(transmitter->participants->last, transmitter);
+	rtsp_serv_t *server;
+	server = malloc(sizeof(rtsp_serv_t));
+  
+	server->port = 8554;
+	server->streams = streams;
+	server->transmitter = transmitter;
+    
+    c_init_server(server);
 
     init_encoder(stream->video);
     
-    printf("[test_transmitter] transmitter->participants->first->id: %d\n", transmitter->participants->first->id);
-    printf("[test_transmitter] transmitter->participants->last->id: %d\n", transmitter->participants->last->id);
+    c_start_server(server);
+    
+    //printf("[test_transmitter] transmitter->participants->first->id: %d\n", transmitter->participants->first->id);
+    //printf("[test_transmitter] transmitter->participants->last->id: %d\n", transmitter->participants->last->id);
     
     // Stuff ... 
     AVFormatContext *pformat_ctx = avformat_alloc_context();
@@ -149,8 +160,6 @@ int main(int argc, char **argv)
                         codec_ctx.width, codec_ctx.height)*sizeof(uint8_t));
     
     int counter = 0;
-
-    printf("[test] entering main test loop\n");
 
     struct timeval a, b;
 
@@ -170,7 +179,6 @@ int main(int argc, char **argv)
             stream->video->decoded_frame_len = vc_get_linesize(width, RGB)*height;
             memcpy(stream->video->decoded_frame, b1, stream->video->decoded_frame_len); 
             pthread_rwlock_unlock(&stream->video->decoded_frame_lock);
-
             sem_post(&stream->video->encoder->input_sem);
         } else {
             break;

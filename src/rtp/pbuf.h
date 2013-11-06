@@ -69,7 +69,7 @@
 
 #include "list.h"
 #include "rtp.h"
-#include "audio.h"
+#include "audio/audio.h"
 
 /* The coded representation of a single frame */
 struct coded_data {

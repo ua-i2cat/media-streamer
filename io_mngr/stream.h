@@ -30,6 +30,7 @@ typedef struct stream_data {
     stream_type_t type;
     io_type_t io_type;
     stream_state_t state;
+	char *stream_name;
     uint32_t id;
     struct stream_data *prev;
     struct stream_data *next;
@@ -51,7 +52,7 @@ void destroy_encoder(encoder_thread_t *encoder);
 stream_list_t *init_stream_list(void);
 void destroy_stream_list(stream_list_t *list);
 
-stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, stream_state_t state);
+stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, stream_state_t state, char* stream_name);
 int add_stream(stream_list_t *list, stream_data_t *stream);
 int remove_stream(stream_list_t *list, uint32_t id);
 int destroy_stream(stream_data_t *stream);

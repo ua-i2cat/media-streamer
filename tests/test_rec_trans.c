@@ -6,38 +6,57 @@
 int main(){
   participant_list_t *rec_list, *trans_list;
   receiver_t *receiver;
+  rtsp_serv_t *server;
+  participant_data_t *participant_tmpl, *pt, *participant;
   
   rec_list = init_participant_list();
   trans_list = init_participant_list();
+  participant_tmpl = init_participant(0, 0, 0, 0, H264, NULL, 0, OUTPUT);
   
-  add_participant(rec_list, 1, 1280, 720, H264, NULL, 0, INPUT);
-  add_participant(trans_list, 1, 1280, 720, H264, "127.0.0.1", 6004, OUTPUT);
+  server = malloc(sizeof(rtsp_serv_t));
   
-  receiver = init_receiver(rec_list, 5004);
+  server->descriptionString = "i2CAT Rocks!";
+  server->streamName = "i2catrocks";
+  server->port = 8554;
+  server->participant_tmpl = participant_tmpl;
+  server->list = trans_list;
+  
+  participant = init_participant(0, 1, 0, 0, H264, NULL, 0, INPUT);
+  add_participant(rec_list, participant);
+
+  receiver = init_receiver(rec_list, 6004);
   
   if (start_receiver(receiver)) {
-
-    start_out_manager(trans_list, 25);
   
-	printf("Transmit up to 1000 frames to disk\n");
-	  
+	printf("Transmit up to 100000 frames\n");
+	
     int i = 0;
-	while(i < 1000){
-		usleep(10*1000);
+	while(i < 100000){
+		usleep(5*1000);
 
         pthread_mutex_lock(&rec_list->first->lock);
 		if (rec_list->first->new_frame){
-
-            
+     
 			pthread_rwlock_wrlock(&trans_list->lock);
-
-            if (pthread_mutex_trylock(&trans_list->first->lock) == 0) {
-                    memcpy(trans_list->first->frame, (char *) rec_list->first->frame, rec_list->first->frame_length);
-                    rec_list->first->new_frame = FALSE;
-                    trans_list->first->new_frame = TRUE;
-                    i++;
-                    pthread_mutex_unlock(&trans_list->first->lock);
-            }
+			if (server->participant_tmpl->width == 0 || server->participant_tmpl->height == 0){
+				pthread_mutex_lock(&server->participant_tmpl->lock);
+				server->participant_tmpl->width = rec_list->first->width;
+				server->participant_tmpl->height = rec_list->first->height;
+				pthread_mutex_unlock(&server->participant_tmpl->lock);
+				start_out_manager(trans_list, 25, server);
+			}
+	
+			pt = trans_list->first;
+			while(pt != NULL){
+				if (trans_list->count != 0 && pthread_mutex_trylock(&pt->lock) == 0) {
+					memcpy(pt->frame, (char *) rec_list->first->frame, rec_list->first->frame_length);
+					pt->new_frame = TRUE;
+					rec_list->first->new_frame = FALSE;
+					i++;
+					pthread_mutex_unlock(&pt->lock);
+				}
+				pt = pt->next;
+			}
             pthread_rwlock_unlock(&trans_list->lock); 
             
         }

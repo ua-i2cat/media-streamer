@@ -121,7 +121,7 @@ int set_participant(participant_data_t *participant, uint32_t ssrc){
     participant->ssrc = ssrc;
     pthread_mutex_unlock(&participant->lock);
     uint32_t id = rand(); 
-    stream_data_t *stream = init_stream(VIDEO, INPUT, id, I_AWAIT);
+    stream_data_t *stream = init_stream(VIDEO, INPUT, id, I_AWAIT, NULL);
     add_participant_stream(participant, stream);
     printf("Stream added to participant with ID: %u\n", id);
     return TRUE;
