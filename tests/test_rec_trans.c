@@ -41,24 +41,24 @@ int main(){
             if (in_str == NULL){
                 pthread_rwlock_unlock(&in_str_list->lock);
                 continue;   
-            } else if (out_str->video == NULL) {
+            } else if (in_str->video->decoder != NULL && out_str->video->encoder == NULL) {
                 pthread_rwlock_wrlock(&out_str_list->lock);
                 set_video_data(out_str->video, in_str->video->codec, in_str->video->width, in_str->video->height);
                 init_encoder(out_str->video);
                 pthread_rwlock_unlock(&out_str_list->lock);
             }
             pthread_mutex_lock(&in_str->video->new_decoded_frame_lock);
-            if (in_str->video->new_decoded_frame){            
+            if (in_str->video->new_decoded_frame){
                 pthread_rwlock_rdlock(&in_str->video->decoded_frame_lock);
                 pthread_rwlock_wrlock(&out_str->video->decoded_frame_lock);
                 
                 memcpy(out_str->video->decoded_frame, in_str->video->decoded_frame, in_str->video->decoded_frame_len);
                 out_str->video->decoded_frame_len = in_str->video->decoded_frame_len;
-
+                 
                 pthread_rwlock_unlock(&out_str->video->decoded_frame_lock);
                 pthread_rwlock_unlock(&in_str->video->decoded_frame_lock);
                 in_str->video->new_decoded_frame = FALSE;
-                out_str->video->new_decoded_frame = TRUE;
+                sem_post(&out_str->video->encoder->input_sem); 
             }
             pthread_mutex_unlock(&in_str->video->new_decoded_frame_lock);
             pthread_rwlock_unlock(&in_str_list->lock);
