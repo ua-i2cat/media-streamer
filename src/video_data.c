@@ -304,6 +304,7 @@ video_data_t *init_video_data(video_type_t type){
     data->new_decoded_frame = FALSE;
     data->coded_frame_seqno = 0;
     data->type = type;
+    data->fps = 25;
     data->decoder = NULL; //As decoder and encoder are union, this is valid for both
 
     // locks initialization
