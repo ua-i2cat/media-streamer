@@ -219,8 +219,12 @@ int add_transmitter_participant(transmitter_t *transmitter, participant_data_t *
     return init_transmission(participant, transmitter);
 }
 
-int destroy_transmitter_participant(transmitter_t *transmitter, participant_data_t *participant)
+int destroy_transmitter_participant(transmitter_t *transmitter, uint32_t id)
 {
+    participant_data_t *participant = get_participant_id(transmitter->participants, id);
+    if (participant == NULL) {
+        return FALSE;
+    }
     if (stop_transmission(participant) < 0) {
         return FALSE;   
     }
