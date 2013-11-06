@@ -26,11 +26,8 @@ participant_data_t *init_participant(uint32_t id, io_type_t type, char *addr, ui
     return participant;
 }
 
-int add_participant(participant_list_t *list, int id, io_type_t part_type, char *addr, uint32_t port){
-    struct participant_data *participant;
-  
-    participant = init_participant(id, part_type, addr, port);
-
+int add_participant(participant_list_t *list, participant_data_t *participant)
+{
     pthread_rwlock_wrlock(&list->lock);
   
     if (list->count == 0) {

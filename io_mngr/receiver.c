@@ -156,5 +156,6 @@ int stop_receiver(receiver_t *receiver){
 
 int add_receiver_participant(receiver_t *receiver, uint32_t id)
 {
-    return add_participant(receiver->participant_list, id, INPUT, (char *)NULL, 0);
+    participant_data_t *participant = init_participant(id, INPUT, (char *)NULL, 0);
+    return add_participant(receiver->participant_list, participant);
 }
