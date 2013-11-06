@@ -47,8 +47,6 @@ typedef struct stream_list {
     stream_data_t *last;
 } stream_list_t;
 
-void destroy_encoder(encoder_thread_t *encoder);
-
 stream_list_t *init_stream_list(void);
 void destroy_stream_list(stream_list_t *list);
 

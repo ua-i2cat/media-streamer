@@ -15,8 +15,6 @@ int transmitter_init_threads(struct participant_data *participant);
 void transmitter_dummy_callback(struct rtp *session, rtp_event *e);
 void transmitter_destroy_encoder_thread(encoder_thread_t **encoder);
 
-int init_transmission_rtp(participant_data_t *participant, transmitter_t *transmitter);
-
 typedef struct {
     participant_data_t *participant;
     transmitter_t *transmitter;
@@ -50,33 +48,6 @@ transmitter_t *init_transmitter(stream_list_t *stream_list, float fps)
     return transmitter;
 }
 
-int init_transmission_rtp(participant_data_t *participant, transmitter_t *transmitter)
-{
-    assert(participant->type == OUTPUT);
-
-    if (participant->rtp.run == TRUE) {
-        // If it's already initialized, do nothing
-        return TRUE;
-    }
-
-    rtp_routine_params_t *params = malloc(sizeof(rtp_routine_params_t));
-    if (params == NULL) {
-        error_msg("init_transmission_rtp: malloc error");
-        return FALSE;
-    }
-    params->participant = participant;
-    params->transmitter = transmitter;
-
-    int ret = pthread_create(&participant->rtp.thread, NULL,
-                             transmitter_rtp_routine, params);
-    participant->rtp.run = TRUE;
-    if (ret < 0) {
-        error_msg("init_transmission_rtp: pthread_create error");
-    }
-
-    return TRUE;
-}
-
 int init_transmission(participant_data_t *participant, transmitter_t *transmitter)
 {
     pthread_mutex_lock(&participant->lock);
@@ -86,20 +57,45 @@ int init_transmission(participant_data_t *participant, transmitter_t *transmitte
         return FALSE;
     }
 
-    int ret = TRUE;
+    if (participant->rtp.run == TRUE) {
+        pthread_mutex_unlock(&participant->lock);
+        // If it's already initialized, do nothing
+        return TRUE;
+    }
 
-    ret = init_transmission_rtp(participant, transmitter);
+    rtp_routine_params_t *params = malloc(sizeof(rtp_routine_params_t));
+    if (params == NULL) {
+        error_msg("init_transmission: malloc error");
+        pthread_mutex_unlock(&participant->lock);
+        return FALSE;
+    }
+    params->participant = participant;
+    params->transmitter = transmitter;
+
+    int ret = pthread_create(&participant->rtp.thread, NULL,
+                             transmitter_rtp_routine, params);
+    if (ret < 0) {
+        error_msg("init_transmission: pthread_create error");
+        pthread_mutex_unlock(&participant->lock);
+    }
+    participant->rtp.run = TRUE;
 
     pthread_mutex_unlock(&participant->lock);
-    return ret;
+    return TRUE;
 }
 
 int stop_transmission(participant_data_t *participant)
 {
-    // TODO
     pthread_mutex_lock(&participant->lock);
 
+    participant->rtp.run = FALSE;
+    pthread_join(participant->rtp.thread, NULL);
+
+    // TODO: signaling may be required?
+
     pthread_mutex_unlock(&participant->lock);
+
+    return TRUE;
 }
 
 void transmitter_dummy_callback(struct rtp *session, rtp_event *e)
@@ -215,14 +211,25 @@ int stop_transmitter(transmitter_t *transmitter)
     return TRUE;
 }
 
-int add_transmitter_participant(transmitter_t *transmitter, uint32_t id, char *addr, uint32_t port)
+int add_transmitter_participant(transmitter_t *transmitter, participant_data_t *participant)
 {
-    if (add_participant(transmitter->participants, id, OUTPUT, addr, port) < 0) {
+    if (add_participant(transmitter->participants, participant) < 0) {
         return FALSE;
     }
+    return init_transmission(participant, transmitter);
+}
+
+int destroy_transmitter_participant(transmitter_t *transmitter, uint32_t id)
+{
     participant_data_t *participant = get_participant_id(transmitter->participants, id);
     if (participant == NULL) {
         return FALSE;
     }
-    return init_transmission(participant, transmitter);
+    if (stop_transmission(participant) < 0) {
+        return FALSE;   
+    }
+    if (remove_participant(transmitter->participants, participant->id) < 0) {
+        return FALSE;
+    }
+    return TRUE;
 }

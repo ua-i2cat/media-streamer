@@ -77,7 +77,9 @@ encoder_thread_t *init_encoder(video_data_t *data);
 
 void start_decoder(video_data_t *v_data);
 void destroy_decoder(decoder_thread_t *decoder);
+void destroy_encoder(video_data_t *data);
 void stop_decoder(video_data_t *data);
+void stop_encoder(video_data_t *data);
 
 video_data_t *init_video_data(video_type_t type);
 int destroy_video_data(video_data_t *data);

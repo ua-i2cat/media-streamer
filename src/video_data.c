@@ -45,7 +45,7 @@ void *encoder_routine(void *arg)
     vf_get_tile(frame, 0)->height = height;
     frame->color_spec = PIXEL_FORMAT;
     // TODO: set default fps value. If it's not set -> core dump
-    frame->fps = DEFAULT_FPS; 
+    frame->fps = video->fps; 
     frame->interlacing = PROGRESSIVE;
 
     encoder->run = TRUE; 
@@ -55,7 +55,7 @@ void *encoder_routine(void *arg)
 
     sem_wait(&encoder->input_sem);
    
-    long wait_time = 5000; //40000;
+    long wait_time = 1000000.0 / (float)video->fps; //5000; //40000;
 
     while (encoder->run) {
         gettimeofday(&a, NULL);
@@ -71,7 +71,6 @@ void *encoder_routine(void *arg)
         
         struct video_frame *tx_frame;
         tx_frame = compress_frame(encoder->cs, frame, encoder->index);
-
         
         pthread_rwlock_wrlock(&video->coded_frame_lock);
         encoder->frame = tx_frame;
@@ -80,7 +79,6 @@ void *encoder_routine(void *arg)
         video->coded_frame_seqno++;
         pthread_rwlock_unlock(&video->coded_frame_lock);
         
-        //sem_post(&encoder->output_sem);
         pthread_cond_broadcast(&encoder->output_cond);
         encoder->index = (encoder->index + 1) % 2;
 
@@ -96,6 +94,7 @@ void *encoder_routine(void *arg)
     free(frame);
     pthread_exit((void *)NULL);
 }
+
 encoder_thread_t *init_encoder(video_data_t *data)
 {
     if (data->encoder != NULL) {
@@ -158,6 +157,21 @@ encoder_thread_t *init_encoder(video_data_t *data)
 
     return encoder;
 }
+
+void destroy_encoder(video_data_t *data)
+{
+    pthread_join(data->encoder->thread, NULL);
+    free(data->encoder);
+}
+
+void stop_encoder(video_data_t *data)
+{
+    pthread_mutex_lock(&data->encoder->lock);
+    data->encoder->run = FALSE;
+    pthread_mutex_unlock(&data->encoder->lock);
+    destroy_encoder(data);
+}
+
 
 decoder_thread_t *init_decoder(video_data_t *data){
 	decoder_thread_t *decoder;
@@ -227,10 +241,10 @@ void *decoder_th(void* data){
             pthread_rwlock_wrlock(&v_data->decoded_frame_lock);
             decompress_frame(v_data->decoder->sd,(unsigned char *)v_data->decoded_frame, 
                 (unsigned char *)v_data->coded_frame, v_data->coded_frame_len, 0);
-            v_data->decoder->last_seqno = v_data->coded_frame_seqno; 
             v_data->decoded_frame_seqno ++;
             pthread_rwlock_unlock(&v_data->decoded_frame_lock);
             pthread_rwlock_unlock(&v_data->coded_frame_lock);
+
 
             pthread_mutex_lock(&v_data->new_decoded_frame_lock);
             v_data->new_decoded_frame = TRUE;
@@ -286,8 +300,11 @@ video_data_t *init_video_data(video_type_t type){
     data->decoded_frame_len = 0;
     data->decoded_frame = NULL;
     data->decoded_frame_seqno = 0;
+    data->new_coded_frame = FALSE;
+    data->new_decoded_frame = FALSE;
     data->coded_frame_seqno = 0;
     data->type = type;
+    data->fps = 25;
     data->decoder = NULL; //As decoder and encoder are union, this is valid for both
 
     // locks initialization
@@ -336,7 +353,7 @@ int destroy_video_data(video_data_t *data){
      if (data->type == DECODER && data->decoder != NULL){
         stop_decoder(data);
     } else if (data->type == ENCODER && data->encoder != NULL){
-        //destroy_encoder(stream->encoder);
+        stop_encoder(data);
     }
     pthread_rwlock_wrlock(&data->decoded_frame_lock);
     free(data->decoded_frame);

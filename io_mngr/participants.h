@@ -50,7 +50,7 @@ struct participant_data {
 participant_list_t *init_participant_list(void);
 void destroy_participant_list(participant_list_t *list);
 
-int add_participant(participant_list_t *list, int id, io_type_t part_type, char *addr, uint32_t port);
+int add_participant(participant_list_t *list, participant_data_t *participant);
 int remove_participant(participant_list_t *list, uint32_t id);
 
 participant_data_t *get_participant_id(participant_list_t *list, uint32_t id);

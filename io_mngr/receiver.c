@@ -87,7 +87,8 @@ void *receiver_thread(receiver_t *receiver) {
 
 				if (participant != NULL) {
 
-					if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, participant->stream->video)) {	
+					if (!participant->stream->video->new_coded_frame && 
+							pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, participant->stream->video)) {	
 
 						gettimeofday(&curr_time, NULL);
 
@@ -106,13 +107,10 @@ void *receiver_thread(receiver_t *receiver) {
 
 						if (participant->stream->state == ACTIVE && participant->stream->video->frame_type != BFRAME) {
 
-							pthread_rwlock_wrlock(&participant->stream->video->coded_frame_lock); 
-							participant->stream->video->coded_frame_seqno ++;
-							pthread_rwlock_unlock(&participant->stream->video->coded_frame_lock); 
-
 
 							pthread_mutex_lock(&participant->stream->video->new_coded_frame_lock);
 							participant->stream->video->new_coded_frame = TRUE;
+							participant->stream->video->coded_frame_seqno ++;
 							pthread_cond_signal(&participant->stream->video->decoder->notify_frame);
 							pthread_mutex_unlock(&participant->stream->video->new_coded_frame_lock);
 						
@@ -158,5 +156,6 @@ int stop_receiver(receiver_t *receiver){
 
 int add_receiver_participant(receiver_t *receiver, uint32_t id)
 {
-    return add_participant(receiver->participant_list, id, INPUT, (char *)NULL, 0);
+    participant_data_t *participant = init_participant(id, INPUT, (char *)NULL, 0);
+    return add_participant(receiver->participant_list, participant);
 }
