@@ -36,7 +36,7 @@
 
 // For debug pourpouses
 #define RECEIVER_ENABLE 1   // Receive code.
-#define SENDER_ENABLE 0     // Send code.
+#define SENDER_ENABLE 1     // Send code.
 
 
 /**************************************

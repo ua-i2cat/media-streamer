@@ -776,140 +776,56 @@ void audio_tx_send(struct tx* tx, struct rtp *rtp_session, audio_frame2 * buffer
 
 void audio_tx_send_mulaw(struct tx* tx, struct rtp *rtp_session, audio_frame2 * buffer)
 {
-        int pt = PT_PCMU; /* mulaw */
-        unsigned int pos = 0u,
-                     m = 0u;
-        int channel;
-        char *chan_data;
-        int data_len;
-        char *data;
-        // see definition in rtp_callback.h
-//        uint32_t hdr_data[100];
-//        uint32_t *audio_hdr = hdr_data;
-//        uint32_t *crypto_hdr = audio_hdr + sizeof(audio_payload_hdr_t) / sizeof(uint32_t);
-        uint32_t timestamp;
-//#ifdef HAVE_LINUX
-//        struct timespec start, stop;
-//#elif defined HAVE_MACOSX
-//        struct timeval start, stop;
-//#else // Windows
-//	LARGE_INTEGER start, stop, freq;
-//#endif
-//        long delta;
-//        int mult_pos[FEC_MAX_MULT];
-//        int mult_index = 0;
-//        int mult_first_sent = 0;
-//        int rtp_hdr_len;
+    int pt;
+    uint32_t timestamp = get_local_mediatime();
 
-        platform_spin_lock(&tx->spin);
+    platform_spin_lock(&tx->spin);
 
-        timestamp = get_local_mediatime();
-//        perf_record(UVP_SEND, timestamp);
+    // Configure the right Payload type.
+    if (buffer->ch_count > 1) {
+        pt = PT_DynRTP_Type97;
+    } else {
+        pt = PT_ITU_T_G711_PCMU;
+    }
 
-//        if(tx->encryption) {
-//                rtp_hdr_len = sizeof(crypto_payload_hdr_t) + sizeof(audio_payload_hdr_t);
-//                pt = PT_ENCRYPT_AUDIO;
-//        } else {
-//                rtp_hdr_len = sizeof(audio_payload_hdr_t);
-//                pt = PT_AUDIO; /* PT set for audio in our packet format */
-//        }
+    // The sizes for the different audio_frame2 channels must be the same.
+    for (int i = 1 ; i < buffer->ch_count ; i++) assert(buffer->data_len[0] == buffer->data_len[i]);
 
-        for(channel = 0; channel < buffer->ch_count; ++channel)
-        {
-                chan_data = buffer->data[channel];
-                pos = 0u;
+    int data_len = buffer->data_len[0] * buffer->ch_count;  /* Number of samples to send */
+    int data_remainig = data_len;
+    int payload_size = tx->mtu - 40;                        /* Max size of an RTP payload field */
+    int packets = data_len / payload_size;                  
+    if (data_len % payload_size != 0) packets++;            /* Number of RTP packets needed */
+    uint32_t sample_time = 1 / buffer->sample_rate;
 
-//                if(tx->fec_scheme == FEC_MULT) {
-//                        int i;
-//                        for (i = 0; i < tx->mult_count; ++i) {
-//                                mult_pos[i] = 0;
-//                        }
-//                        mult_index = 0;
-//                }
+    char *data = malloc(payload_size);
+    char *curr_sample = data;
 
-//                uint32_t tmp;
-//                tmp = channel << 22; /* bits 0-9 */
-//                tmp |= tx->buffer; /* bits 10-31 */
-//                audio_hdr[0] = htonl(tmp);
+    // For each interval that fits in an RTP payload field.
+    for (int p = 0 ; p < packets ; p++) {
+        // Update first sample timestamp
+        timestamp += ((buffer->data_len[0] * buffer->ch_count) - data_remainig) * sample_time; 
 
-//                audio_hdr[2] = htonl(buffer->data_len[channel]);
-
-                /* fourth word */
-//                tmp = (buffer->bps * 8) << 26;
-//                tmp |= buffer->sample_rate;
-//                audio_hdr[3] = htonl(tmp);
-
-                /* fifth word */
-//                audio_hdr[4] = htonl(rtp_get_audio_tag(buffer->codec));
-
-                do {
-//                        if(tx->fec_scheme == FEC_MULT) {
-//                                pos = mult_pos[mult_index];
-//                        }
-
-                        data = chan_data + pos;
-//                        data_len = tx->mtu - 40 - sizeof(audio_payload_hdr_t);
-                        data_len = tx->mtu - 40;
-                        if(pos + data_len >= (unsigned int) buffer->data_len[channel]) {
-                                data_len = buffer->data_len[channel] - pos;
-//                                if(channel == buffer->ch_count - 1)
-//                                        m = 1;
-                        }
-//                        audio_hdr[1] = htonl(pos);
-                        pos += data_len;
-                        
-//                        GET_STARTTIME;
-                        
-                        if(data_len) { /* check needed for FEC_MULT */
-//                                char encrypted_data[data_len + MAX_CRYPTO_EXCEED];
-//                                if(tx->encryption) {
-//                                        crypto_hdr[0] = htonl(CRYPTO_TYPE_AES128_CTR << 24);
-//                                        data_len = openssl_encrypt(tx->encryption,
-//                                                        data, data_len,
-//                                                        (char *) audio_hdr, sizeof(audio_payload_hdr_t),
-//                                                        encrypted_data);
-//                                        data = encrypted_data;
-//                                }
-
-//                                rtp_send_data_hdr(rtp_session, timestamp, pt, m, 0,        /* contributing sources */
-//                                      0,        /* contributing sources length */
-//                                      (char *) audio_hdr, rtp_hdr_len,
-//                                      data, data_len,
-//                                      0, 0, 0);
-                                rtp_send_data(rtp_session, timestamp, pt, m, 0,        /* contributing sources */
-                                      0,        /* contributing sources length */
-                                      data, data_len,
-                                      0, 0, 0);
-                        }
-
-//                        if(tx->fec_scheme == FEC_MULT) {
-//                                mult_pos[mult_index] = pos;
-//                                mult_first_sent ++;
-//                                if(mult_index != 0 || mult_first_sent >= (tx->mult_count - 1))
-//                                                mult_index = (mult_index + 1) % tx->mult_count;
-//                        }
-
-//                        do {
-//                                GET_STOPTIME;
-//                                GET_DELTA;
-//                                if (delta < 0)
-//                                        delta += 1000000000L;
-//                        } while (packet_rate - delta > 0);
-
-                        /* when trippling, we need all streams goes to end */
-//                        if(tx->fec_scheme == FEC_MULT) {
-//                                pos = mult_pos[tx->mult_count - 1];
-//                        }
-
-                      
-                } while (pos < (unsigned int) buffer->data_len[channel]);
+        // Interleave the samples
+        for (int ch_sample = 0 ; ch_sample < buffer->data_len[0] ; ch_sample++){
+            for (int ch = 0 ; ch < buffer->ch_count ; ch++) {
+                memcpy(curr_sample, (char *)(buffer->data[ch] + ch_sample), sizeof(uint8_t)); 
+                curr_sample += sizeof(uint8_t);
+                data_remainig--;
+            }
         }
 
-        tx->buffer ++;
+        // Send the packet
+        rtp_send_data(rtp_session, timestamp, pt, 0, 0,        /* contributing sources */
+                0,        /* contributing sources length */
+                data, data_len,
+                0, 0, 0);
+    }
 
-        platform_spin_unlock(&tx->spin);
+    tx->buffer ++;
+
+    platform_spin_unlock(&tx->spin);
 }
-
 
 void rtpenc_h264_stats_print()
 {
