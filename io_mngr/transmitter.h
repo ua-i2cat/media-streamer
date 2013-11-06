@@ -43,4 +43,6 @@ int stop_transmission(participant_data_t *participant);
 
 int add_transmitter_participant(transmitter_t *transmitter, participant_data_t *participant);
 
+int destroy_transmitter_participant(transmitter_t *transmitter, participant_data_t *participant);
+
 #endif
