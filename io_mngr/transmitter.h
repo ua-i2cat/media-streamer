@@ -41,6 +41,6 @@ int stop_transmitter(transmitter_t *transmitter);
 int init_transmission(participant_data_t *participant, transmitter_t *transmitter);
 int stop_transmission(participant_data_t *participant);
 
-int add_transmitter_participant(transmitter_t *transmitter, uint32_t id, char *addr, uint32_t port);
+int add_transmitter_participant(transmitter_t *transmitter, participant_data_t *participant);
 
 #endif
