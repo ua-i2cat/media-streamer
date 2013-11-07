@@ -1,14 +1,40 @@
 #include "BasicRTSPOnlyServer.hh"
 
-RTSPServer* rtspServer;
-UsageEnvironment* env;
 
-int init_server(int port, stream_list_t* streams, transmitter_t* transmitter) {
-	
-  TaskScheduler* scheduler = BasicTaskScheduler::createNew();
-  env = BasicUsageEnvironment::createNew(*scheduler);
+BasicRTSPOnlyServer::BasicRTSPOnlyServer(int port, stream_list_t* streams, 
+                        transmitter_t* transmitter){
+    if(transmitter == NULL || streams == NULL){
+        exit(1);
+    }
+    
+    this->fPort = port;
+    this->fStreams = streams;
+    this->fTransmitter = transmitter;
+    this->rtspServer = NULL;
+    this->env = NULL;
+    this->srvInstance = this;
+}
 
-  UserAuthenticationDatabase* authDB = NULL;
+BasicRTSPOnlyServer* 
+BasicRTSPOnlyServer::getInstance(int port, stream_list_t* streams, transmitter_t* transmitter){
+    if (srvInstance != NULL){
+        return srvInstance;
+    }
+    return new BasicRTSPOnlyServer(port, streams, transmitter);
+}
+
+
+int BasicRTSPOnlyServer::init_server() {
+    
+    if (env != NULL || rtspServer != NULL || 
+        fStreams == NULL || fTransmitter == NULL){
+        exit(1);
+    }
+    
+    TaskScheduler* scheduler = BasicTaskScheduler::createNew();
+    env = BasicUsageEnvironment::createNew(*scheduler);
+
+    UserAuthenticationDatabase* authDB = NULL;   
 // #ifdef ACCESS_CONTROL
 //   // To implement client access control to the RTSP server, do the following:
 //   authDB = new UserAuthenticationDatabase;
@@ -17,48 +43,78 @@ int init_server(int port, stream_list_t* streams, transmitter_t* transmitter) {
 //   // access to the server.
 // #endif
 
-  if (port == 0){
-	  port = 8554;
-  }
+    if (fPort == 0){
+        fPort = 8554;
+    }
   
-  rtspServer = RTSPServer::createNew(*env, port, authDB);
-  if (rtspServer == NULL) {
-	*env << "Failed to create RTSP server: " << env->getResultMsg() << "\n";
-	exit(1);
-  }
+    rtspServer = RTSPServer::createNew(*env, fPort, authDB);
+    if (rtspServer == NULL) {
+        *env << "Failed to create RTSP server: " << env->getResultMsg() << "\n";
+        exit(1);
+    }
   
-  stream_data_t* stream = (stream_data_t*) malloc(sizeof(stream_data_t));
-  stream = streams->first;
+    stream_data_t* stream = (stream_data_t*) malloc(sizeof(stream_data_t));
+    stream = fStreams->first;
   
-  ServerMediaSession* sms;
+    ServerMediaSession* sms;
   
-  while (stream != NULL){
-    sms = ServerMediaSession::createNew(*env, stream->stream_name, 
+    while (stream != NULL){
+        sms = ServerMediaSession::createNew(*env, stream->stream_name, 
 					stream->stream_name,
 					stream->stream_name);
 	
-    sms->addSubsession(BasicRTSPOnlySubsession
-		       ::createNew(*env, True, stream, transmitter));
-    rtspServer->addServerMediaSession(sms);
+        sms->addSubsession(BasicRTSPOnlySubsession
+		       ::createNew(*env, True, stream, fTransmitter));
+        rtspServer->addServerMediaSession(sms);
 	
-	char* url = rtspServer->rtspURL(sms);
-    *env << "\n\"" << stream->stream_name << "\" stream, from a UDP Transport Stream input source \n\t(";
-    *env << "Play this stream using the URL \"" << url << "\"\n";
-    delete[] url;
+        char* url = rtspServer->rtspURL(sms);
+        *env << "\nPlay this stream using the URL \"" << url << "\"\n";
+        delete[] url;
 	
-	stream = stream->next;
-  }
+        stream = stream->next;
+    }
   
-  return 0;
+    return 0;
 }
 
-void *start_server(void *args){
+int BasicRTSPOnlyServer::update_server(){
+    stream_data_t* stream = (stream_data_t*) malloc(sizeof(stream_data_t));
+    stream = fStreams->first;
+  
+    ServerMediaSession* sms;
+  
+    while (stream != NULL){
+        sms = rtspServer->lookupServerMediaSession(stream->stream_name);
+        if (sms == NULL){
+            sms = ServerMediaSession::createNew(*env, stream->stream_name, 
+                    stream->stream_name,
+                    stream->stream_name);
+    
+            sms->addSubsession(BasicRTSPOnlySubsession
+               ::createNew(*env, True, stream, fTransmitter));
+            rtspServer->addServerMediaSession(sms);
+    
+            char* url = rtspServer->rtspURL(sms);
+            *env << "\nPlay this stream using the URL \"" << url << "\"\n";
+            delete[] url;
+        }
+        stream = stream->next;
+    }
+}
+
+void *BasicRTSPOnlyServer::start_server(void *args){
+    char* watch = (char*) args;
+    
 	if (env == NULL || rtspServer == NULL){
 		return NULL;
 	}
-	env->taskScheduler().doEventLoop(); 
+	env->taskScheduler().doEventLoop(watch); 
+    
+    Medium::close(rtspServer);
+    delete &env->taskScheduler();
+    env->reclaim();
 	
 	return NULL;
 }
 
-//TODO:Update server method and stop server method
+//TODO:Update server method

@@ -24,11 +24,12 @@ EXTERNC typedef struct rtsp_serv {
 	stream_list_t* streams;
 	transmitter_t* transmitter;
     pthread_t server_th;
+    uint8_t watch;
 } rtsp_serv_t;
 
-//EXTERNC int c_init_server(rtsp_serv_t* server);
-
 EXTERNC int c_start_server(rtsp_serv_t* server);
+
+EXTERNC void c_stop_server(rtsp_serv_t* server);
 
 EXTERNC rtsp_serv_t* init_rtsp_server(uint port, stream_list_t *streams, transmitter_t *transmitter);
 

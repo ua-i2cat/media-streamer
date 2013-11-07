@@ -6,6 +6,9 @@
 
 int main(){
     
+    struct timeval a, b;
+    uint8_t run = TRUE;
+    
     stream_list_t *in_str_list;
     stream_data_t *in_str;
     receiver_t *receiver;
@@ -20,21 +23,25 @@ int main(){
     
     in_str_list     = init_stream_list();
     out_str_list    = init_stream_list();
-    out_str         = init_stream(VIDEO, OUTPUT, 0, ACTIVE, "i2catrocks");
+    out_str         = init_stream(VIDEO, OUTPUT, 0, ACTIVE, "i2cat_rocks");
     transmitter     = init_transmitter(out_str_list, 20.0);
     server          = init_rtsp_server(8554, out_str_list, transmitter);
     receiver        = init_receiver(in_str_list, 5004);
     in_part         = init_participant(1, INPUT, NULL, 0);
     
+    gettimeofday(&a, NULL);
+    gettimeofday(&b, NULL);
+    
     add_stream(out_str_list, out_str);
     c_start_server(server);
     
     add_participant(receiver->participant_list, in_part);
-
     
     if (start_receiver(receiver)) {
 
-        while(1){
+        printf("This test stops normally after 50 seconds\n");
+        
+        while(run){
             pthread_rwlock_rdlock(&in_str_list->lock);
             in_str = in_str_list->first;
             if (in_str == NULL){
@@ -61,10 +68,20 @@ int main(){
             }
             pthread_mutex_unlock(&in_str->video->new_decoded_frame_lock);
             pthread_rwlock_unlock(&in_str_list->lock);
+            
+            gettimeofday(&b, NULL);
+            if (b.tv_sec - a.tv_sec >= 50){
+                run = FALSE;
+            } else {
+                usleep(5000);
+            }
         }       
         
     }
     
+    printf("Stopping all managers\n");
+    
+    c_stop_server(server);
     stop_transmitter(transmitter);
     destroy_stream_list(out_str_list);
     stop_receiver(receiver);

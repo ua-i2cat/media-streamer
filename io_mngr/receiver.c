@@ -33,7 +33,7 @@ receiver_t *init_receiver(stream_list_t *stream_list, uint32_t port){
       	}
       
       	if (!rtp_set_sdes(receiver->session, rtp_my_ssrc(receiver->session),
-				RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING))) { //TODO: is this needed?
+				RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING))) { //TODO: is this needed?			
 			return NULL;
       	}
 
