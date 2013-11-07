@@ -78,8 +78,10 @@ void *encoder_routine(void *arg)
         video->coded_frame_len = vf_get_tile(tx_frame, 0)->data_len;
         video->coded_frame_seqno++;
         pthread_rwlock_unlock(&video->coded_frame_lock);
-        
+
+        pthread_mutex_lock(&encoder->output_lock);
         pthread_cond_broadcast(&encoder->output_cond);
+        pthread_mutex_unlock(&encoder->output_lock);
         encoder->index = (encoder->index + 1) % 2;
 
         gettimeofday(&b, NULL);
@@ -88,6 +90,7 @@ void *encoder_routine(void *arg)
         if (diff < wait_time) {
             usleep(wait_time - diff);
         }
+
     }
 
     module_done(CAST_MODULE(&cmod));
@@ -131,9 +134,9 @@ encoder_thread_t *init_encoder(video_data_t *data)
 
     if (pthread_cond_init(&encoder->output_cond, NULL) < 0) {
         error_msg("init_encoder: pthread_cond_init error");
-        pthread_mutex_destroy(&encoder->output_lock);
         pthread_mutex_destroy(&encoder->lock);
         sem_destroy(&encoder->input_sem);
+        pthread_mutex_destroy(&encoder->output_lock);
         free(encoder);
         return NULL;
     }
@@ -283,6 +286,7 @@ void stop_decoder(video_data_t *data){
 
     pthread_mutex_lock(&data->new_coded_frame_lock);
     data->new_coded_frame = TRUE;
+
     pthread_cond_signal(&data->decoder->notify_frame);
     pthread_mutex_unlock(&data->new_coded_frame_lock);
 

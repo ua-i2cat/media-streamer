@@ -151,7 +151,9 @@ void *transmitter_rtp_routine(void *arg)
         assert(encoder != NULL);
 
         // TODO: add protection against spurious wakes. They should not be harmful in this scenario though.
+        pthread_mutex_lock(&participant->stream->video->encoder->output_lock);
         pthread_cond_wait(&participant->stream->video->encoder->output_cond, &participant->stream->video->encoder->output_lock);
+        pthread_mutex_unlock(&participant->stream->video->encoder->output_lock);
 
         pthread_rwlock_rdlock(&stream->video->coded_frame_lock);
 
@@ -175,7 +177,7 @@ void *transmitter_rtp_routine(void *arg)
     rtp_send_bye(rtp);
     rtp_done(rtp);
     module_done(CAST_MODULE(&tmod));
-    
+   
     pthread_exit(NULL);
 }
 
@@ -191,7 +193,6 @@ int start_transmitter(transmitter_t *transmitter)
         participant = participant->next;
     }
 
-    
     return TRUE;
 }
 
