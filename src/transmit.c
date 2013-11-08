@@ -59,14 +59,15 @@
 #include "crypto/random.h"
 #include "debug.h"
 #include "perf.h"
-#include "audio/audio.h"
-#include "audio/codec.h"
-#include "audio/utils.h"
+//#include "audio/audio.h"
+#include "codec.h"
+#include "utils.h"
 #include "crypto/openssl_encrypt.h"
 #include "module.h"
 //#include "rtp/ldgm.h"
 #include "rtp/rtp.h"
 #include "rtp/rtp_callback.h"
+#include "rtp/audio_frame2.h"
 #include "tv.h"
 #include "transmit.h"
 //#include "host.h"
@@ -708,7 +709,7 @@ void audio_tx_send(struct tx* tx, struct rtp *rtp_session, audio_frame2 * buffer
                 audio_hdr[3] = htonl(tmp);
 
                 /* fifth word */
-                audio_hdr[4] = htonl(get_audio_tag(buffer->codec));
+                audio_hdr[4] = htonl(rtp_get_audio_tag(buffer->codec));
 
                 do {
                         if(tx->fec_scheme == FEC_MULT) {
@@ -773,6 +774,58 @@ void audio_tx_send(struct tx* tx, struct rtp *rtp_session, audio_frame2 * buffer
         platform_spin_unlock(&tx->spin);
 }
 
+void audio_tx_send_mulaw(struct tx* tx, struct rtp *rtp_session, audio_frame2 * buffer)
+{
+    int pt;
+    uint32_t timestamp = get_local_mediatime();
+
+    platform_spin_lock(&tx->spin);
+
+    // Configure the right Payload type.
+    if (buffer->ch_count > 1) {
+        pt = PT_DynRTP_Type97;
+    } else {
+        pt = PT_ITU_T_G711_PCMU;
+    }
+
+    // The sizes for the different audio_frame2 channels must be the same.
+    for (int i = 1 ; i < buffer->ch_count ; i++) assert(buffer->data_len[0] == buffer->data_len[i]);
+
+    int data_len = buffer->data_len[0] * buffer->ch_count;  /* Number of samples to send */
+    int data_remainig = data_len;
+    int payload_size = tx->mtu - 40;                        /* Max size of an RTP payload field */
+    int packets = data_len / payload_size;                  
+    if (data_len % payload_size != 0) packets++;            /* Number of RTP packets needed */
+    uint32_t sample_time = 1 / buffer->sample_rate;
+
+    char *data = malloc(payload_size);
+    char *curr_sample = data;
+
+    // For each interval that fits in an RTP payload field.
+    for (int p = 0 ; p < packets ; p++) {
+        // Update first sample timestamp
+        timestamp += ((buffer->data_len[0] * buffer->ch_count) - data_remainig) * sample_time; 
+
+        // Interleave the samples
+        for (int ch_sample = 0 ; ch_sample < buffer->data_len[0] ; ch_sample++){
+            for (int ch = 0 ; ch < buffer->ch_count ; ch++) {
+                memcpy(curr_sample, (char *)(buffer->data[ch] + ch_sample), sizeof(uint8_t)); 
+                curr_sample += sizeof(uint8_t);
+                data_remainig--;
+            }
+        }
+
+        // Send the packet
+        rtp_send_data(rtp_session, timestamp, pt, 0, 0,        /* contributing sources */
+                0,        /* contributing sources length */
+                data, data_len,
+                0, 0, 0);
+    }
+
+    tx->buffer ++;
+
+    platform_spin_unlock(&tx->spin);
+}
 
 void rtpenc_h264_stats_print()
 {

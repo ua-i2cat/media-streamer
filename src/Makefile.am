@@ -1,8 +1,8 @@
-lib_LTLIBRARIES = librtp.la libvcompress.la libvdecompress.la
+lib_LTLIBRARIES = librtp.la libvcompress.la libvdecompress.la libacompression.la
 
 
-AM_CFLAGS = -std=gnu99 -g -lm -DHAVE_CONFIG_H -g -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
-AM_CXXFLAGS = -O2 -g -DHAVE_CONFIG_H -g -fPIC -Wno-multichar -Wno-deprecated -msse2
+AM_CFLAGS = -std=gnu99 -g -lm -DHAVE_CONFIG_H -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
+AM_CXXFLAGS = -O2 -g -DHAVE_CONFIG_H -fPIC -Wno-multichar -Wno-deprecated -msse2
 
 
 librtp_la_LDFLAGS = -version-info 0:1:0 -lrt -ldl -lieee -lm -lcrypto
@@ -15,6 +15,7 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					rtp/rtp_callback.c \
 					rtp/rtpdec.c \
 					rtp/audio_decoders.c \
+                                        rtp/audio_frame2.c \
 					crypto/crc_32.c \
 					crypto/crypt_aes.c \
 					crypto/crypt_aes_impl.c \
@@ -23,8 +24,6 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					crypto/openssl_decrypt.c\
 					crypto/openssl_encrypt.c \
 					crypto/random.c \
-                                        audio/utils.c \
-                                        audio/codec.c \
 					tv.c \
 					perf.c \
 					tfrc.c \
@@ -47,8 +46,8 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					video_data_frame.c 
 
 libvcompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut -lGLU
-libvcompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_compress -Iutils -Icompat -I.. -I../dxt_compress
-libvcompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Ivideo_compress -Iutils -Icompat -I.. -I../dxt_compress
+libvcompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_compress -Iutils -Icompat -Iaudio -I.. -I../dxt_compress
+libvcompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Ivideo_compress -Iutils -Icompat -Iaudio -I.. -I../dxt_compress
 libvcompress_la_SOURCES = video_frame.c \
 						  gl_context.c \
 						  glx_common.c \
@@ -76,8 +75,8 @@ libvcompress_la_SOURCES = video_frame.c \
 #						  ../dxt_compress/dxt_util.c
 
 libvdecompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut -lGLU
-libvdecompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_decompress -Iutils -Icompat -I.. -I../dxt_compress
-libvdecompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Ivideo_decompress -Iutils -Icompat -I.. -I../dxt_compress
+libvdecompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_decompress -Iutils -Icompat -Iaudio -I.. -I../dxt_compress
+libvdecompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Ivideo_decompress -Iutils -Icompat -Iaudio -I.. -I../dxt_compress
 libvdecompress_la_SOURCES =  video_frame.c \
 							 gl_context.c \
 							 glx_common.c \
@@ -101,6 +100,15 @@ libvdecompress_la_SOURCES =  video_frame.c \
 #							 ../dxt_compress/dxt_display.c \
 #							 ../dxt_compress/dxt_encoder.c \
 #							 ../dxt_compress/dxt_util.c
+
+libacompression_la_LDFLAGS = -version-info 0:1:0 -lpthread -lavcodec -lavutil
+libacompression_la_CFLAGS = $(AM_CFLAGS) -I. -Iutils -Icompat -Iaudio -Iaudio/codec
+libacompression_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Iutils -Icompat -Iaudio -Iaudio/codec
+libacompression_la_SOURCES = audio/codec.c \
+							 audio/utils.c  \
+							 audio/codec/dummy_pcm.c \
+							 audio/codec/libavcodec.c \
+							 utils/resource_manager.cpp
 
 ugincludedir = $(includedir)/ug-modules
 nobase_uginclude_HEADERS =	./tfrc.h \
@@ -164,11 +172,14 @@ nobase_uginclude_HEADERS =	./tfrc.h \
 							./rtp/ptime.h \
 							./rtp/rtp.h \
 							./rtp/audio_decoders.h \
+                                                        ./rtp/audio_frame2.h \
 							./video_decompress.h \
 							./video_data_frame.h \
                                                         ./audio/audio.h \
                                                         ./audio/utils.h \
                                                         ./audio/codec.h \
+							./audio/codec/dummy_pcm.h \
+							./audio/codec/libavcodec.h \
   						    ../dxt_compress/dxt_common.h \
 						    ../dxt_compress/dxt_decoder.h \
 						    ../dxt_compress/dxt_display.h \

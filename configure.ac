@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT([ug-modules], [0.1.0], [BUG-REPORT-ADDRESS])
+AC_INIT([ug-modules], [0.1.0])
 #AC_CONFIG_SRCDIR([cuda_dxt/cuda_dxt.h])
 
 # non-verbose output
@@ -10,7 +10,9 @@ AM_SILENT_RULES([yes])
 
 LT_INIT
 
-AM_INIT_AUTOMAKE([ug-modules], [0.1.0])
+AM_INIT_AUTOMAKE([subdir-objects])
+
+AC_CONFIG_MACRO_DIR([m4])
 
 # Checks for programs.
 AC_PROG_CXX

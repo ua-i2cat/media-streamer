@@ -1,31 +1,41 @@
 /*
  *
- * Test program to retransmit audio using only RTP to RTP.
+ * Test program to retransmit audio using only RTP and u-law compression.
  * Based on UltraGrid code.
  *
- * It creates two different RTP sessions managed by two different threads.
- * Each packet processed on the receiver thread RTP session is pointed by a global shared object.
- * Using this the sender thread sends it throught its RTP session.
  *
  * By Txor <jordi.casas@i2cat.net>
  *
  */
 
+// General includes
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <getopt.h>
+
+// Includes for librtp
 #include "rtp/rtp.h"
 #include "rtp/pbuf.h"
 #include "rtp/rtp_callback.h"
 #include "rtp/audio_decoders.h"
 #include "rtp/audio_frame2.h"
+#include "transmit.h"
 #include "module.h"
+#include "perf.h"
 #include "tv.h"
 #include "pdb.h"
 
+// Includes for libadecompress
+#include "audio.h"
+#include "codec.h"
+
 #define DEFAULT_AUDIO_FEC       "mult:3"
+
+// For debug pourpouses
+#define RECEIVER_ENABLE 1   // Receive code.
+#define SENDER_ENABLE 1     // Send code.
 
 
 /**************************************
@@ -35,6 +45,7 @@
 static volatile bool stop = false;
 static audio_frame2 *shared_frame = NULL;
 static volatile bool consumed = true;
+static struct audio_desc audio_configuration;
 
 // Like state_audio (audio/audio.c:105)
 // Used to communicate data to threads.
@@ -43,6 +54,9 @@ struct thread_data {
     struct rtp *rtp_session;
     struct pdb *participants;
     struct timeval start_time;
+
+    // Codec stuff
+    struct audio_codec_state * audio_coder;
 
     // Sender stuff
     struct tx *tx_session;
@@ -60,10 +74,14 @@ struct thread_data {
 
 // Prototypes
 extern int audio_pbuf_decode(struct pbuf *playout_buf, struct timeval curr_time, decode_frame_t decode_func, void *data);
+extern void list_audio_codecs(void);
+extern struct audio_codec_state *audio_codec_init(audio_codec_t audio_codec, audio_codec_direction_t);
+extern audio_codec_t get_audio_codec_to_name(const char *name);
+extern const char *get_name_to_audio_codec(audio_codec_t codec);
 
 static void usage(void)
 {
-    printf("Usage: audio_rtp_only [-r <receive_port>] [-h <sendto_host>] [-s <sendto_port>]\n");
+    printf("Usage: audio_mulaw_only [-r <receive_port>] [-h <sendto_host>] [-s <sendto_port>] [-c <channels>]\n");
     printf(" By Txor >:D\n");
 }
 
@@ -104,6 +122,9 @@ static struct rtp *init_network(char *addr, int recv_port,
 //   It listens to UDP port and when it receivers a packet (cp != NULL)
 //   Iterate by the participants,
 //     trying to decode an audio frame from stored RTP packets. 
+//     If it decodes an RTP packet,
+//       decompress it using u-law codec
+//       and flag up the mark (consumed).
 //   Once it's done, update the shared audio_frame2 poniter where the frame is.
 static void *receiver_thread(void *arg)
 {
@@ -111,12 +132,16 @@ static void *receiver_thread(void *arg)
     struct timeval timeout, curr_time;
     uint32_t ts;
     struct pdb_e *cp;
-    audio_frame2 *frame;
 
-    frame = rtp_audio_frame2_init();
+    // audio_decoder will be used for decoding RTP incoming data,
+    // containing an audio_frame2 and the static audio configuration.
+    struct state_audio_decoder audio_decoder;
+    audio_decoder.frame = rtp_audio_frame2_init();
+    audio_decoder.desc = &audio_configuration;
 
     printf(" Receiver started.\n");
     while (!stop) {
+#if RECEIVER_ENABLE
         // Preparate timeouts and perform RTP session maintenance.
         gettimeofday(&curr_time, NULL);
         ts = tv_diff(curr_time, d->start_time) * 90000;
@@ -134,21 +159,28 @@ static void *receiver_thread(void *arg)
 
         while (cp != NULL) {
             // Get the data on pbuf and decode it on the frame using the callback.
-            if (audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame, frame)) {
+            if (rtp_audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame_mulaw, (void *) &audio_decoder)) {
                 // If decoded, mark it ready to consume.
                 consumed = false;
             }
             pbuf_remove(cp->playout_buffer, curr_time);
             cp = pdb_iter_next(&it);
         }
-        // Point shared_frame to the received frame.
-        shared_frame = frame;
+
+        // Save on shared_frame the result of audio_codec_decompress 
+        // using the audio_frame2 from pbuf_data.decoder (received_frame).
+        if (!consumed) {
+            shared_frame = audio_codec_decompress(d->audio_coder, audio_decoder.frame);
+        }
         pdb_iter_done(&it);
+#endif //RECEIVER_ENABLE
+
         // Wait for sender to be ready.
         pthread_mutex_unlock(d->go);
         pthread_mutex_lock(d->wait);
     }
     // Finish RTP session and exit.
+    rtp_audio_frame2_free(audio_decoder.frame);
     rtp_done(d->rtp_session);
     printf(" Receiver stopped.\n");
 
@@ -160,7 +192,9 @@ static void *receiver_thread(void *arg)
 // Function for sender thread.
 // Based on audio_sender_thread (audio/audio.c:610)
 // Basically explained:
-//   If there's a new audio_frame2, send it throught the RTP session.
+//   If there's a new audio_frame2 
+//     Iteratively compress (see audio/codec.c:210)
+//       and send it throught the RTP session.
 static void *sender_thread(void *arg)
 {
     struct thread_data *d = arg;
@@ -170,11 +204,19 @@ static void *sender_thread(void *arg)
         // Wait for receiver to be ready.
         pthread_mutex_unlock(d->go);
         pthread_mutex_lock(d->wait);
+#if SENDER_ENABLE
         // Send the data away only if not consumed before.
         if (!consumed) {
             consumed = true;
-            audio_tx_send(d->tx_session, d->rtp_session, shared_frame);
+            // Iteratively compress-and-send, see audio/codec.c:210.
+            audio_frame2 *uncompressed = shared_frame;
+            audio_frame2 *compressed = NULL;
+            while((compressed = audio_codec_compress(d->audio_coder, uncompressed))) {
+                audio_tx_send_mulaw(d->tx_session, d->rtp_session, compressed);
+                uncompressed = NULL;
+            }
         }
+#endif //SENDER_ENABLE
     }
     // Finish RTP session and exit.
     rtp_done(d->rtp_session);
@@ -199,17 +241,26 @@ int main(int argc, char *argv[])
     uint16_t receive_port = PORT_AUDIO;
     uint16_t sendto_port = PORT_AUDIO + 1000;
 
+    // Audio configuration
+    int channels = 1;
+    int sample_rate = 8000;
+    int bps = 1;
+
+    // u-law codec options
+    audio_codec_t audio_codec = AC_MULAW;
+
     // Option processing
     static struct option getopt_options[] = {
         {"sendto_host", required_argument, 0, 'h'},
         {"receive_port", required_argument, 0, 'r'},
         {"sendto_port", required_argument, 0, 's'},
+        {"channels", required_argument, 0, 'c'},
         {0, 0, 0, 0}
     };
     int ch;
     int option_index = 0;
 
-    while ((ch = getopt_long(argc, argv, "h:s:r:", getopt_options, &option_index)) != -1) {
+    while ((ch = getopt_long(argc, argv, "h:s:r:c:", getopt_options, &option_index)) != -1) {
         switch (ch) {
             case 'h':
                 sendto_host = optarg;
@@ -220,6 +271,9 @@ int main(int argc, char *argv[])
             case 'r':
                 receive_port = atoi(optarg);
                 break;
+            case 'c':
+                channels = atoi(optarg);
+                break;
             case '?':
                 usage();
                 exit(0);
@@ -229,11 +283,23 @@ int main(int argc, char *argv[])
         }
     }
 
+    printf("Audio proxy over RTP and u-law compression test!\n");
     printf("Host to send: %s\n", sendto_host);
     printf("Port to send: %i\n", sendto_port);
     printf("Port to receive: %i\n", receive_port);
+    printf("Audio configuration:\n");
+    printf("  Channels: %i\n", channels);
+    printf("  Sample rate: %i\n", sample_rate);
+    printf("  bps: %i\n", bps);
+    printf("  Codec: %s\n", get_name_to_audio_codec(audio_codec));
 
     // We will create two threads with one different RTP session each, similar than audio_cfg_init (audio/audio.c:180) does.
+
+    // Global audio configuration
+    audio_configuration.bps = bps;
+    audio_configuration.sample_rate = sample_rate;
+    audio_configuration.ch_count = channels;
+    audio_configuration.codec = audio_codec;
 
     // Synchronization stuff
     pthread_mutex_t receiver_mutex;
@@ -254,6 +320,8 @@ int main(int argc, char *argv[])
     receiver_data->go = &sender_mutex;
     // tx_session not used.
     receiver_data->tx_session = NULL;
+    // Receiver codec configuration
+    receiver_data->audio_coder = audio_codec_init(audio_codec, AUDIO_DECODER);
 
     // Sender RTP session stuff
     struct rtp *sender_session;
@@ -271,6 +339,8 @@ int main(int argc, char *argv[])
     module_init_default(&mod);
     char *audio_fec = strdup(DEFAULT_AUDIO_FEC);
     sender_data->tx_session = tx_init(&mod, 1500, TX_MEDIA_AUDIO, audio_fec, NULL);
+    // Sender codec configuration
+    sender_data->audio_coder = audio_codec_init(audio_codec, AUDIO_CODER);
 
     // Launch them
     gettimeofday(&receiver_data->start_time, NULL);
@@ -287,7 +357,6 @@ int main(int argc, char *argv[])
     // Wait for them
     pthread_join(receiver_data->id, NULL);
     pthread_join(sender_data->id, NULL);
-
     printf("Done!\n");
 
 }

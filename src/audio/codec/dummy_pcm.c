@@ -1,5 +1,5 @@
 /*
- * FILE:    audio/echo.h
+ * FILE:    audio/codec/dummy_pcm.c
  * AUTHORS: Martin Benes     <martinbenesh@gmail.com>
  *          Lukas Hejtmanek  <xhejtman@ics.muni.cz>
  *          Petr Holub       <hopet@ics.muni.cz>
@@ -46,56 +46,68 @@
  *
  */
 
-#ifndef AUDIO_CODEC_H_
-#define AUDIO_CODEC_H_
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#include "config_unix.h"
+#include "config_win32.h"
+#endif /* HAVE_CONFIG_H */
 
 #include "audio.h"
+#include "codec.h"
+#include "dummy_pcm.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "debug.h"
 
-typedef enum {
-        AUDIO_CODER,
-        AUDIO_DECODER
-} audio_codec_direction_t;
+#define MAGIC 0x552bca11
 
-struct audio_codec {
-        const audio_codec_t *supported_codecs;
-        const int *supported_bytes_per_second;
-        void *(*init)(audio_codec_t, audio_codec_direction_t, bool);
-        audio_channel *(*compress)(void *, audio_channel *);
-        audio_channel *(*decompress)(void *, audio_channel *);
-        void (*done)(void *);
+static void *dummy_pcm_init(audio_codec_t audio_codec, audio_codec_direction_t direction, bool try_init);
+static audio_channel *dummy_pcm_compress(void *, audio_channel *);
+static audio_channel *dummy_pcm_decompress(void *, audio_channel *);
+static void dummy_pcm_done(void *);
+
+struct dummy_pcm_codec_state {
+        uint32_t magic;
 };
 
-extern void (*register_audio_codec)(struct audio_codec *);
-
-typedef struct {
-        const char *name;
-        /** @var tag
-         *  @brief TwoCC if defined, otherwise we define our tag
-         */
-        uint32_t    tag;
-} audio_codec_info_t;
-
-extern audio_codec_info_t audio_codec_info[];
-extern int audio_codec_info_len;
-
-struct audio_codec_state;
-
-struct audio_codec_state *audio_codec_init(audio_codec_t audio_codec, audio_codec_direction_t);
-struct audio_codec_state *audio_codec_reconfigure(struct audio_codec_state *old,
-                audio_codec_t audio_codec, audio_codec_direction_t);
-audio_frame2 *audio_codec_compress(struct audio_codec_state *, audio_frame2 *);
-audio_frame2 *audio_codec_decompress(struct audio_codec_state *, audio_frame2 *);
-//const int *audio_codec_get_supported_bps(struct audio_codec_state *);
-void audio_codec_done(struct audio_codec_state *);
-
-void list_audio_codecs(void);
-
-#ifdef __cplusplus
+static void *dummy_pcm_init(audio_codec_t audio_codec, audio_codec_direction_t direction, bool try_init)
+{
+        UNUSED(direction);
+        UNUSED(try_init);
+        assert(audio_codec == AC_PCM);
+        struct dummy_pcm_codec_state *s = malloc(sizeof(struct dummy_pcm_codec_state));
+        s->magic = MAGIC;
+        return s;
 }
-#endif
 
-#endif /* AUDIO_CODEC_H */
+static audio_channel *dummy_pcm_compress(void *state, audio_channel * channel)
+{
+        struct dummy_pcm_codec_state *s = (struct dummy_pcm_codec_state *) state;
+        assert(s->magic == MAGIC);
+
+        return channel;
+}
+
+static audio_channel *dummy_pcm_decompress(void *state, audio_channel * channel)
+{
+        struct dummy_pcm_codec_state *s = (struct dummy_pcm_codec_state *) state;
+        assert(s->magic == MAGIC);
+
+        return channel;
+}
+
+static void dummy_pcm_done(void *state)
+{
+        struct dummy_pcm_codec_state *s = (struct dummy_pcm_codec_state *) state;
+        assert(s->magic == MAGIC);
+        free(s);
+}
+
+struct audio_codec dummy_pcm_audio_codec = {
+        .supported_codecs = (audio_codec_t[]){ AC_PCM, AC_NONE },
+        .supported_bytes_per_second = NULL,
+        .init = dummy_pcm_init,
+        .compress = dummy_pcm_compress,
+        .decompress = dummy_pcm_decompress,
+        .done = dummy_pcm_done
+};
+

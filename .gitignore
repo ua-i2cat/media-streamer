@@ -45,5 +45,11 @@ doc/
 *~
 *.swp
 
+*.dirstamp
+m4/
+
 .cproject
 .project
+
+cscope.*
+tags

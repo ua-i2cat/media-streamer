@@ -1,5 +1,5 @@
 /*
- * FILE:    audio/echo.h
+ * FILE:    audio/codec/dummy_pcm.h
  * AUTHORS: Martin Benes     <martinbenesh@gmail.com>
  *          Lukas Hejtmanek  <xhejtman@ics.muni.cz>
  *          Petr Holub       <hopet@ics.muni.cz>
@@ -46,56 +46,10 @@
  *
  */
 
-#ifndef AUDIO_CODEC_H_
-#define AUDIO_CODEC_H_
+#ifndef AUDIO_CODEC_DUMMY_PCM_H_
+#define AUDIO_CODEC_DUMMY_PCM_H_
 
-#include "audio.h"
+struct audio_codec;
+extern struct audio_codec dummy_pcm_audio_codec;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-typedef enum {
-        AUDIO_CODER,
-        AUDIO_DECODER
-} audio_codec_direction_t;
-
-struct audio_codec {
-        const audio_codec_t *supported_codecs;
-        const int *supported_bytes_per_second;
-        void *(*init)(audio_codec_t, audio_codec_direction_t, bool);
-        audio_channel *(*compress)(void *, audio_channel *);
-        audio_channel *(*decompress)(void *, audio_channel *);
-        void (*done)(void *);
-};
-
-extern void (*register_audio_codec)(struct audio_codec *);
-
-typedef struct {
-        const char *name;
-        /** @var tag
-         *  @brief TwoCC if defined, otherwise we define our tag
-         */
-        uint32_t    tag;
-} audio_codec_info_t;
-
-extern audio_codec_info_t audio_codec_info[];
-extern int audio_codec_info_len;
-
-struct audio_codec_state;
-
-struct audio_codec_state *audio_codec_init(audio_codec_t audio_codec, audio_codec_direction_t);
-struct audio_codec_state *audio_codec_reconfigure(struct audio_codec_state *old,
-                audio_codec_t audio_codec, audio_codec_direction_t);
-audio_frame2 *audio_codec_compress(struct audio_codec_state *, audio_frame2 *);
-audio_frame2 *audio_codec_decompress(struct audio_codec_state *, audio_frame2 *);
-//const int *audio_codec_get_supported_bps(struct audio_codec_state *);
-void audio_codec_done(struct audio_codec_state *);
-
-void list_audio_codecs(void);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* AUDIO_CODEC_H */
+#endif // AUDIO_CODEC_DUMMY_PCM_H_
