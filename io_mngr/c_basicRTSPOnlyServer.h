@@ -31,6 +31,8 @@ EXTERNC int c_start_server(rtsp_serv_t* server);
 
 EXTERNC void c_stop_server(rtsp_serv_t* server);
 
+EXTERNC int c_update_server();
+
 EXTERNC rtsp_serv_t* init_rtsp_server(uint port, stream_list_t *streams, transmitter_t *transmitter);
 
 #undef EXTERNC

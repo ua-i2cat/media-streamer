@@ -1,5 +1,6 @@
 #include "BasicRTSPOnlyServer.hh"
 
+BasicRTSPOnlyServer *BasicRTSPOnlyServer::srvInstance = NULL;
 
 BasicRTSPOnlyServer::BasicRTSPOnlyServer(int port, stream_list_t* streams, 
                         transmitter_t* transmitter){
@@ -16,13 +17,20 @@ BasicRTSPOnlyServer::BasicRTSPOnlyServer(int port, stream_list_t* streams,
 }
 
 BasicRTSPOnlyServer* 
-BasicRTSPOnlyServer::getInstance(int port, stream_list_t* streams, transmitter_t* transmitter){
+BasicRTSPOnlyServer::initInstance(int port, stream_list_t* streams, transmitter_t* transmitter){
     if (srvInstance != NULL){
         return srvInstance;
     }
     return new BasicRTSPOnlyServer(port, streams, transmitter);
 }
 
+BasicRTSPOnlyServer* 
+BasicRTSPOnlyServer::getInstance(){
+    if (srvInstance != NULL){
+        return srvInstance;
+    }
+    return NULL;
+}
 
 int BasicRTSPOnlyServer::init_server() {
     
@@ -104,17 +112,16 @@ int BasicRTSPOnlyServer::update_server(){
 
 void *BasicRTSPOnlyServer::start_server(void *args){
     char* watch = (char*) args;
+    BasicRTSPOnlyServer* instance = getInstance();
     
-	if (env == NULL || rtspServer == NULL){
+	if (instance == NULL || instance->env == NULL || instance->rtspServer == NULL){
 		return NULL;
 	}
-	env->taskScheduler().doEventLoop(watch); 
+	instance->env->taskScheduler().doEventLoop(watch); 
     
-    Medium::close(rtspServer);
-    delete &env->taskScheduler();
-    env->reclaim();
+    Medium::close(instance->rtspServer);
+    delete &instance->env->taskScheduler();
+    instance->env->reclaim();
 	
 	return NULL;
 }
-
-//TODO:Update server method

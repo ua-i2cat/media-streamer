@@ -12,10 +12,12 @@ private:
     BasicRTSPOnlyServer(int port, stream_list_t* streams, transmitter_t* transmitter);
     
 public:
-    static BasicRTSPOnlyServer* getInstance(int port, stream_list_t* streams, transmitter_t* transmitter);
+    static BasicRTSPOnlyServer* initInstance(int port, stream_list_t* streams, transmitter_t* transmitter);
+    static BasicRTSPOnlyServer* getInstance();
+    
     int init_server();
 
-    void *start_server(void *args);
+    static void *start_server(void *args);
     
     int update_server();
     
