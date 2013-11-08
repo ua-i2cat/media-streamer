@@ -52,7 +52,7 @@
 #ifndef TRANSMIT_H_
 #define TRANSMIT_H_
 
-#include "audio/audio.h"
+#include "audio.h"
 
 struct module;
 struct rtp;

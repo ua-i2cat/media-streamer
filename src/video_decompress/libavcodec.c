@@ -59,6 +59,9 @@
 #include "video.h"
 #include "video_decompress.h"
 
+FILE *ffmpeg=NULL;
+char *OUTPUT_PATHffmpeg = "rx_frameffmpeg.rgb";
+
 struct state_libavcodec_decompress {
         pthread_mutex_t *global_lavcd_lock;
         AVCodec         *codec;
@@ -493,6 +496,7 @@ int libavcodec_decompress(void *state, unsigned char *dst, unsigned char *src,
                                          s->last_frame_seq == frame_seq - 1)
 #endif // LAVD_ACCEPT_CORRUPTED
                                         ) {
+
                                 res = change_pixfmt(s->frame, dst, s->codec_ctx->pix_fmt,
                                                 s->out_codec, s->width, s->height, s->pitch);
                                 if(res == TRUE) {

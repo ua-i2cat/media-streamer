@@ -46,7 +46,7 @@
  *
  */
 
-#include "audio/audio.h"
+#include "audio.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -55,8 +55,8 @@
 #endif // HAVE_CONFIG_H
 
 
-#include "audio/codec.h"
-#include "audio/utils.h" 
+#include "codec.h"
+#include "utils.h" 
 //#include <assert.h>
 //#include <limits.h>
 //#include <math.h>

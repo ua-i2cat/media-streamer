@@ -6,8 +6,8 @@ AM_CXXFLAGS = -O2 -g -DHAVE_CONFIG_H -fPIC -Wno-multichar -Wno-deprecated -msse2
 
 
 librtp_la_LDFLAGS = -version-info 0:1:0 -lrt -ldl -lieee -lm -lcrypto
-librtp_la_CFLAGS = $(AM_CFLAGS) -I. -Irtp -Iutils -Icompat -Icrypto
-librtp_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Irtp -Iutils -Icompat -Icrypto
+librtp_la_CFLAGS = $(AM_CFLAGS) -I. -Irtp -Iutils -Icompat -Icrypto -Iaudio
+librtp_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Irtp -Iutils -Icompat -Icrypto -Iaudio
 librtp_la_SOURCES = rtp/net_udp.c \
 					rtp/pbuf.c \
 					rtp/ptime.c \
@@ -42,11 +42,12 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					compat/vsnprintf.c \
 					compat/drand48.c \
 					utils/list.c \
-					utils/h264_stream.c
+					utils/h264_stream.c \
+					video_data_frame.c 
 
 libvcompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut -lGLU
-libvcompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_compress -Iutils -Icompat -I.. -I../dxt_compress
-libvcompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Ivideo_compress -Iutils -Icompat -I.. -I../dxt_compress
+libvcompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_compress -Iutils -Icompat -Iaudio -I.. -I../dxt_compress
+libvcompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Ivideo_compress -Iutils -Icompat -Iaudio -I.. -I../dxt_compress
 libvcompress_la_SOURCES = video_frame.c \
 						  gl_context.c \
 						  glx_common.c \
@@ -64,7 +65,8 @@ libvcompress_la_SOURCES = video_frame.c \
 						  video_compress/uyvy.c \
 						  utils/list.c \
 						  utils/resource_manager.cpp \
-						  utils/worker.cpp
+						  utils/worker.cpp \
+						  video_data_frame.c 
 #						  video_compress/fastdxt.c \
 #						  ../dxt_compress/dxt_common.c \
 #						  ../dxt_compress/dxt_decoder.c \
@@ -73,8 +75,8 @@ libvcompress_la_SOURCES = video_frame.c \
 #						  ../dxt_compress/dxt_util.c
 
 libvdecompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut -lGLU
-libvdecompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_decompress -Iutils -Icompat -I.. -I../dxt_compress
-libvdecompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Ivideo_decompress -Iutils -Icompat -I.. -I../dxt_compress
+libvdecompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_decompress -Iutils -Icompat -Iaudio -I.. -I../dxt_compress
+libvdecompress_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Ivideo_decompress -Iutils -Icompat -Iaudio -I.. -I../dxt_compress
 libvdecompress_la_SOURCES =  video_frame.c \
 							 gl_context.c \
 							 glx_common.c \
@@ -91,7 +93,8 @@ libvdecompress_la_SOURCES =  video_frame.c \
 							 video_decompress/null.c \
 							 utils/list.c \
 							 utils/resource_manager.cpp \
-							 utils/worker.cpp
+							 utils/worker.cpp \
+							 video_data_frame.c 
 #							 ../dxt_compress/dxt_common.c \
 #							 ../dxt_compress/dxt_decoder.c \
 #							 ../dxt_compress/dxt_display.c \
@@ -99,8 +102,8 @@ libvdecompress_la_SOURCES =  video_frame.c \
 #							 ../dxt_compress/dxt_util.c
 
 libacompression_la_LDFLAGS = -version-info 0:1:0 -lpthread -lavcodec -lavutil
-libacompression_la_CFLAGS = $(AM_CFLAGS) -I. -Iutils -Icompat -Iaudio
-libacompression_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Iutils -Icompat -Iaudio
+libacompression_la_CFLAGS = $(AM_CFLAGS) -I. -Iutils -Icompat -Iaudio -Iaudio/codec
+libacompression_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Iutils -Icompat -Iaudio -Iaudio/codec
 libacompression_la_SOURCES = audio/codec.c \
 							 audio/utils.c  \
 							 audio/codec/dummy_pcm.c \
@@ -171,6 +174,7 @@ nobase_uginclude_HEADERS =	./tfrc.h \
 							./rtp/audio_decoders.h \
                                                         ./rtp/audio_frame2.h \
 							./video_decompress.h \
+							./video_data_frame.h \
                                                         ./audio/audio.h \
                                                         ./audio/utils.h \
                                                         ./audio/codec.h \

@@ -2,6 +2,7 @@
 #include "transmitter.h"
 #include "video_compress.h"
 #include "debug.h"
+#include "c_basicRTSPOnlyServer.h"
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 
@@ -109,10 +110,9 @@ int main(int argc, char **argv)
     printf("[test] init_stream_list\n");
     stream_list_t *streams = init_stream_list();
     printf("[test] init_stream\n");
-    stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE, "i2CATRocks");
+    stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE, "i2catrocks");
     printf("[test] set_stream_video_data\n");
-    set_video_data_frame(stream->video->decoded_frame, RAW, 1280, 720);
-    set_video_data_frame(stream->video->coded_frame, H264, 1280, 720);
+    //set_video_data(stream->video, H264, 1280, 720); NOTE:set_video_data doesn't not exist
     printf("[test] add_stream\n");
     add_stream(streams, stream);
 
@@ -120,19 +120,28 @@ int main(int argc, char **argv)
     transmitter_t *transmitter = init_transmitter(streams, 25.0);
     start_transmitter(transmitter);
 
-    participant_data_t *p1 = init_participant(0, OUTPUT, "127.0.0.1", 8000);
-    participant_data_t *p2 = init_participant(0, OUTPUT, "127.0.0.1", 9000);
+    //add_transmitter_participant(transmitter, 0, "127.0.0.1", 8000);
+    //add_participant_stream(transmitter->participants->first, stream);    
 
-    add_transmitter_participant(transmitter, p1);
-    add_participant_stream(p1, stream);    
+    //init_transmission(transmitter->participants->first, transmitter);
 
-    add_transmitter_participant(transmitter, p2);
-    add_participant_stream(p2, stream);
+    //add_transmitter_participant(transmitter, 1, "127.0.0.1", 9000);
+    //add_participant_stream(transmitter->participants->last, stream);
 
+    //init_transmission(transmitter->participants->last, transmitter);
+	rtsp_serv_t *server;
+	server = malloc(sizeof(rtsp_serv_t));
+  
+	server->port = 8554;
+	server->streams = streams;
+	server->transmitter = transmitter;
+    
     init_encoder(stream->video);
     
-    printf("[test_transmitter] transmitter->participants->first->id: %d\n", transmitter->participants->first->id);
-    printf("[test_transmitter] transmitter->participants->last->id: %d\n", transmitter->participants->last->id);
+    c_start_server(server);
+    
+    //printf("[test_transmitter] transmitter->participants->first->id: %d\n", transmitter->participants->first->id);
+    //printf("[test_transmitter] transmitter->participants->last->id: %d\n", transmitter->participants->last->id);
     
     // Stuff ... 
     AVFormatContext *pformat_ctx = avformat_alloc_context();
@@ -149,8 +158,6 @@ int main(int argc, char **argv)
                         codec_ctx.width, codec_ctx.height)*sizeof(uint8_t));
     
     int counter = 0;
-
-    printf("[test] entering main test loop\n");
 
     struct timeval a, b;
 
@@ -170,7 +177,6 @@ int main(int argc, char **argv)
             stream->video->decoded_frame->buffer_len = vc_get_linesize(width, RGB)*height;
             memcpy(stream->video->decoded_frame->buffer, b1, stream->video->decoded_frame->buffer_len); 
             pthread_rwlock_unlock(&stream->video->decoded_frame->lock);
-
             sem_post(&stream->video->encoder->input_sem);
         } else {
             break;

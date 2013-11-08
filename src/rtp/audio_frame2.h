@@ -7,7 +7,7 @@
  */
 
 // audio_codec_t and audio_frame2 are imported from audio/audio.h
-#include "audio/audio.h"
+#include "audio.h"
 
 #ifndef _AUDIO_FRAME2_H_
 #define _AUDIO_FRAME2_H_

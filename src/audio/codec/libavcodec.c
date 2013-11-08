@@ -52,15 +52,15 @@
 #include "config_win32.h"
 #endif /* HAVE_CONFIG_H */
 
-#include "audio/codec/libavcodec.h"
+#include "libavcodec.h"
 
 #include <libavcodec/avcodec.h>
 #include <libavutil/channel_layout.h>
 #include <libavutil/mem.h>
 
-#include "audio/audio.h"
-#include "audio/codec.h"
-#include "audio/utils.h"
+#include "audio.h"
+#include "codec.h"
+#include "utils.h"
 #include "libavcodec_common.h"
 #include "utils/resource_manager.h"
 

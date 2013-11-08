@@ -67,9 +67,8 @@
 
 //#include "video_display.h"
 
-#include "audio/audio.h"
-#include "utils/list.h"
 #include "list.h"
+#include "audio.h"
 #include "rtp.h"
 
 /* The coded representation of a single frame */

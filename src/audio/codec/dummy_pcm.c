@@ -52,9 +52,9 @@
 #include "config_win32.h"
 #endif /* HAVE_CONFIG_H */
 
-#include "audio/audio.h"
-#include "audio/codec.h"
-#include "audio/codec/dummy_pcm.h"
+#include "audio.h"
+#include "codec.h"
+#include "dummy_pcm.h"
 
 #include "debug.h"
 

@@ -28,8 +28,8 @@
 #include "pdb.h"
 
 // Includes for libadecompress
-#include "audio/audio.h"
-#include "audio/codec.h"
+#include "audio.h"
+#include "codec.h"
 
 #define DEFAULT_AUDIO_FEC       "mult:3"
 

@@ -49,7 +49,7 @@
 #ifndef AUDIO_CODEC_H_
 #define AUDIO_CODEC_H_
 
-#include "audio/audio.h"
+#include "audio.h"
 
 #ifdef __cplusplus
 extern "C" {
