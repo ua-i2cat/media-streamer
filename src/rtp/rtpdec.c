@@ -8,11 +8,11 @@
 #include "rtp/rtp_callback.h"
 #include "rtp/rtpdec.h"
 #include "utils/h264_stream.h"
-#include "video_data.h"
+#include "video_data_frame.h"
 
 static const uint8_t start_sequence[] = { 0, 0, 0, 1 };
 
-int fill_rx_data_from_sps(video_data_t *rx_data, char *data, int *data_len);
+int fill_coded_frame_from_sps(video_data_frame_t *rx_data, char *data, int *data_len);
 
 int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 	rtp_packet *pckt = NULL;
@@ -28,16 +28,16 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 	char *dst = NULL;
 	int src_len;
 
-	video_data_t *buffers = (video_data_t *) rx_data;
+	video_data_frame_t *buffers = (video_data_frame_t *) rx_data;
 
-    pthread_rwlock_wrlock(&buffers->coded_frame_lock);
+    pthread_rwlock_wrlock(&buffers->lock);
 	
 	for (pass = 0; pass < 2; pass++) {
 
 		if (pass > 0) {
 			cdata = orig;
-			buffers->coded_frame_len = total_length;
-			dst = buffers->coded_frame + total_length;
+			buffers->buffer_len = total_length;
+			dst = buffers->buffer + total_length;
             buffers->frame_type = BFRAME;
 		}
 
@@ -46,7 +46,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 
 			if (pckt->pt != PT_H264) {
 				error_msg("Wrong Payload type: %u\n", pckt->pt);
-                pthread_rwlock_unlock(&buffers->coded_frame_lock);
+                pthread_rwlock_unlock(&buffers->lock);
 				return FALSE;
 			}
 
@@ -55,7 +55,8 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 			nri = nal & 0x60;
 
             if (type == 7){
-                fill_rx_data_from_sps(buffers, pckt->data, &pckt->data_len);
+
+                fill_coded_frame_from_sps(buffers, pckt->data, &pckt->data_len);
             }
 			
 			if (type >= 1 && type <= 23) {
@@ -109,7 +110,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 						}
 					} else {
 						error_msg("NAL size exceeds length: %u %d\n", nal_size, src_len);
-                        pthread_rwlock_unlock(&buffers->coded_frame_lock);
+                        pthread_rwlock_unlock(&buffers->lock);
 						return FALSE;
 					}
 					src += nal_size;
@@ -117,7 +118,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 
 					if (src_len < 0) {
 						error_msg("Consumed more bytes than we got! (%d)\n", src_len);
-                        pthread_rwlock_unlock(&buffers->coded_frame_lock);
+                        pthread_rwlock_unlock(&buffers->lock);
 						return FALSE;
 					}
 				}
@@ -128,7 +129,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 			case 27:
 			case 29:
 				error_msg("Unhandled NAL type\n");
-                pthread_rwlock_unlock(&buffers->coded_frame_lock);
+                pthread_rwlock_unlock(&buffers->lock);
 				return FALSE;
 			case 28:
 				src = (const uint8_t *) pckt->data;
@@ -179,20 +180,19 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 					}
 				} else {
 					error_msg("Too short data for FU-A H264 RTP packet\n");
-                    pthread_rwlock_unlock(&buffers->coded_frame_lock);
+                    pthread_rwlock_unlock(&buffers->lock);
 					return FALSE;
 				}
 				break;
 			default:
 				error_msg("Unknown NAL type\n");
-                pthread_rwlock_unlock(&buffers->coded_frame_lock);
+                pthread_rwlock_unlock(&buffers->lock);
 				return FALSE;
 			}
 			cdata = cdata->nxt;
 		}
 	}
-	
-    pthread_rwlock_unlock(&buffers->coded_frame_lock);
+    pthread_rwlock_unlock(&buffers->lock);
 	return TRUE;
 }
 
@@ -222,7 +222,7 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
         // the following is just LDGM related optimalization - normally we fill up
         // allocated buffers when we have compressed data. But in case of LDGM, there
         // is just the LDGM buffer present, so we point to it instead to copying
-        video_data_t *buffers = (video_data_t *) rx_data; // for FEC or compressed data
+        video_data_frame_t *buffers = (video_data_frame_t *) rx_data; // for FEC or compressed data
        // for (i = 0; i < (int) MAX_SUBSTREAMS; ++i) {
        //         //pckt_list[i] = ll_create();
        // 		buffers->buffer_len[i] = 0;
@@ -323,7 +323,7 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
                // }
 
               //  buffers->buffer_num = buffer_number;
-                buffers->coded_frame_len = buffer_length;
+                buffers->buffer_len = buffer_length;
 
                 //printf("[DECODER] buffer_length = %d /  data_pos = %d /  len = %d /  first byte data = %x\n",buffer_length, data_pos,len,data[0]);
 
@@ -333,7 +333,7 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
 
 		//} else { /* PT_VIDEO_LDGM or external decoder */
                // if (pt == PT_VIDEO) {
-                        memcpy(buffers->coded_frame + data_pos, (unsigned char*) data,len);
+                        memcpy(buffers->buffer + data_pos, (unsigned char*) data,len);
 
                // }
         //}
@@ -421,7 +421,7 @@ cleanup:
         return ret;
 }
 
-int fill_rx_data_from_sps(video_data_t *rx_data, char *data, int *data_len){
+int fill_coded_frame_from_sps(video_data_frame_t *rx_data, char *data, int *data_len){
     uint32_t width, height;
     sps_t* sps = (sps_t*)malloc(sizeof(sps_t));
     uint8_t* rbsp_buf = (uint8_t*)malloc(*data_len);
@@ -447,7 +447,9 @@ int fill_rx_data_from_sps(video_data_t *rx_data, char *data, int *data_len){
     }
 
     if((width != rx_data->width) || (height != rx_data->height)){
-        set_video_data(rx_data,  H264, width, height);
+        pthread_rwlock_unlock(&rx_data->lock);
+        set_video_data_frame(rx_data, H264, width, height);
+        pthread_rwlock_wrlock(&rx_data->lock);
     }
 
     bs_free(b);

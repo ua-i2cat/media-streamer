@@ -22,7 +22,7 @@ void c_stop_server(rtsp_serv_t* server){
     pthread_join(server->server_th, NULL);
 }
 
-int c_update_server(){
+int c_update_server(rtsp_serv_t* server){
     BasicRTSPOnlyServer *srv = BasicRTSPOnlyServer::getInstance();
     if (srv == NULL){
         exit(1);

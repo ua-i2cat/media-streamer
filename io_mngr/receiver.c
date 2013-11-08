@@ -79,38 +79,41 @@ void *receiver_thread(receiver_t *receiver) {
 				if (participant == NULL){
 					participant = get_participant_non_init(receiver->participant_list);
 					if (participant != NULL){
-						set_participant(participant, cp->ssrc);
+						set_participant_ssrc(participant, cp->ssrc);
+						stream_data_t *stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
+						set_video_data_frame(stream->video->coded_frame, H264, 0, 0);
+    					add_participant_stream(participant, stream);
 						add_stream(receiver->stream_list, participant->stream);
 					}
 				}
 				pthread_rwlock_unlock(&receiver->participant_list->lock);
 
 				if (participant != NULL) {
-
 					if (!participant->stream->video->new_coded_frame && 
-							pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, participant->stream->video)) {	
+							pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, participant->stream->video->coded_frame)) {	
 
 						gettimeofday(&curr_time, NULL);
-
 						pthread_rwlock_wrlock(&participant->stream->lock);
-
-						if (participant->stream->video->decoder == NULL){
-							pthread_rwlock_unlock(&participant->stream->lock);
-							pbuf_remove_first(cp->playout_buffer);
-							cp = pdb_iter_next(&it);
-							continue;
-						}
 						
-						if (participant->stream->state == I_AWAIT && participant->stream->video->frame_type == INTRA){
+						if (participant->stream->state == I_AWAIT && 
+                            participant->stream->video->coded_frame->frame_type == INTRA && 
+                            participant->stream->video->coded_frame->width != 0 && 
+                            participant->stream->video->coded_frame->height != 0){
+                            
+							if(participant->stream->video->decoder == NULL){
+								uint32_t width = participant->stream->video->coded_frame->width;
+								uint32_t height = participant->stream->video->coded_frame->height;
+								set_video_data_frame(participant->stream->video->decoded_frame, RGB, width, height);
+								start_decoder(participant->stream->video); 
+							}
 							participant->stream->state = ACTIVE;
 						}
 
-						if (participant->stream->state == ACTIVE && participant->stream->video->frame_type != BFRAME) {
-
+						if (participant->stream->state == ACTIVE && participant->stream->video->coded_frame->frame_type != BFRAME) {
 
 							pthread_mutex_lock(&participant->stream->video->new_coded_frame_lock);
 							participant->stream->video->new_coded_frame = TRUE;
-							participant->stream->video->coded_frame_seqno ++;
+							participant->stream->video->coded_frame->seqno ++;
 							pthread_cond_signal(&participant->stream->video->decoder->notify_frame);
 							pthread_mutex_unlock(&participant->stream->video->new_coded_frame_lock);
 						

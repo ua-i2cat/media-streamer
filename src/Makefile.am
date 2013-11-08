@@ -44,7 +44,7 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					compat/drand48.c \
 					utils/list.c \
 					utils/h264_stream.c \
-					video_data.c 
+					video_data_frame.c 
 
 libvcompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut -lGLU
 libvcompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_compress -Iutils -Icompat -I.. -I../dxt_compress
@@ -67,7 +67,7 @@ libvcompress_la_SOURCES = video_frame.c \
 						  utils/list.c \
 						  utils/resource_manager.cpp \
 						  utils/worker.cpp \
-						  video_data.c 
+						  video_data_frame.c 
 #						  video_compress/fastdxt.c \
 #						  ../dxt_compress/dxt_common.c \
 #						  ../dxt_compress/dxt_decoder.c \
@@ -95,7 +95,7 @@ libvdecompress_la_SOURCES =  video_frame.c \
 							 utils/list.c \
 							 utils/resource_manager.cpp \
 							 utils/worker.cpp \
-							 video_data.c 
+							 video_data_frame.c 
 #							 ../dxt_compress/dxt_common.c \
 #							 ../dxt_compress/dxt_decoder.c \
 #							 ../dxt_compress/dxt_display.c \
@@ -165,7 +165,7 @@ nobase_uginclude_HEADERS =	./tfrc.h \
 							./rtp/rtp.h \
 							./rtp/audio_decoders.h \
 							./video_decompress.h \
-							./video_data.h \
+							./video_data_frame.h \
                                                         ./audio/audio.h \
                                                         ./audio/utils.h \
                                                         ./audio/codec.h \

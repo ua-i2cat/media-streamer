@@ -89,6 +89,8 @@ int stop_transmission(participant_data_t *participant)
     pthread_mutex_lock(&participant->lock);
 
     participant->rtp.run = FALSE;
+    assert(participant->stream->video->encoder != NULL);
+    pthread_cond_broadcast(&participant->stream->video->encoder->output_cond);
     pthread_join(participant->rtp.thread, NULL);
 
     // TODO: signaling may be required?
@@ -149,13 +151,15 @@ void *transmitter_rtp_routine(void *arg)
         assert(encoder != NULL);
 
         // TODO: add protection against spurious wakes. They should not be harmful in this scenario though.
+        pthread_mutex_lock(&participant->stream->video->encoder->output_lock);
         pthread_cond_wait(&participant->stream->video->encoder->output_cond, &participant->stream->video->encoder->output_lock);
+        pthread_mutex_unlock(&participant->stream->video->encoder->output_lock);
 
-        pthread_rwlock_rdlock(&stream->video->coded_frame_lock);
+        pthread_rwlock_rdlock(&stream->video->coded_frame->lock);
 
         // TODO: just protecting the initialization! should be outside maybe?
         if (stream->video->encoder->frame != NULL) {
-            if (stream->video->coded_frame_seqno != last_seqno) {
+            if (stream->video->coded_frame->seqno != last_seqno) {
                 
                 gettimeofday(&curr_time, NULL);
                 rtp_update(rtp, curr_time);
@@ -163,17 +167,17 @@ void *transmitter_rtp_routine(void *arg)
                 rtp_send_ctrl(rtp, timestamp, 0, curr_time);
 
                 tx_send_h264(tx_session, stream->video->encoder->frame, rtp, transmitter->fps);
-                last_seqno = stream->video->coded_frame_seqno;
+                last_seqno = stream->video->coded_frame->seqno;
             }
         }
 
-        pthread_rwlock_unlock(&stream->video->coded_frame_lock);
+        pthread_rwlock_unlock(&stream->video->coded_frame->lock);
     }   
 
     rtp_send_bye(rtp);
     rtp_done(rtp);
     module_done(CAST_MODULE(&tmod));
-    
+   
     pthread_exit(NULL);
 }
 
@@ -184,15 +188,11 @@ int start_transmitter(transmitter_t *transmitter)
     participant_list_t *list = transmitter->participants;
     participant_data_t *participant = list->first;
     while (participant != NULL) {
-        printf("[trans] [master] initializing encoder for stream %d\n", participant->stream->id);
         init_encoder(participant->stream->video);
-    
-        printf("[trans] [master] initializing transmission for participant %d\n", participant->id);
         init_transmission(participant, transmitter);
         participant = participant->next;
     }
 
-    
     return TRUE;
 }
 
