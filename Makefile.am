@@ -26,6 +26,6 @@ audio_rtp_only_LDFLAGS = -L./src -lrtp
 audio_rtp_only_DEPENDENCIES = src/librtp.la
 
 rtsp_transmitter_SOURCES = tests/test_rtsp_transmitter.c
-rtsp_transmitter_CFLAGS = $(AM_CFLAGS) -Isrc -Isrc/rtp -Isrc/utils -Itests -Iio_mngr -Idxt_compress
+rtsp_transmitter_CFLAGS = $(AM_CFLAGS) -Isrc -Isrc/rtp -Isrc/utils -Isrc/audio -Itests -Iio_mngr -Idxt_compress
 rtsp_transmitter_LDFLAGS = -L./src -L./io_mngr -lvcompress -lvdecompress -liomanager -lavcodec
 rtsp_transmitter_DEPENDENCIES = src/librtp.la src/libvcompress.la src/libvdecompress.la io_mngr/libiomanager.la
