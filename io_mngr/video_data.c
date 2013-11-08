@@ -20,8 +20,8 @@ void *encoder_routine(void *arg)
     video_data_t *video = (video_data_t *)arg;
     encoder_thread_t *encoder = video->encoder;
 
-    int width = video->width;
-    int height = video->height;
+    int width = video->decoded_frame->width;
+    int height = video->decoded_frame->height;
 
     // decoded_frame len and memory already initialized
 
@@ -64,22 +64,22 @@ void *encoder_routine(void *arg)
             break;
         }
        
-        pthread_rwlock_rdlock(&video->decoded_frame_lock);
-        frame->tiles[0].data = (char *)video->decoded_frame;
-        frame->tiles[0].data_len = video->decoded_frame_len;
-        pthread_rwlock_unlock(&video->decoded_frame_lock);
+        pthread_rwlock_rdlock(&video->decoded_frame->lock);
+        frame->tiles[0].data = (char *)video->decoded_frame->buffer;
+        frame->tiles[0].data_len = video->decoded_frame->buffer_len;
+        pthread_rwlock_unlock(&video->decoded_frame->lock);
         
         struct video_frame *tx_frame;
         tx_frame = compress_frame(encoder->cs, frame, encoder->index);
         
-        pthread_rwlock_wrlock(&video->coded_frame_lock);
+        pthread_rwlock_wrlock(&video->coded_frame->lock);
         encoder->frame = tx_frame;
-        video->coded_frame = (uint8_t *)vf_get_tile(tx_frame, 0)->data;
-        video->coded_frame_len = vf_get_tile(tx_frame, 0)->data_len;
-        video->coded_frame_seqno++;
-        pthread_rwlock_unlock(&video->coded_frame_lock);
-
-        pthread_mutex_lock(&encoder->output_lock);
+        video->coded_frame->buffer = (uint8_t *)vf_get_tile(tx_frame, 0)->data;
+        video->coded_frame->buffer_len = vf_get_tile(tx_frame, 0)->data_len;
+        video->coded_frame->seqno++;
+        pthread_rwlock_unlock(&video->coded_frame->lock);
+       
+		pthread_mutex_lock(&encoder->output_lock); 
         pthread_cond_broadcast(&encoder->output_cond);
         pthread_mutex_unlock(&encoder->output_lock);
         encoder->index = (encoder->index + 1) % 2;
@@ -90,7 +90,6 @@ void *encoder_routine(void *arg)
         if (diff < wait_time) {
             usleep(wait_time - diff);
         }
-
     }
 
     module_done(CAST_MODULE(&cmod));
@@ -203,9 +202,9 @@ decoder_thread_t *init_decoder(video_data_t *data){
             return NULL;
         }
 
-        des.width = data->width;
-        des.height = data->height;
-        des.color_spec  = data->codec;
+        des.width = data->coded_frame->width;
+        des.height = data->coded_frame->height;
+        des.color_spec  = data->coded_frame->codec;
         des.tile_count = 0;
         des.interlacing = data->interlacing;
         des.fps = data->fps; // TODO XXX
@@ -240,13 +239,16 @@ void *decoder_th(void* data){
         pthread_mutex_unlock(&v_data->new_coded_frame_lock);
 
         if (v_data->decoder->run){
-            pthread_rwlock_rdlock(&v_data->coded_frame_lock);
-            pthread_rwlock_wrlock(&v_data->decoded_frame_lock);
-            decompress_frame(v_data->decoder->sd,(unsigned char *)v_data->decoded_frame, 
-                (unsigned char *)v_data->coded_frame, v_data->coded_frame_len, 0);
-            v_data->decoded_frame_seqno ++;
-            pthread_rwlock_unlock(&v_data->decoded_frame_lock);
-            pthread_rwlock_unlock(&v_data->coded_frame_lock);
+            pthread_rwlock_rdlock(&v_data->coded_frame->lock);
+            pthread_rwlock_wrlock(&v_data->decoded_frame->lock);
+            
+            decompress_frame(v_data->decoder->sd,(unsigned char *)v_data->decoded_frame->buffer, 
+                (unsigned char *)v_data->coded_frame->buffer, v_data->coded_frame->buffer_len, 0);
+
+            v_data->decoded_frame->seqno ++;
+
+            pthread_rwlock_unlock(&v_data->decoded_frame->lock);
+            pthread_rwlock_unlock(&v_data->coded_frame->lock);
 
 
             pthread_mutex_lock(&v_data->new_decoded_frame_lock);
@@ -286,7 +288,6 @@ void stop_decoder(video_data_t *data){
 
     pthread_mutex_lock(&data->new_coded_frame_lock);
     data->new_coded_frame = TRUE;
-
     pthread_cond_signal(&data->decoder->notify_frame);
     pthread_mutex_unlock(&data->new_coded_frame_lock);
 
@@ -298,15 +299,8 @@ void stop_decoder(video_data_t *data){
 video_data_t *init_video_data(video_type_t type){
     video_data_t *data = malloc(sizeof(video_data_t));
 
-    data->coded_frame = malloc(1920*1080*4*sizeof(char)); //TODO this is the worst case in raw data, should be the worst case for specific codec
-    data->width = 0;
-    data->height = 0;
-    data->decoded_frame_len = 0;
-    data->decoded_frame = NULL;
-    data->decoded_frame_seqno = 0;
-    data->new_coded_frame = FALSE;
-    data->new_decoded_frame = FALSE;
-    data->coded_frame_seqno = 0;
+    data->decoded_frame = init_video_data_frame();
+    data->coded_frame = init_video_data_frame();
     data->type = type;
     data->fps = 25;
     data->decoder = NULL; //As decoder and encoder are union, this is valid for both
@@ -330,23 +324,6 @@ video_data_t *init_video_data(video_type_t type){
         free(data->coded_frame);
         return NULL;
     }
-    if (pthread_rwlock_init(&data->decoded_frame_lock, NULL) < 0) {
-        error_msg("set_stream_video_data: pthread_rwlock_init error");
-        pthread_mutex_destroy(&data->new_decoded_frame_lock);
-        pthread_mutex_destroy(&data->new_coded_frame_lock);
-        pthread_rwlock_destroy(&data->lock);
-        free(data->coded_frame);
-        return NULL;
-    }
-    if (pthread_rwlock_init(&data->coded_frame_lock, NULL) < 0) {
-        error_msg("set_stream_video_data: pthread_rwlock_init error");
-        pthread_mutex_destroy(&data->new_decoded_frame_lock);
-        pthread_mutex_destroy(&data->new_coded_frame_lock);
-        pthread_rwlock_destroy(&data->decoded_frame_lock);
-        pthread_rwlock_destroy(&data->lock);
-        free(data->coded_frame);
-        return NULL;
-    }
 
     return data;
 }
@@ -359,59 +336,23 @@ int destroy_video_data(video_data_t *data){
     } else if (data->type == ENCODER && data->encoder != NULL){
         stop_encoder(data);
     }
-    pthread_rwlock_wrlock(&data->decoded_frame_lock);
-    free(data->decoded_frame);
-    pthread_rwlock_unlock(&data->decoded_frame_lock);
 
-    pthread_rwlock_wrlock(&data->coded_frame_lock);
-    free(data->coded_frame);
-    pthread_rwlock_unlock(&data->coded_frame_lock);
+    if (destroy_video_data_frame(data->decoded_frame) != TRUE){
+        return FALSE;
+    }
+
+    if (destroy_video_data_frame(data->coded_frame) != TRUE){
+        return FALSE;
+    }
 
     pthread_mutex_destroy(&data->new_coded_frame_lock);
     pthread_mutex_destroy(&data->new_decoded_frame_lock);
-    pthread_rwlock_destroy(&data->decoded_frame_lock);
-    pthread_rwlock_destroy(&data->coded_frame_lock);
+    pthread_rwlock_destroy(&data->decoded_frame->lock);
+    pthread_rwlock_destroy(&data->coded_frame->lock);
 
     pthread_rwlock_unlock(&data->lock);
     pthread_rwlock_destroy(&data->lock);
     free(data);
 
-    return TRUE;
-}
-
-int set_video_data(video_data_t *data, codec_t codec, uint32_t width, uint32_t height){
-    pthread_rwlock_wrlock(&data->lock);
-    data->codec = codec;
-    data->width = width;
-    data->height = height;
-    data->decoded_frame_len = vc_get_linesize(width, RGB)*height;
-
-    if (data->decoded_frame == NULL){
-        data->decoded_frame = malloc(data->decoded_frame_len);
-    } else {
-        free(data->decoded_frame);
-        data->decoded_frame = malloc(data->decoded_frame_len);
-    }
-
-    if (data->decoded_frame == NULL) {
-        error_msg("set_stream_video_data: malloc error");
-        pthread_rwlock_unlock(&data->lock);
-        return FALSE;
-    }
-
-    if (data->type == DECODER){
-        if (data->decoder == NULL){
-            start_decoder(data);
-        } else {
-            //TODO: reconfigure decoder
-        }
-    }else if (data->type == ENCODER){
-        if (data->encoder == NULL) {
-            init_encoder(data);
-        } else {
-            
-        }
-    }
-    pthread_rwlock_unlock(&data->lock);
     return TRUE;
 }

@@ -112,7 +112,7 @@ int main(int argc, char **argv)
     printf("[test] init_stream\n");
     stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE, "i2catrocks");
     printf("[test] set_stream_video_data\n");
-    set_video_data(stream->video, H264, 1280, 720);
+    //set_video_data(stream->video, H264, 1280, 720); NOTE:set_video_data doesn't not exist
     printf("[test] add_stream\n");
     add_stream(streams, stream);
 
@@ -173,10 +173,10 @@ int main(int argc, char **argv)
         if (ret == 0) {
             counter++;
 
-            pthread_rwlock_wrlock(&stream->video->decoded_frame_lock);
-            stream->video->decoded_frame_len = vc_get_linesize(width, RGB)*height;
-            memcpy(stream->video->decoded_frame, b1, stream->video->decoded_frame_len); 
-            pthread_rwlock_unlock(&stream->video->decoded_frame_lock);
+            pthread_rwlock_wrlock(&stream->video->decoded_frame->lock);
+            stream->video->decoded_frame->buffer_len = vc_get_linesize(width, RGB)*height;
+            memcpy(stream->video->decoded_frame->buffer, b1, stream->video->decoded_frame->buffer_len); 
+            pthread_rwlock_unlock(&stream->video->decoded_frame->lock);
             sem_post(&stream->video->encoder->input_sem);
         } else {
             break;

@@ -113,14 +113,10 @@ participant_data_t *get_participant_non_init(participant_list_t *list){
     return NULL;
 }
 
-int set_participant(participant_data_t *participant, uint32_t ssrc){
+int set_participant_ssrc(participant_data_t *participant, uint32_t ssrc){
     pthread_mutex_lock(&participant->lock);
     participant->ssrc = ssrc;
     pthread_mutex_unlock(&participant->lock);
-    uint32_t id = rand(); 
-    stream_data_t *stream = init_stream(VIDEO, INPUT, id, I_AWAIT, NULL);
-    add_participant_stream(participant, stream);
-    printf("Stream added to participant with ID: %u\n", id);
     return TRUE;
 }
 

@@ -35,14 +35,13 @@ int main(){
             }	
             pthread_mutex_lock(&stream->video->new_decoded_frame_lock);
             if (stream->video->new_decoded_frame){
-				
                 if (F_video_rx0 == NULL) {
                     printf("recording rx frame0...\n");
                     F_video_rx0 = fopen(OUTPUT_PATH0, "wb");
                 }
-                pthread_rwlock_rdlock(&stream->video->decoded_frame_lock);
-                fwrite(stream->video->decoded_frame, stream->video->decoded_frame_len, 1, F_video_rx0);
-                pthread_rwlock_unlock(&stream->video->decoded_frame_lock);
+                pthread_rwlock_rdlock(&stream->video->decoded_frame->lock);
+                fwrite(stream->video->decoded_frame->buffer, stream->video->decoded_frame->buffer_len, 1, F_video_rx0);
+                pthread_rwlock_unlock(&stream->video->decoded_frame->lock);
                 stream->video->new_decoded_frame = FALSE;
                 printf("Frame %d by stream 0\n", i);
                 i++;
@@ -66,9 +65,9 @@ int main(){
                     printf("recording rx frame1...\n");
                     F_video_rx1 = fopen(OUTPUT_PATH1, "wb");
                 }
-                pthread_rwlock_rdlock(&stream->video->decoded_frame_lock);
-                fwrite(stream->video->decoded_frame, stream->video->decoded_frame_len, 1, F_video_rx1);
-                pthread_rwlock_unlock(&stream->video->decoded_frame_lock);
+                pthread_rwlock_rdlock(&stream->video->decoded_frame->lock);
+                fwrite(stream->video->decoded_frame->buffer, stream->video->decoded_frame->buffer_len, 1, F_video_rx1);
+                pthread_rwlock_unlock(&stream->video->decoded_frame->lock);
                 stream->video->new_decoded_frame = FALSE;
                 printf("Frame %d by stream 1\n", i);
                 i++;

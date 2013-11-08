@@ -1,13 +1,8 @@
 #include "config_unix.h"
 #include "types.h"
 #include <semaphore.h>
+#include "video_data_frame.h"
 
-
-typedef enum frame_type {
-    INTRA,
-    BFRAME,
-    OTHER
-} frame_type_t;
 
 typedef enum video_type {
     ENCODER,
@@ -49,23 +44,13 @@ typedef struct video_data {
     pthread_rwlock_t lock;
     pthread_mutex_t new_coded_frame_lock;
     pthread_mutex_t new_decoded_frame_lock;
-    video_type_t type;
-    codec_t codec;
-    uint32_t width;
-    uint32_t height;
-    uint8_t *decoded_frame;  // TODO: char *?
-    uint32_t decoded_frame_len;
-    uint32_t decoded_frame_seqno;
-    pthread_rwlock_t decoded_frame_lock;
-    uint8_t *coded_frame;
-    uint32_t coded_frame_len;
-    uint32_t coded_frame_seqno;
-    pthread_rwlock_t coded_frame_lock;
-    uint32_t interlacing;  //TODO: fix this. It has to be UG enum
-    uint32_t fps;       //TODO: fix this. It has to be UG enum
     uint8_t new_coded_frame;
     uint8_t new_decoded_frame;
-    frame_type_t frame_type;
+    video_type_t type;
+    video_data_frame_t *decoded_frame;
+    video_data_frame_t *coded_frame;
+    uint32_t interlacing;  //TODO: fix this. It has to be UG enum
+    uint32_t fps;       //TODO: fix this. It has to be UG enum
     union {
         struct encoder_thread *encoder;
         struct decoder_thread *decoder;
@@ -83,4 +68,3 @@ void stop_encoder(video_data_t *data);
 
 video_data_t *init_video_data(video_type_t type);
 int destroy_video_data(video_data_t *data);
-int set_video_data(video_data_t *data, codec_t codec, uint32_t width, uint32_t height);

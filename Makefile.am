@@ -2,7 +2,7 @@ SUBDIRS = src io_mngr
 
 AM_CFLAGS = -std=gnu99 -g -lm -DHAVE_CONFIG_H -g -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
 
-bin_PROGRAMS = receiver transmitter rtsp_transmitter rec_trans #audio_rtp_only
+bin_PROGRAMS = receiver transmitter rtsp_transmitter rec_trans audio_rtp_only
 
 
 receiver_SOURCES = tests/test_receiver.c

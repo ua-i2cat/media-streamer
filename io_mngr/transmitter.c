@@ -155,11 +155,11 @@ void *transmitter_rtp_routine(void *arg)
         pthread_cond_wait(&participant->stream->video->encoder->output_cond, &participant->stream->video->encoder->output_lock);
         pthread_mutex_unlock(&participant->stream->video->encoder->output_lock);
 
-        pthread_rwlock_rdlock(&stream->video->coded_frame_lock);
+        pthread_rwlock_rdlock(&stream->video->coded_frame->lock);
 
         // TODO: just protecting the initialization! should be outside maybe?
         if (stream->video->encoder->frame != NULL) {
-            if (stream->video->coded_frame_seqno != last_seqno) {
+            if (stream->video->coded_frame->seqno != last_seqno) {
                 
                 gettimeofday(&curr_time, NULL);
                 rtp_update(rtp, curr_time);
@@ -167,11 +167,11 @@ void *transmitter_rtp_routine(void *arg)
                 rtp_send_ctrl(rtp, timestamp, 0, curr_time);
 
                 tx_send_h264(tx_session, stream->video->encoder->frame, rtp, transmitter->fps);
-                last_seqno = stream->video->coded_frame_seqno;
+                last_seqno = stream->video->coded_frame->seqno;
             }
         }
 
-        pthread_rwlock_unlock(&stream->video->coded_frame_lock);
+        pthread_rwlock_unlock(&stream->video->coded_frame->lock);
     }   
 
     rtp_send_bye(rtp);
