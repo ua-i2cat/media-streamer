@@ -101,11 +101,12 @@ libvdecompress_la_SOURCES =  video_frame.c \
 #							 ../dxt_compress/dxt_encoder.c \
 #							 ../dxt_compress/dxt_util.c
 
-libacompression_la_LDFLAGS = -version-info 0:1:0 -lpthread -lavcodec -lavutil
+libacompression_la_LDFLAGS = -version-info 0:1:0 -lpthread -lavcodec -lavutil -lspeexdsp
 libacompression_la_CFLAGS = $(AM_CFLAGS) -I. -Iutils -Icompat -Iaudio -Iaudio/codec
 libacompression_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -Iutils -Icompat -Iaudio -Iaudio/codec
 libacompression_la_SOURCES = audio/codec.c \
 							 audio/utils.c  \
+							 audio/resampler.c  \
 							 audio/codec/dummy_pcm.c \
 							 audio/codec/libavcodec.c \
 							 utils/resource_manager.cpp
@@ -178,6 +179,7 @@ nobase_uginclude_HEADERS =	./tfrc.h \
                                                         ./audio/audio.h \
                                                         ./audio/utils.h \
                                                         ./audio/codec.h \
+                                                        ./audio/resampler.h \
 							./audio/codec/dummy_pcm.h \
 							./audio/codec/libavcodec.h \
   						    ../dxt_compress/dxt_common.h \
