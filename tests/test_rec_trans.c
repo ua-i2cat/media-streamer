@@ -64,7 +64,7 @@ int main(){
             in_str = in_str_list->first;
             
             while(in_str != NULL && out_str != NULL){
-                
+                             
                 if (in_str->video->decoder != NULL && out_str->video->encoder == NULL) {
                     pthread_rwlock_wrlock(&out_str->video->lock);
                     set_video_data_frame(out_str->video->decoded_frame, RAW, 
@@ -74,6 +74,7 @@ int main(){
                                          in_str->video->decoded_frame->width, 
                                          in_str->video->decoded_frame->height);
                     init_encoder(out_str->video);
+                    c_update_server(server);
                     pthread_rwlock_unlock(&out_str->video->lock);
                 }
                 
@@ -105,17 +106,15 @@ int main(){
             gettimeofday(&b, NULL);
             if (b.tv_sec - a.tv_sec >= 120){
                 run = FALSE;
-            }  if (b.tv_sec - a.tv_sec >= 50){
-                //Adding 2nd incoming participant
-                pthread_rwlock_wrlock(&receiver->participant_list->lock);
-                add_participant(receiver->participant_list, in_p2);
-                pthread_rwlock_unlock(&receiver->participant_list->lock);
-                //Adding 2nd outgoing stream
+            }  if (out_str_list->count < 2 && b.tv_sec - a.tv_sec >= 50){
+                 //Adding 2nd outgoing stream
                 pthread_rwlock_wrlock(&out_str_list->lock);
                 add_stream(out_str_list, out_str2);
                 pthread_rwlock_unlock(&out_str_list->lock);
-                //Updating server for new stream
-                c_update_server(server);
+                //Adding 2nd incoming participant
+                pthread_rwlock_wrlock(&receiver->participant_list->lock);
+                add_participant(receiver->participant_list, in_p2);
+                pthread_rwlock_unlock(&receiver->participant_list->lock);              
             }  else {
                 usleep(5000);
             }
@@ -127,7 +126,7 @@ int main(){
     
     c_stop_server(server);
     stop_transmitter(transmitter);
-    destroy_stream_list(out_str_list);
     stop_receiver(receiver);
     destroy_stream_list(in_str_list);
+    destroy_stream_list(out_str_list);
 }

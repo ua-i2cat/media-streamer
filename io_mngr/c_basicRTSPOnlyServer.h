@@ -25,6 +25,7 @@ EXTERNC typedef struct rtsp_serv {
 	transmitter_t* transmitter;
     pthread_t server_th;
     uint8_t watch;
+    uint8_t run;
 } rtsp_serv_t;
 
 EXTERNC int c_start_server(rtsp_serv_t* server);
