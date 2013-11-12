@@ -88,7 +88,7 @@ extern const char *get_name_to_audio_codec(audio_codec_t codec);
 
 static void usage(void)
 {
-    printf("Usage: audio_mulaw_only [-r <receive_port>] [-h <sendto_host>] [-s <sendto_port>] [-c <channels>] [-t <resample_to>]\n");
+    printf("Usage: audio_mulaw_only [-r <receive_port>] [-h <sendto_host>] [-s <sendto_port>] [-c <channels>] [-p <sample_rate>] [-t <resample_to>]\n");
     printf(" By Txor >:D\n");
 }
 
@@ -267,13 +267,14 @@ int main(int argc, char *argv[])
         {"receive_port", required_argument, 0, 'r'},
         {"sendto_port", required_argument, 0, 's'},
         {"channels", required_argument, 0, 'c'},
+        {"sample_rate", required_argument, 0, 'p'},
         {"resample_to", required_argument, 0, 't'},
         {0, 0, 0, 0}
     };
     int ch;
     int option_index = 0;
 
-    while ((ch = getopt_long(argc, argv, "h:s:r:c:t:", getopt_options, &option_index)) != -1) {
+    while ((ch = getopt_long(argc, argv, "h:s:r:c:p:t:", getopt_options, &option_index)) != -1) {
         switch (ch) {
             case 'h':
                 sendto_host = optarg;
@@ -286,6 +287,10 @@ int main(int argc, char *argv[])
                 break;
             case 'c':
                 channels = atoi(optarg);
+                break;
+            case 'p':
+                // TODO: Check valid values.
+                sample_rate = atoi(optarg);
                 break;
             case 't':
                 // TODO: Check valid values.

@@ -783,7 +783,7 @@ void audio_tx_send_mulaw(struct tx* tx, struct rtp *rtp_session, audio_frame2 * 
 
     // Configure the right Payload type,
     // 8000 Hz, 1 channel is the ITU-T G.711 standard
-    // More cahnnels or Hz goes to DynRTP-Type97
+    // More channels or Hz goes to DynRTP-Type97
     if (buffer->ch_count > 1 || buffer->sample_rate != 8000) {
         pt = PT_DynRTP_Type97;
     } else {
@@ -824,7 +824,6 @@ void audio_tx_send_mulaw(struct tx* tx, struct rtp *rtp_session, audio_frame2 * 
                 0, 0, 0);
     }
 
-    free(data);
     tx->buffer ++;
 
     platform_spin_unlock(&tx->spin);
