@@ -32,6 +32,9 @@
 #include "audio.h"
 #include "codec.h"
 
+// Includes for resamplming
+#include "audio/resampler.h"
+
 #define DEFAULT_AUDIO_FEC       "mult:3"
 
 // For debug pourpouses
@@ -142,7 +145,7 @@ static void *receiver_thread(void *arg)
     // and the static audio configuration.
     struct state_audio_decoder audio_decoder;
     audio_decoder.frame = rtp_audio_frame2_init();
-    audio_decoder->resampler = resampler_init(d->resample_to);
+    audio_decoder.resampler = resampler_init(d->resample_to);
     audio_decoder.desc = &audio_configuration;
 
     printf(" Receiver started.\n");
@@ -175,9 +178,10 @@ static void *receiver_thread(void *arg)
 
         // Save on shared_frame the result of audio_codec_decompress 
         // using the audio_frame2 from pbuf_data.decoder (received_frame).
+        // Then resample.
         if (!consumed) {
-            shared_frame = audio_codec_decompress(d->audio_coder, audio_decoder.frame);
-            // TODO: RESAMPLEEEEEEEEEEEEEEEEEEEEEEEEE
+            audio_frame2 *decompressed_frame = audio_codec_decompress(d->audio_coder, audio_decoder.frame);
+            shared_frame = resampler_resample(audio_decoder.resampler, decompressed_frame);
         }
         pdb_iter_done(&it);
 #endif //RECEIVER_ENABLE
@@ -252,7 +256,7 @@ int main(int argc, char *argv[])
     int channels = 1;
     int sample_rate = 8000;
     int bps = 1;
-    int resample_to = 44100;
+    int resample_to = 8000;
 
     // u-law codec options
     audio_codec_t audio_codec = AC_MULAW;
@@ -358,7 +362,7 @@ int main(int argc, char *argv[])
     // Sender codec configuration
     sender_data->audio_coder = audio_codec_init(audio_codec, AUDIO_CODER);
     // Resampling configuration (doen't care, sender_thread just ignores it).
-    receiver_data->resample_to = resample_to;
+    sender_data->resample_to = resample_to;
 
     // Launch them
     gettimeofday(&receiver_data->start_time, NULL);
