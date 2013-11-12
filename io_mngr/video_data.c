@@ -333,7 +333,7 @@ video_data_t *init_video_data(video_type_t type){
 int destroy_video_data(video_data_t *data){
     pthread_rwlock_wrlock(&data->lock);
 
-     if (data->type == DECODER && data->decoder != NULL){
+    if (data->type == DECODER && data->decoder != NULL){
         stop_decoder(data);
     } else if (data->type == ENCODER && data->encoder != NULL){
         stop_encoder(data);

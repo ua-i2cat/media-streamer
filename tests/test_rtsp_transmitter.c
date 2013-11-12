@@ -112,23 +112,13 @@ int main(int argc, char **argv)
     printf("[test] init_stream\n");
     stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE, "i2catrocks");
     printf("[test] set_stream_video_data\n");
-    //set_video_data(stream->video, H264, 1280, 720); NOTE:set_video_data doesn't not exist
     printf("[test] add_stream\n");
     add_stream(streams, stream);
 
     printf("[test] initializing transmitter\n");
-    transmitter_t *transmitter = init_transmitter(streams, 25.0);
+    transmitter_t *transmitter = init_transmitter(streams, 20.0);
     start_transmitter(transmitter);
 
-    //add_transmitter_participant(transmitter, 0, "127.0.0.1", 8000);
-    //add_participant_stream(transmitter->participants->first, stream);    
-
-    //init_transmission(transmitter->participants->first, transmitter);
-
-    //add_transmitter_participant(transmitter, 1, "127.0.0.1", 9000);
-    //add_participant_stream(transmitter->participants->last, stream);
-
-    //init_transmission(transmitter->participants->last, transmitter);
 	rtsp_serv_t *server;
 	server = malloc(sizeof(rtsp_serv_t));
   
@@ -139,10 +129,8 @@ int main(int argc, char **argv)
     init_encoder(stream->video);
     
     c_start_server(server);
-    
-    //printf("[test_transmitter] transmitter->participants->first->id: %d\n", transmitter->participants->first->id);
-    //printf("[test_transmitter] transmitter->participants->last->id: %d\n", transmitter->participants->last->id);
-    
+    c_update_server(server);
+       
     // Stuff ... 
     AVFormatContext *pformat_ctx = avformat_alloc_context();
     AVCodecContext codec_ctx;

@@ -61,30 +61,6 @@ int BasicRTSPOnlyServer::init_server() {
         exit(1);
     }
   
-    stream_data_t* stream = (stream_data_t*) malloc(sizeof(stream_data_t));
-    
-    pthread_rwlock_rdlock(&fStreams->lock);
-    stream = fStreams->first;
-  
-    ServerMediaSession* sms;
-  
-    while (stream != NULL){
-        sms = ServerMediaSession::createNew(*env, stream->stream_name, 
-					stream->stream_name,
-					stream->stream_name);
-	
-        sms->addSubsession(BasicRTSPOnlySubsession
-		       ::createNew(*env, True, stream, fTransmitter));
-        rtspServer->addServerMediaSession(sms);
-	
-        char* url = rtspServer->rtspURL(sms);
-        *env << "\nPlay this stream using the URL \"" << url << "\"\n";
-        delete[] url;
-	
-        stream = stream->next;
-    }
-    pthread_rwlock_unlock(&fStreams->lock);
-  
     return 0;
 }
 

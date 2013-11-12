@@ -60,13 +60,16 @@ int main(){
         while(run){
             pthread_rwlock_rdlock(&in_str_list->lock);
             pthread_rwlock_rdlock(&out_str_list->lock);
+            
             out_str = out_str_list->first;
             in_str = in_str_list->first;
             
+            pthread_rwlock_unlock(&out_str_list->lock);
+            pthread_rwlock_unlock(&in_str_list->lock);
+            
             while(in_str != NULL && out_str != NULL){
                              
-                if (in_str->video->decoder != NULL && out_str->video->encoder == NULL) {
-                    pthread_rwlock_wrlock(&out_str->video->lock);
+                if (out_str->video->encoder == NULL && in_str->video->decoder != NULL) {
                     set_video_data_frame(out_str->video->decoded_frame, RAW, 
                                          in_str->video->decoded_frame->width, 
                                          in_str->video->decoded_frame->height);
@@ -75,7 +78,6 @@ int main(){
                                          in_str->video->decoded_frame->height);
                     init_encoder(out_str->video);
                     c_update_server(server);
-                    pthread_rwlock_unlock(&out_str->video->lock);
                 }
                 
                 pthread_mutex_lock(&in_str->video->new_decoded_frame_lock);
@@ -100,21 +102,14 @@ int main(){
                 out_str = out_str->next;
             }
             
-            pthread_rwlock_unlock(&out_str_list->lock);
-            pthread_rwlock_unlock(&in_str_list->lock);
-            
             gettimeofday(&b, NULL);
             if (b.tv_sec - a.tv_sec >= 120){
                 run = FALSE;
             }  if (out_str_list->count < 2 && b.tv_sec - a.tv_sec >= 50){
                  //Adding 2nd outgoing stream
-                pthread_rwlock_wrlock(&out_str_list->lock);
-                add_stream(out_str_list, out_str2);
-                pthread_rwlock_unlock(&out_str_list->lock);
+                add_stream(out_str_list, out_str2);               
                 //Adding 2nd incoming participant
-                pthread_rwlock_wrlock(&receiver->participant_list->lock);
                 add_participant(receiver->participant_list, in_p2);
-                pthread_rwlock_unlock(&receiver->participant_list->lock);              
             }  else {
                 usleep(5000);
             }
