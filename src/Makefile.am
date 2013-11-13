@@ -25,6 +25,7 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					crypto/openssl_encrypt.c \
 					crypto/random.c \
 					tv.c \
+					tv_std.c \
 					perf.c \
 					tfrc.c \
 					ntp.c \
@@ -125,6 +126,7 @@ nobase_uginclude_HEADERS =	./tfrc.h \
 							./video_codec.h \
 							./config_win32.h \
 							./tv.h \
+							./tv_std.h \
 							./video_decompress/libavcodec.h \
 							./video_decompress/jpeg.h \
 							./video_decompress/null.h \

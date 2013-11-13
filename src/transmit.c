@@ -69,6 +69,7 @@
 #include "rtp/rtp_callback.h"
 #include "rtp/audio_frame2.h"
 #include "tv.h"
+#include "tv_std.h"
 #include "transmit.h"
 //#include "host.h"
 #include "video.h"
@@ -777,7 +778,7 @@ void audio_tx_send(struct tx* tx, struct rtp *rtp_session, audio_frame2 * buffer
 void audio_tx_send_mulaw(struct tx* tx, struct rtp *rtp_session, audio_frame2 * buffer)
 {
     int pt;
-    uint32_t timestamp = get_local_mediatime();
+    uint32_t timestamp;
 
     platform_spin_lock(&tx->spin);
 
@@ -798,15 +799,12 @@ void audio_tx_send_mulaw(struct tx* tx, struct rtp *rtp_session, audio_frame2 * 
     int payload_size = tx->mtu - 40;                        /* Max size of an RTP payload field */
     int packets = data_len / payload_size;                  
     if (data_len % payload_size != 0) packets++;            /* Number of RTP packets needed */
-    uint32_t sample_time = 1 / buffer->sample_rate;
 
     char *data = malloc(payload_size);
     char *curr_sample = data;
 
     // For each interval that fits in an RTP payload field.
     for (int p = 0 ; p < packets ; p++) {
-        // Update first sample timestamp
-        timestamp += ((buffer->data_len[0] * buffer->ch_count) - data_remainig) * sample_time; 
 
         // Interleave the samples
         for (int ch_sample = 0 ; ch_sample < buffer->data_len[0] ; ch_sample++){
@@ -816,6 +814,9 @@ void audio_tx_send_mulaw(struct tx* tx, struct rtp *rtp_session, audio_frame2 * 
                 data_remainig--;
             }
         }
+
+        // Update first sample timestamp
+        timestamp = get_std_audio_local_mediatime(((buffer->data_len[0] * buffer->ch_count) - data_remainig), buffer->sample_rate);
 
         // Send the packet
         rtp_send_data(rtp_session, timestamp, pt, 0, 0,        /* contributing sources */
