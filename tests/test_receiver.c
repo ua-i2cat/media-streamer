@@ -33,7 +33,6 @@ int main(){
                 pthread_rwlock_unlock(&stream_list->lock);
                 continue;	
             }	
-            pthread_mutex_lock(&stream->video->new_decoded_frame_lock);
             if (stream->video->new_decoded_frame){
                 if (F_video_rx0 == NULL) {
                     printf("recording rx frame0...\n");
@@ -46,7 +45,6 @@ int main(){
                 printf("Frame %d by stream 0\n", i);
                 i++;
             }
-            pthread_mutex_unlock(&stream->video->new_decoded_frame_lock);
             pthread_rwlock_unlock(&stream_list->lock);
         }
 
@@ -58,7 +56,6 @@ int main(){
                 pthread_rwlock_unlock(&stream_list->lock);
                 continue;	
             }	
-            pthread_mutex_lock(&stream->video->new_decoded_frame_lock);
             if (stream->video->new_decoded_frame){
 				
                 if (F_video_rx1 == NULL) {
@@ -72,7 +69,6 @@ int main(){
                 printf("Frame %d by stream 1\n", i);
                 i++;
             }
-            pthread_mutex_unlock(&stream->video->new_decoded_frame_lock);
             pthread_rwlock_unlock(&stream_list->lock);
         }	
 		// if (i == 300){

@@ -76,7 +76,7 @@ void             audio_tx_send_mulaw(struct tx *tx_session, struct rtp *rtp_sess
 struct tx *tx_init_h264(struct module *parent, unsigned mtu, enum tx_media_type media_type,
                 char *fec, const char *encryption);
 
-void tx_send_h264(struct tx *tx_session, struct video_frame *frame, struct rtp *rtp_session, float framerate);
+void tx_send_h264(struct tx *tx_session, struct video_frame *frame, struct rtp *rtp_session, uint32_t ts);
 
 void rtpenc_h264_stats_print(void);
 

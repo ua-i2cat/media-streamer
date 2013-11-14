@@ -1,13 +1,23 @@
+#include <signal.h>
 #include "config.h"
 #include "io_mngr/participants.h"
 #include "io_mngr/receiver.h"
 #include "io_mngr/transmitter.h"
 #include "io_mngr/c_basicRTSPOnlyServer.h"
 
+static volatile bool stop = false;
+
+static void signal_handler(int signal)
+{
+    if (signal) { // Avoid annoying warnings.
+        stop = true;
+    }
+    return;
+}
+
 int main(){
     
     struct timeval a, b;
-    uint8_t run = TRUE;
     
     //Receiver structures
     stream_list_t *in_str_list;
@@ -30,12 +40,15 @@ int main(){
     participant_data_t *in_p1;
     participant_data_t *in_p2;
     
+    //Attach signal handler
+    signal(SIGINT, signal_handler);
+    
     //Initialization of all data
     in_str_list     = init_stream_list();
     out_str_list    = init_stream_list();
     out_str1        = init_stream(VIDEO, OUTPUT, 1, ACTIVE, "i2cat_rocks");
     out_str2        = init_stream(VIDEO, OUTPUT, 2, ACTIVE, "i2cat_rocks_2nd");
-    transmitter     = init_transmitter(out_str_list, 20.0);
+    transmitter     = init_transmitter(out_str_list, 24.0);
     server          = init_rtsp_server(8554, out_str_list, transmitter);
     receiver        = init_receiver(in_str_list, 5004);
     in_p1           = init_participant(1, INPUT, NULL, 0);
@@ -57,7 +70,7 @@ int main(){
 
         printf("This test stops normally after 120 seconds\n");
         
-        while(run){
+        while(!stop){
             pthread_rwlock_rdlock(&in_str_list->lock);
             pthread_rwlock_rdlock(&out_str_list->lock);
             
@@ -80,7 +93,6 @@ int main(){
                     c_update_server(server);
                 }
                 
-                pthread_mutex_lock(&in_str->video->new_decoded_frame_lock);
                 if (in_str->video->new_decoded_frame){
                     pthread_rwlock_rdlock(&in_str->video->decoded_frame->lock);
                     pthread_rwlock_wrlock(&out_str->video->decoded_frame->lock);
@@ -93,10 +105,12 @@ int main(){
                  
                     pthread_rwlock_unlock(&out_str->video->decoded_frame->lock);
                     pthread_rwlock_unlock(&in_str->video->decoded_frame->lock);
+                    
                     in_str->video->new_decoded_frame = FALSE;
+                    out_str->video->new_decoded_frame = TRUE;
+                    
                     sem_post(&out_str->video->encoder->input_sem);
                 }
-                pthread_mutex_unlock(&in_str->video->new_decoded_frame_lock);
                 
                 in_str = in_str->next;
                 out_str = out_str->next;
@@ -104,7 +118,7 @@ int main(){
             
             gettimeofday(&b, NULL);
             if (b.tv_sec - a.tv_sec >= 120){
-                run = FALSE;
+                stop = TRUE;
             }  if (out_str_list->count < 2 && b.tv_sec - a.tv_sec >= 50){
                  //Adding 2nd outgoing stream
                 add_stream(out_str_list, out_str2);               

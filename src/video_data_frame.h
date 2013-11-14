@@ -17,6 +17,7 @@ typedef struct video_data_frame {
 	uint8_t *buffer;  // TODO: char *?
     uint32_t buffer_len;
     uint32_t seqno;
+    uint32_t media_time;
     frame_type_t frame_type;
     codec_t codec;
 } video_data_frame_t;

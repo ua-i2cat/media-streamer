@@ -165,8 +165,10 @@ void *transmitter_rtp_routine(void *arg)
                 rtp_update(rtp, curr_time);
                 timestamp = tv_diff(curr_time, start_time)*90000;
                 rtp_send_ctrl(rtp, timestamp, 0, curr_time);
-
-                tx_send_h264(tx_session, stream->video->encoder->frame, rtp, transmitter->fps);
+                
+                //Timestamp of start time
+                tx_send_h264(tx_session, stream->video->encoder->frame, rtp, get_local_mediatime());
+                                  
                 last_seqno = stream->video->coded_frame->seqno;
             }
         }

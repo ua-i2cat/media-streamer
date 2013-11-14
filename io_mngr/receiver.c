@@ -111,11 +111,8 @@ void *receiver_thread(receiver_t *receiver) {
 
 						if (participant->stream->state == ACTIVE && participant->stream->video->coded_frame->frame_type != BFRAME) {
 
-							pthread_mutex_lock(&participant->stream->video->new_coded_frame_lock);
 							participant->stream->video->new_coded_frame = TRUE;
 							participant->stream->video->coded_frame->seqno ++;
-							pthread_cond_signal(&participant->stream->video->decoder->notify_frame);
-							pthread_mutex_unlock(&participant->stream->video->new_coded_frame_lock);
 						
 						} else {
 							debug_msg("No support for Bframes\n"); //TODO: test it properly, it should not cause decoding damage
