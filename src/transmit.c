@@ -816,7 +816,7 @@ void audio_tx_send_mulaw(struct tx* tx, struct rtp *rtp_session, audio_frame2 * 
         }
 
         // Update first sample timestamp
-        timestamp = get_std_audio_local_mediatime(((buffer->data_len[0] * buffer->ch_count) - data_remainig), buffer->sample_rate);
+        timestamp = get_std_audio_local_mediatime((buffer->data_len[0] - (data_remainig/buffer->ch_count)));
 
         // Send the packet
         rtp_send_data(rtp_session, timestamp, pt, 0, 0,        /* contributing sources */
