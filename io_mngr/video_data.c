@@ -28,9 +28,6 @@ void *encoder_routine(void *arg)
     struct module cmod;
     module_init_default(&cmod);
 
-    //encoder->cs = malloc(sizeof(struct compress_state));
-    //assert(encoder->cs != NULL);
-
     assert(encoder != NULL);
     compress_init(&cmod, "libavcodec:codec=H.264", &encoder->cs);
 
@@ -51,19 +48,22 @@ void *encoder_routine(void *arg)
     encoder->run = TRUE; 
     encoder->index = 0;
 
-    struct timeval a, b;
-
     sem_wait(&encoder->input_sem);
    
-    long wait_time = 5000; //1000000.0 / (float)video->fps;
-
     while (encoder->run) {
-        gettimeofday(&a, NULL);
-
+        
         if (!encoder->run) {
             break;
         }
-       
+
+        while(video->new_decoded_frame == FALSE){
+            usleep(100); //TODO: set a non magic number in this usleep (maybe related to framerate)
+        }
+
+        pthread_mutex_lock(&video->new_decoded_frame_lock);
+        video->new_decoded_frame = FALSE;
+        pthread_mutex_unlock(&video->new_decoded_frame_lock);
+
         pthread_rwlock_rdlock(&video->decoded_frame->lock);
         frame->tiles[0].data = (char *)video->decoded_frame->buffer;
         frame->tiles[0].data_len = video->decoded_frame->buffer_len;
@@ -79,17 +79,11 @@ void *encoder_routine(void *arg)
         video->coded_frame->seqno++;
         pthread_rwlock_unlock(&video->coded_frame->lock);
        
-		pthread_mutex_lock(&encoder->output_lock); 
+        pthread_mutex_lock(&encoder->output_lock); 
         pthread_cond_broadcast(&encoder->output_cond);
         pthread_mutex_unlock(&encoder->output_lock);
         encoder->index = (encoder->index + 1) % 2;
-
-        gettimeofday(&b, NULL);
-
-        long diff = (b.tv_sec - a.tv_sec)*1000000 + b.tv_usec - a.tv_usec;
-        if (diff < wait_time) {
-            usleep(wait_time - diff);
-        }
+        
     }
 
     module_done(CAST_MODULE(&cmod));

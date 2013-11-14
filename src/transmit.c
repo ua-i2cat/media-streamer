@@ -1174,9 +1174,8 @@ tx_send_h264(struct tx *tx, struct video_frame *frame, struct rtp *rtp_session, 
 
         platform_spin_lock(&tx->spin);
 
-        ts = get_local_mediatime(); // Do not force the timestamp
-//uint32_t ts_delta = (1.0/framerate) * 90000;
-//ts = tx->last_ts + ts_delta; // TODO!!
+        ts = get_local_mediatime(); 
+        
         if(frame->fragment &&
                         tx->last_frame_fragment_id == frame->frame_fragment_id) {
                 ts = tx->last_ts;
