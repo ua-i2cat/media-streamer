@@ -36,12 +36,14 @@ audio_compression_CFLAGS = $(AM_CFLAGS) -Isrc -Itests -Isrc/rtp -Isrc/utils -Isr
 audio_compression_LDFLAGS = -L./src -lrtp -lacompression
 audio_compression_DEPENDENCIES = src/librtp.la src/libacompression.la
 
-audio_mulaw_only_SOURCES = tests/audio_mulaw_only.c
+audio_mulaw_only_SOURCES = tests/audio_mulaw_only.c \
+                            tests/audio_frame2_to_disk.c
 audio_mulaw_only_CFLAGS = $(AM_CFLAGS) -Isrc -Itests -Isrc/rtp -Isrc/utils -Isrc/audio
 audio_mulaw_only_LDFLAGS = -L./src -lrtp -lacompression
 audio_mulaw_only_DEPENDENCIES = src/librtp.la src/libacompression.la
 
-audio_resample_SOURCES = tests/audio_resample.c
+audio_resample_SOURCES = tests/audio_resample.c \
+                            tests/audio_frame2_to_disk.c
 audio_resample_CFLAGS = $(AM_CFLAGS) -Isrc -Itests -Isrc/rtp -Isrc/utils -Isrc/audio
 audio_resample_LDFLAGS = -L./src -lrtp -lacompression
 audio_resample_DEPENDENCIES = src/librtp.la src/libacompression.la

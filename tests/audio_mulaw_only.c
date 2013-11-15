@@ -36,6 +36,7 @@
 // For debug pourpouses
 #define RECEIVER_ENABLE 1   // Receive code.
 #define SENDER_ENABLE 1     // Send code.
+#include "audio_frame2_to_disk.h"
 
 
 /**************************************
@@ -170,7 +171,9 @@ static void *receiver_thread(void *arg)
         // Save on shared_frame the result of audio_codec_decompress 
         // using the audio_frame2 from pbuf_data.decoder (received_frame).
         if (!consumed) {
+            add_audio_frame2_to_file("aoutputmulaw_1_mulaw.raw", audio_decoder.frame);
             shared_frame = audio_codec_decompress(d->audio_coder, audio_decoder.frame);
+            add_audio_frame2_to_file("aoutputmulaw_2_PCM.raw", shared_frame);
         }
         pdb_iter_done(&it);
 #endif //RECEIVER_ENABLE
@@ -214,6 +217,7 @@ static void *sender_thread(void *arg)
             while((compressed = audio_codec_compress(d->audio_coder, uncompressed))) {
                 audio_tx_send_mulaw(d->tx_session, d->rtp_session, compressed);
                 uncompressed = NULL;
+                add_audio_frame2_to_file("aoutputmulaw_3_compressed.raw", compressed);
             }
         }
 #endif //SENDER_ENABLE

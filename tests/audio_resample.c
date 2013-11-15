@@ -40,6 +40,7 @@
 // For debug pourpouses
 #define RECEIVER_ENABLE 1   // Receive code.
 #define SENDER_ENABLE 1     // Send code.
+#include "audio_frame2_to_disk.h"
 
 
 /**************************************
@@ -139,6 +140,7 @@ static void *receiver_thread(void *arg)
     struct timeval timeout, curr_time;
     uint32_t ts;
     struct pdb_e *cp;
+    audio_frame2 *decompressed_frame;
 
     // audio_decoder will be used for decoding RTP incoming data,
     // containing an audio_frame2, a resampler config
@@ -180,8 +182,11 @@ static void *receiver_thread(void *arg)
         // using the audio_frame2 from pbuf_data.decoder (received_frame).
         // Then resample.
         if (!consumed) {
-            audio_frame2 *decompressed_frame = audio_codec_decompress(d->audio_coder, audio_decoder.frame);
+            add_audio_frame2_to_file("aoutputresampl_1_mulaw.raw", audio_decoder.frame);
+            decompressed_frame = audio_codec_decompress(d->audio_coder, audio_decoder.frame);
+            add_audio_frame2_to_file("aoutputresampl_2_PCM.raw", decompressed_frame);
             shared_frame = resampler_resample(audio_decoder.resampler, decompressed_frame);
+            add_audio_frame2_to_file("aoutputresampl_3_resampled.raw", shared_frame);
         }
         pdb_iter_done(&it);
 #endif //RECEIVER_ENABLE
