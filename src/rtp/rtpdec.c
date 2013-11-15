@@ -28,17 +28,15 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 	char *dst = NULL;
 	int src_len;
 
-	video_data_frame_t *buffers = (video_data_frame_t *) rx_data;
+	video_data_frame_t *frame = (video_data_frame_t *) rx_data;
 
-    pthread_rwlock_wrlock(&buffers->lock);
-	
 	for (pass = 0; pass < 2; pass++) {
 
 		if (pass > 0) {
 			cdata = orig;
-			buffers->buffer_len = total_length;
-			dst = buffers->buffer + total_length;
-            buffers->frame_type = BFRAME;
+			frame->buffer_len = total_length;
+			dst = frame->buffer + total_length;
+            frame->frame_type = BFRAME;
 		}
 
 		while (cdata != NULL) {
@@ -46,7 +44,6 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 
 			if (pckt->pt != PT_H264) {
 				error_msg("Wrong Payload type: %u\n", pckt->pt);
-                pthread_rwlock_unlock(&buffers->lock);
 				return FALSE;
 			}
 
@@ -56,14 +53,14 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 
             if (type == 7){
 
-                fill_coded_frame_from_sps(buffers, pckt->data, &pckt->data_len);
+                fill_coded_frame_from_sps(frame, pckt->data, &pckt->data_len);
             }
 			
 			if (type >= 1 && type <= 23) {
-                if(buffers->frame_type != INTRA && type == 5){
-                    buffers->frame_type = INTRA;
-                } else if (buffers->frame_type == BFRAME && nri != 0){
-                    buffers->frame_type = OTHER;
+                if(frame->frame_type != INTRA && type == 5){
+                    frame->frame_type = INTRA;
+                } else if (frame->frame_type == BFRAME && nri != 0){
+                    frame->frame_type = OTHER;
                 }
 
 				type = 1;
@@ -110,7 +107,6 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 						}
 					} else {
 						error_msg("NAL size exceeds length: %u %d\n", nal_size, src_len);
-                        pthread_rwlock_unlock(&buffers->lock);
 						return FALSE;
 					}
 					src += nal_size;
@@ -118,7 +114,6 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 
 					if (src_len < 0) {
 						error_msg("Consumed more bytes than we got! (%d)\n", src_len);
-                        pthread_rwlock_unlock(&buffers->lock);
 						return FALSE;
 					}
 				}
@@ -129,7 +124,6 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 			case 27:
 			case 29:
 				error_msg("Unhandled NAL type\n");
-                pthread_rwlock_unlock(&buffers->lock);
 				return FALSE;
 			case 28:
 				src = (const uint8_t *) pckt->data;
@@ -145,10 +139,10 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 					uint8_t nal_type = fu_header & 0x1f;
 					uint8_t reconstructed_nal;
 
-                    if(buffers->frame_type != INTRA && nal_type == 5){
-                        buffers->frame_type = INTRA;
-                    } else if (buffers->frame_type == BFRAME && nri != 0){
-                        buffers->frame_type = OTHER;
+                    if(frame->frame_type != INTRA && nal_type == 5){
+                        frame->frame_type = INTRA;
+                    } else if (frame->frame_type == BFRAME && nri != 0){
+                        frame->frame_type = OTHER;
                     } 
 
 					// Reconstruct this packet's true nal; only the data follows.
@@ -180,19 +174,16 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 					}
 				} else {
 					error_msg("Too short data for FU-A H264 RTP packet\n");
-                    pthread_rwlock_unlock(&buffers->lock);
 					return FALSE;
 				}
 				break;
 			default:
 				error_msg("Unknown NAL type\n");
-                pthread_rwlock_unlock(&buffers->lock);
 				return FALSE;
 			}
 			cdata = cdata->nxt;
 		}
 	}
-    pthread_rwlock_unlock(&buffers->lock);
 	return TRUE;
 }
 
@@ -222,7 +213,7 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
         // the following is just LDGM related optimalization - normally we fill up
         // allocated buffers when we have compressed data. But in case of LDGM, there
         // is just the LDGM buffer present, so we point to it instead to copying
-        video_data_frame_t *buffers = (video_data_frame_t *) rx_data; // for FEC or compressed data
+        video_data_frame_t *frame = (video_data_frame_t *) rx_data; // for FEC or compressed data
        // for (i = 0; i < (int) MAX_SUBSTREAMS; ++i) {
        //         //pckt_list[i] = ll_create();
        // 		buffers->buffer_len[i] = 0;
@@ -323,7 +314,7 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
                // }
 
               //  buffers->buffer_num = buffer_number;
-                buffers->buffer_len = buffer_length;
+                frame->buffer_len = buffer_length;
 
                 //printf("[DECODER] buffer_length = %d /  data_pos = %d /  len = %d /  first byte data = %x\n",buffer_length, data_pos,len,data[0]);
 
@@ -333,7 +324,7 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
 
 		//} else { /* PT_VIDEO_LDGM or external decoder */
                // if (pt == PT_VIDEO) {
-                        memcpy(buffers->buffer + data_pos, (unsigned char*) data,len);
+                        memcpy(frame->buffer + data_pos, (unsigned char*) data,len);
 
                // }
         //}

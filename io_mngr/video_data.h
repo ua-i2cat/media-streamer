@@ -36,11 +36,9 @@ typedef struct encoder_thread {
 
 typedef struct video_data {
     pthread_rwlock_t lock;
-    uint8_t new_coded_frame;
-    uint8_t new_decoded_frame;
     video_type_t type;
-    video_data_frame_t *decoded_frame;
-    video_data_frame_t *coded_frame;
+    video_frame_cq_t *decoded_frames;
+    video_frame_cq_t *coded_frames;
     uint32_t interlacing;  //TODO: fix this. It has to be UG enum
     uint32_t fps;       //TODO: fix this. It has to be UG enum
     union {

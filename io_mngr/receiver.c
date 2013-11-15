@@ -49,6 +49,7 @@ receiver_t *init_receiver(stream_list_t *stream_list, uint32_t port){
 void *receiver_thread(receiver_t *receiver) {
 	struct pdb_e *cp;
 	participant_data_t *participant;
+    video_data_frame_t* coded_frame;
 
 	struct timeval curr_time;
 	struct timeval timeout;
@@ -87,32 +88,35 @@ void *receiver_thread(receiver_t *receiver) {
 					}
 				}
 				pthread_rwlock_unlock(&receiver->participant_list->lock);
+                
+                coded_frame = put_frame(participant->stream->video->coded_frames);
 
-				if (participant != NULL) {
+				if (participant != NULL && coded_frame != NULL) {
 					if (!participant->stream->video->new_coded_frame && 
-							pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, participant->stream->video->coded_frame)) {	
+							pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, coded_frame)) {	
 
 						gettimeofday(&curr_time, NULL);
 						pthread_rwlock_wrlock(&participant->stream->lock);
 						
 						if (participant->stream->state == I_AWAIT && 
-                            participant->stream->video->coded_frame->frame_type == INTRA && 
-                            participant->stream->video->coded_frame->width != 0 && 
-                            participant->stream->video->coded_frame->height != 0){
+                            coded_frame->frame_type == INTRA && 
+                            coded_frame->width != 0 && 
+                            coded_frame->height != 0){
                             
 							if(participant->stream->video->decoder == NULL){
-								uint32_t width = participant->stream->video->coded_frame->width;
-								uint32_t height = participant->stream->video->coded_frame->height;
-								set_video_data_frame(participant->stream->video->decoded_frame, RGB, width, height);
+								set_video_frame_cq(participant->stream->video->decoded_frames, 
+                                                   RGB, 
+                                                   coded_frame->width, 
+                                                   coded_frame->height);
 								start_decoder(participant->stream->video); 
 							}
 							participant->stream->state = ACTIVE;
 						}
 
-						if (participant->stream->state == ACTIVE && participant->stream->video->coded_frame->frame_type != BFRAME) {
+						if (participant->stream->state == ACTIVE && coded_frame->frame_type != BFRAME) {
 
-							participant->stream->video->new_coded_frame = TRUE;
-							participant->stream->video->coded_frame->seqno ++;
+							coded_frame->seqno ++;
+                            increase_rear_frame(frame_cq);
 						
 						} else {
 							debug_msg("No support for Bframes\n"); //TODO: test it properly, it should not cause decoding damage
