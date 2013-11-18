@@ -75,61 +75,64 @@ void *receiver_thread(receiver_t *receiver) {
 			cp = pdb_iter_init(receiver->part_db, &it);
 
 			while (cp != NULL) {
+                
 				pthread_rwlock_rdlock(&receiver->participant_list->lock);
+
 				participant = get_participant_ssrc(receiver->participant_list, cp->ssrc);
 				if (participant == NULL){
 					participant = get_participant_non_init(receiver->participant_list);
 					if (participant != NULL){
 						set_participant_ssrc(participant, cp->ssrc);
 						stream_data_t *stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
-						set_video_data_frame(stream->video->coded_frame, H264, 0, 0);
+						set_video_frame_cq(stream->video->coded_frames, H264, 0, 0);
     					add_participant_stream(participant, stream);
 						add_stream(receiver->stream_list, participant->stream);
 					}
 				}
 				pthread_rwlock_unlock(&receiver->participant_list->lock);
+
+                if (participant == NULL){
+                    cp = pdb_iter_next(&it);
+                    continue;
+                }
                 
-                coded_frame = put_frame(participant->stream->video->coded_frames);
+                coded_frame = curr_in_frame(participant->stream->video->coded_frames);
+                if (coded_frame == NULL){
+                    error_msg("Missing packets\n");
+                    cp = pdb_iter_next(&it);
+                    continue;
+                }
 
-				if (participant != NULL && coded_frame != NULL) {
-					if (!participant->stream->video->new_coded_frame && 
-							pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, coded_frame)) {	
-
-						gettimeofday(&curr_time, NULL);
-						pthread_rwlock_wrlock(&participant->stream->lock);
+				if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, coded_frame)) {	
+                    
+					pthread_rwlock_wrlock(&participant->stream->lock);
 						
-						if (participant->stream->state == I_AWAIT && 
-                            coded_frame->frame_type == INTRA && 
-                            coded_frame->width != 0 && 
-                            coded_frame->height != 0){
+					if (participant->stream->state == I_AWAIT && 
+                        coded_frame->frame_type == INTRA && 
+                        coded_frame->width != 0 && 
+                        coded_frame->height != 0){
                             
-							if(participant->stream->video->decoder == NULL){
-								set_video_frame_cq(participant->stream->video->decoded_frames, 
-                                                   RGB, 
-                                                   coded_frame->width, 
-                                                   coded_frame->height);
-								start_decoder(participant->stream->video); 
-							}
-							participant->stream->state = ACTIVE;
+						if(participant->stream->video->decoder == NULL){
+							set_video_frame_cq(participant->stream->video->decoded_frames, 
+                                               RGB, 
+                                               coded_frame->width, 
+                                               coded_frame->height);
+							start_decoder(participant->stream->video); 
 						}
+						participant->stream->state = ACTIVE;
+					}
 
-						if (participant->stream->state == ACTIVE && coded_frame->frame_type != BFRAME) {
-
-							coded_frame->seqno ++;
-                            increase_rear_frame(frame_cq);
-						
-						} else {
-							debug_msg("No support for Bframes\n"); //TODO: test it properly, it should not cause decoding damage
-						}
+					if (participant->stream->state == ACTIVE && coded_frame->frame_type != BFRAME) {
+                        put_frame(participant->stream->video->coded_frames);
+					} else {
+                        debug_msg("No support for Bframes\n"); //TODO: test it properly, it should not cause decoding damage
+					}
 
 						pthread_rwlock_unlock(&participant->stream->lock);
+                        //TODO: should be at the beginning of the loop
 						pbuf_remove_first(cp->playout_buffer);
 						
 					}
-				} else {
-				//TODO: delete cp form pdb or ignore it
-				}
-
 				cp = pdb_iter_next(&it);
 			} 
 			pdb_iter_done(&it);

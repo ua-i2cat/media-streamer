@@ -21,21 +21,16 @@ typedef struct encoder_thread {
     pthread_t thread;
     uint8_t run;
 
-    pthread_mutex_t lock;
-
     int index;
 
     struct video_frame *frame;  // TODO: should be gone!
                                 // redundant with stream->coded_frame
-
-    sem_t input_sem;
-    pthread_mutex_t output_lock;
+	pthread_mutex_t output_lock;
     pthread_cond_t output_cond;
     struct compress_state *cs;
 } encoder_thread_t;
 
 typedef struct video_data {
-    pthread_rwlock_t lock;
     video_type_t type;
     video_frame_cq_t *decoded_frames;
     video_frame_cq_t *coded_frames;

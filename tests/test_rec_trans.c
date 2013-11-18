@@ -19,6 +19,10 @@ int main(){
     
     struct timeval a, b;
     
+    //video_frames structures
+    video_data_frame_t *in_frame;
+    video_data_frame_t *out_frame;
+    
     //Receiver structures
     stream_list_t *in_str_list;
     stream_data_t *in_str;
@@ -41,7 +45,7 @@ int main(){
     participant_data_t *in_p2;
     
     //Attach signal handler
-    signal(SIGINT, signal_handler);
+    //signal(SIGINT, signal_handler);
     
     //Initialization of all data
     in_str_list     = init_stream_list();
@@ -71,6 +75,7 @@ int main(){
         printf("This test stops normally after 120 seconds\n");
         
         while(!stop){
+                       
             pthread_rwlock_rdlock(&in_str_list->lock);
             pthread_rwlock_rdlock(&out_str_list->lock);
             
@@ -80,37 +85,39 @@ int main(){
             pthread_rwlock_unlock(&out_str_list->lock);
             pthread_rwlock_unlock(&in_str_list->lock);
             
-            while(in_str != NULL && out_str != NULL){
-                             
+            while(in_str != NULL && out_str != NULL){     
                 if (out_str->video->encoder == NULL && in_str->video->decoder != NULL) {
-                    set_video_data_frame(out_str->video->decoded_frame, RAW, 
-                                         in_str->video->decoded_frame->width, 
-                                         in_str->video->decoded_frame->height);
-                    set_video_data_frame(out_str->video->coded_frame, H264, 
-                                         in_str->video->decoded_frame->width, 
-                                         in_str->video->decoded_frame->height);
+                    in_frame = curr_out_frame(in_str->video->decoded_frames);
+                    if (in_frame == NULL){
+                        continue;
+                    }
+                    
+                    set_video_frame_cq(out_str->video->decoded_frames, RAW, 
+                                         in_frame->width, 
+                                         in_frame->height);
+                    set_video_frame_cq(out_str->video->coded_frames, H264,
+                                         in_frame->width, 
+                                         in_frame->height);
                     init_encoder(out_str->video);
                     c_update_server(server);
+                    continue;
                 }
                 
-                if (in_str->video->new_decoded_frame){
-                    pthread_rwlock_rdlock(&in_str->video->decoded_frame->lock);
-                    pthread_rwlock_wrlock(&out_str->video->decoded_frame->lock);
-                
-                    memcpy(out_str->video->decoded_frame->buffer, 
-                           in_str->video->decoded_frame->buffer, 
-                           in_str->video->decoded_frame->buffer_len);
-                    out_str->video->decoded_frame->buffer_len 
-                        = in_str->video->decoded_frame->buffer_len;
-                 
-                    pthread_rwlock_unlock(&out_str->video->decoded_frame->lock);
-                    pthread_rwlock_unlock(&in_str->video->decoded_frame->lock);
-                    
-                    in_str->video->new_decoded_frame = FALSE;
-                    out_str->video->new_decoded_frame = TRUE;
-                    
-                    sem_post(&out_str->video->encoder->input_sem);
+                in_frame = curr_out_frame(in_str->video->decoded_frames);
+                out_frame = curr_in_frame(out_str->video->decoded_frames);
+                              
+                if (in_frame == NULL || out_frame == NULL){
+                    continue;
                 }
+                
+                memcpy(out_frame->buffer, 
+                       in_frame->buffer, 
+                       in_frame->buffer_len);
+                out_frame->buffer_len 
+                    = out_frame->buffer_len;
+                    
+                remove_frame(in_str->video->decoded_frames);
+                put_frame(out_str->video->decoded_frames);
                 
                 in_str = in_str->next;
                 out_str = out_str->next;

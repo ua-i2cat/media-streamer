@@ -12,7 +12,7 @@
 
 static const uint8_t start_sequence[] = { 0, 0, 0, 1 };
 
-int fill_coded_frame_from_sps(video_data_frame_t *rx_data, char *data, int *data_len);
+int fill_coded_frame_from_sps(video_data_frame_t *rx_data, unsigned char *data, int *data_len);
 
 int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 	rtp_packet *pckt = NULL;
@@ -25,7 +25,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 	int pass;
 	int total_length = 0;
 
-	char *dst = NULL;
+	unsigned char *dst = NULL;
 	int src_len;
 
 	video_data_frame_t *frame = (video_data_frame_t *) rx_data;
@@ -53,7 +53,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 
             if (type == 7){
 
-                fill_coded_frame_from_sps(frame, pckt->data, &pckt->data_len);
+                fill_coded_frame_from_sps(frame, (unsigned char*) pckt->data, &pckt->data_len);
             }
 			
 			if (type >= 1 && type <= 23) {
@@ -78,7 +78,6 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 					dst -= pckt->data_len + sizeof(start_sequence);
 					memcpy(dst, start_sequence, sizeof(start_sequence));
 					memcpy(dst + sizeof(start_sequence), pckt->data, pckt->data_len);
-					unsigned char *dst2 = (unsigned char *)dst;
 				}
 				break;
 			case 24:
@@ -229,7 +228,7 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
         //}
         
         //int k = 0, m = 0, c = 0, seed = 0; // LDGM
-        int buffer_number, buffer_length;
+        int buffer_length;
 
         // first, dispatch "messages"
         /*if(decoder->set_fps) {
@@ -256,7 +255,7 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
                 tmp = ntohl(hdr[0]);
 
                 substream = tmp >> 22;
-                buffer_number = tmp & 0x3ffff;
+                //buffer_number = tmp & 0x3ffff;
                 buffer_length = ntohl(hdr[2]);
 
                 //printf("[DECODER] substream = %u\n", substream);
@@ -412,7 +411,7 @@ cleanup:
         return ret;
 }
 
-int fill_coded_frame_from_sps(video_data_frame_t *rx_data, char *data, int *data_len){
+int fill_coded_frame_from_sps(video_data_frame_t *rx_data, unsigned char *data, int *data_len){
     uint32_t width, height;
     sps_t* sps = (sps_t*)malloc(sizeof(sps_t));
     uint8_t* rbsp_buf = (uint8_t*)malloc(*data_len);
@@ -438,9 +437,7 @@ int fill_coded_frame_from_sps(video_data_frame_t *rx_data, char *data, int *data
     }
 
     if((width != rx_data->width) || (height != rx_data->height)){
-        pthread_rwlock_unlock(&rx_data->lock);
         set_video_data_frame(rx_data, H264, width, height);
-        pthread_rwlock_wrlock(&rx_data->lock);
     }
 
     bs_free(b);

@@ -51,18 +51,15 @@ transmitter_t *init_transmitter(stream_list_t *stream_list, float fps)
 int init_transmission(participant_data_t *participant, transmitter_t *transmitter)
 {
     pthread_mutex_lock(&participant->lock);
-    
     if (participant->type != OUTPUT) {
         pthread_mutex_unlock(&participant->lock);
         return FALSE;
     }
-
     if (participant->rtp.run == TRUE) {
         pthread_mutex_unlock(&participant->lock);
         // If it's already initialized, do nothing
         return TRUE;
     }
-
     rtp_routine_params_t *params = malloc(sizeof(rtp_routine_params_t));
     if (params == NULL) {
         error_msg("init_transmission: malloc error");
@@ -71,7 +68,6 @@ int init_transmission(participant_data_t *participant, transmitter_t *transmitte
     }
     params->participant = participant;
     params->transmitter = transmitter;
-
     int ret = pthread_create(&participant->rtp.thread, NULL,
                              transmitter_rtp_routine, params);
     if (ret < 0) {
@@ -113,6 +109,7 @@ void *transmitter_rtp_routine(void *arg)
     transmitter_t *transmitter = params->transmitter;
     participant_data_t *participant = params->participant;
     rtp_session_t *session = &participant->rtp;
+    video_data_frame_t *coded_frame;
 
     char *mcast_if = NULL;
     double rtcp_bw = DEFAULT_RTCP_BW;
@@ -149,31 +146,26 @@ void *transmitter_rtp_routine(void *arg)
         assert(stream != NULL);
         encoder_thread_t *encoder = stream->video->encoder;
         assert(encoder != NULL);
-
-        // TODO: add protection against spurious wakes. They should not be harmful in this scenario though.
+        
         pthread_mutex_lock(&participant->stream->video->encoder->output_lock);
-        pthread_cond_wait(&participant->stream->video->encoder->output_cond, &participant->stream->video->encoder->output_lock);
+        pthread_cond_wait(&participant->stream->video->encoder->output_cond, &participant->stream->video->encoder->output_lock);        
         pthread_mutex_unlock(&participant->stream->video->encoder->output_lock);
-
-        pthread_rwlock_rdlock(&stream->video->coded_frame->lock);
-
         // TODO: just protecting the initialization! should be outside maybe?
-        if (stream->video->encoder->frame != NULL) {
-            if (stream->video->coded_frame->seqno != last_seqno) {
-                
-                gettimeofday(&curr_time, NULL);
-                rtp_update(rtp, curr_time);
-                timestamp = tv_diff(curr_time, start_time)*90000;
-                rtp_send_ctrl(rtp, timestamp, 0, curr_time);
-                
-                //Timestamp of start time
-                tx_send_h264(tx_session, stream->video->encoder->frame, rtp, get_local_mediatime());
-                                  
-                last_seqno = stream->video->coded_frame->seqno;
-            }
+        coded_frame = curr_out_frame(stream->video->coded_frames);
+        if (coded_frame == NULL){
+            continue;
         }
-
-        pthread_rwlock_unlock(&stream->video->coded_frame->lock);
+        
+        if (stream->video->encoder->frame != NULL) { //TODO: this check shouldn't be needed encoder->frame and coded_frame are supposed to be the same!
+            gettimeofday(&curr_time, NULL);
+            rtp_update(rtp, curr_time);
+            timestamp = tv_diff(curr_time, start_time)*90000;
+            rtp_send_ctrl(rtp, timestamp, 0, curr_time);
+               
+            //Timestamp of start time
+            tx_send_h264(tx_session, stream->video->encoder->frame, rtp, coded_frame->media_time);
+            remove_frame(stream->video->coded_frames);
+        }
     }   
 
     rtp_send_bye(rtp);

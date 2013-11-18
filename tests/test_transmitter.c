@@ -19,7 +19,7 @@ int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pC
     pFormatCtx->iformat = av_find_input_format("rawvideo");
     unsigned int i;
 
-    av_dict_set(&rawdict, "video_size", "1280x720", 0);
+    av_dict_set(&rawdict, "video_size", "1280x534", 0);
     av_dict_set(&rawdict, "pixel_format", "rgb24", 0);
 
     // Open video file
@@ -111,8 +111,8 @@ int main(int argc, char **argv)
     printf("[test] init_stream\n");
     stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE, "i2CATRocks");
     printf("[test] set_stream_video_data\n");
-    set_video_data_frame(stream->video->decoded_frame, RAW, 1280, 720);
-    set_video_data_frame(stream->video->coded_frame, H264, 1280, 720);
+    set_video_frame_cq(stream->video->decoded_frames, RAW, 1280, 534);
+    set_video_frame_cq(stream->video->coded_frames, H264, 1280, 534);
     printf("[test] add_stream\n");
     add_stream(streams, stream);
 
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
     av_register_all();
 
     int width = 1280;
-    int height = 720;
+    int height = 534;
 
     load_video(yuv_path, pformat_ctx, &codec_ctx, &video_stream);
 
@@ -153,6 +153,7 @@ int main(int argc, char **argv)
     printf("[test] entering main test loop\n");
 
     struct timeval a, b;
+    video_data_frame_t *decoded_frame;
 
     while(1) {
     
@@ -166,15 +167,19 @@ int main(int argc, char **argv)
         if (ret == 0) {
             counter++;
 
-            pthread_rwlock_wrlock(&stream->video->decoded_frame->lock);
-            stream->video->decoded_frame->buffer_len = vc_get_linesize(width, RGB)*height;
-            memcpy(stream->video->decoded_frame->buffer, b1, stream->video->decoded_frame->buffer_len); 
-            pthread_rwlock_unlock(&stream->video->decoded_frame->lock);
-
-            sem_post(&stream->video->encoder->input_sem);
+            decoded_frame = curr_in_frame(stream->video->decoded_frames);
+            if (decoded_frame == NULL){
+                continue;
+            }
+            
+            decoded_frame->buffer_len = vc_get_linesize(width, RGB)*height;
+            memcpy(decoded_frame->buffer, b1, decoded_frame->buffer_len); 
+            
+            put_frame(stream->video->decoded_frames);
         } else {
             break;
         }
+        
         gettimeofday(&b, NULL);
         long diff = (b.tv_sec - a.tv_sec)*1000000 + b.tv_usec - a.tv_usec;
 

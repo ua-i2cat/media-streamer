@@ -1,6 +1,10 @@
 #include "debug.h"
 #include "video_data_frame.h"
 
+video_data_frame_t *init_video_data_frame();
+int destroy_video_data_frame(video_data_frame_t *frame);
+int set_video_data_frame(video_data_frame_t *frame, codec_t codec, uint32_t width, uint32_t height);
+
 video_data_frame_t *init_video_data_frame(){
     video_data_frame_t *frame = malloc(sizeof(video_data_frame_t));
 
@@ -44,17 +48,17 @@ int set_video_data_frame(video_data_frame_t *frame, codec_t codec, uint32_t widt
     return TRUE;
 }
 
-video_frame_cq_t *init_video_frame_cq(uint32_t max, uint32_t timeout){
+video_frame_cq_t *init_video_frame_cq(uint8_t max, uint32_t timeout){
     video_frame_cq_t* frame_cq = malloc(sizeof(video_frame_cq_t));
     
     frame_cq->rear = 0;
     frame_cq->front = 0;
-    frame_cq->max = max
+    frame_cq->max = max;
     frame_cq->timeout = timeout;
     frame_cq->state = CQ_EMPTY;
     frame_cq->frames = malloc(sizeof(video_data_frame_t*)*max);
     
-    for(int i; i < max; i++){
+    for(uint8_t i; i < max; i++){
         frame_cq->frames[i] = init_video_data_frame();
     }
     
@@ -62,37 +66,35 @@ video_frame_cq_t *init_video_frame_cq(uint32_t max, uint32_t timeout){
 }
 
 int destroy_video_frame_cq(video_frame_cq_t* frame_cq){
-    for(int i; i < frame_cq->max; i++){
+    for(uint8_t i = 0; i < frame_cq->max; i++){
        destroy_video_data_frame(frame_cq->frames[i]);
     }
     free(frame_cq);
     return TRUE;
 }
 
-int set_video_frame_cq(video_frame_cq_t *frame_cq, codec_t codec, uint32_t width, uint32_t height){
-    video_data_frame_t *frame;
-    
-    for(int i = 0; i < frame_cq->max; i++){
+int set_video_frame_cq(video_frame_cq_t *frame_cq, codec_t codec, uint32_t width, uint32_t height){ 
+    for(uint8_t i = 0; i < frame_cq->max; i++){
         set_video_data_frame(frame_cq->frames[i], codec, width, height);
     }
     
     return TRUE;
 }
 
-video_data_frame_t* put_frame(video_frame_cq_t *frame_cq){
+video_data_frame_t* curr_in_frame(video_frame_cq_t *frame_cq){
     
     while (frame_cq->state == CQ_FULL){
-        usleep(timeout);
+        usleep(frame_cq->timeout);
         if (frame_cq->state == CQ_FULL) {
             return NULL;
         }
     }
     
-    return frame_cq->frames[rear];
+    return frame_cq->frames[frame_cq->rear];
 }
 
-int increase_rear_frame(video_frame_cq_t *frame_cq){
-    int r;
+int put_frame(video_frame_cq_t *frame_cq){
+    uint8_t r;
     
     if (frame_cq->state == CQ_FULL){
         return FALSE;
@@ -109,20 +111,20 @@ int increase_rear_frame(video_frame_cq_t *frame_cq){
     return TRUE;
 }
 
-video_data_frame_t* remove_frame(video_frame_cq_t *frame_cq){
+video_data_frame_t* curr_out_frame(video_frame_cq_t *frame_cq){
     
     while (frame_cq->state == CQ_EMPTY){
-        usleep(timeout);
+        usleep(frame_cq->timeout);
         if (frame_cq->state == CQ_EMPTY) {
             return NULL;
         }
     }
     
-    return frame_cq->frames[front];
+    return frame_cq->frames[frame_cq->front];
 }
 
-int increase_front_frame(video_frame_cq_t *frame_cq){
-    int f;
+int remove_frame(video_frame_cq_t *frame_cq){
+    uint8_t f;
     
     if (frame_cq->state == CQ_EMPTY){
         return FALSE;
@@ -140,7 +142,7 @@ int increase_front_frame(video_frame_cq_t *frame_cq){
 }
 
 int flush_frames(video_frame_cq_t *frame_cq){
-    int r;
+    uint8_t r;
     
     if (frame_cq->state == CQ_FULL){
         r = (frame_cq->rear + 1) % frame_cq->max;

@@ -84,10 +84,11 @@ int destroy_stream(stream_data_t *stream)
     return TRUE;
 }
 
-int add_stream(stream_list_t *list, stream_data_t *stream)
+int add_stream(stream_list_t *list, stream_data_t *stream) 
 {
     pthread_rwlock_wrlock(&list->lock);
     pthread_rwlock_wrlock(&stream->lock);
+
     int ret = TRUE;
 
     if (list->count == 0) {
@@ -105,9 +106,9 @@ int add_stream(stream_list_t *list, stream_data_t *stream)
         error_msg("add_stream list->count < 0");
         ret = FALSE;
     }
+    
     pthread_rwlock_unlock(&stream->lock);
     pthread_rwlock_unlock(&list->lock);
-
     return ret;
 }
 

@@ -130,7 +130,6 @@ void BasicRTSPOnlySubsession::startStream(unsigned clientSessionId,
         participant = init_participant(clientSessionId, OUTPUT, inet_ntoa(dst->addr), ntohs(dst->rtpPort.num()));
         add_participant_stream(participant, fStream);
         add_transmitter_participant(fTransmitter, participant);
-        init_transmission(participant, fTransmitter);
 	}
 }
 
