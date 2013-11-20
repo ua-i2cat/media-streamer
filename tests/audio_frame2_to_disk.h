@@ -10,8 +10,8 @@
 
 #include "audio.h"
 
-void write_audio_frame2_to_file (char *path, audio_frame2 *frame);
-void add_audio_frame2_to_file (char *path, audio_frame2 *frame);
+void write_audio_frame2(char *preffix, const audio_frame2 *frame, int bps, bool verbose);
+void write_audio_frame2_channels(char *preffix, const audio_frame2 *frame, bool verbose);
 
 #endif //__AUDIO_FRAME2_TO_DISK__
 

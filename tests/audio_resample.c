@@ -182,11 +182,11 @@ static void *receiver_thread(void *arg)
         // using the audio_frame2 from pbuf_data.decoder (received_frame).
         // Then resample.
         if (!consumed) {
-            add_audio_frame2_to_file("aoutputresampl_1_mulaw.raw", audio_decoder.frame);
+            write_audio_frame2_channels("aoutput_1_mulaw", audio_decoder.frame, false);
             decompressed_frame = audio_codec_decompress(d->audio_coder, audio_decoder.frame);
-            add_audio_frame2_to_file("aoutputresampl_2_PCM.raw", decompressed_frame);
+            write_audio_frame2_channels("aoutput_2_PCM", decompressed_frame, false);
             shared_frame = resampler_resample(audio_decoder.resampler, decompressed_frame);
-            add_audio_frame2_to_file("aoutputresampl_3_resampled.raw", shared_frame);
+            write_audio_frame2_channels("aoutput_3_resampled", shared_frame, false);
         }
         pdb_iter_done(&it);
 #endif //RECEIVER_ENABLE
@@ -230,6 +230,7 @@ static void *sender_thread(void *arg)
             while((compressed = audio_codec_compress(d->audio_coder, uncompressed))) {
                 audio_tx_send_mulaw(d->tx_session, d->rtp_session, compressed);
                 uncompressed = NULL;
+                write_audio_frame2_channels("aoutput_4_compressed", compressed, false);
             }
         }
 #endif //SENDER_ENABLE

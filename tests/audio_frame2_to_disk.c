@@ -7,64 +7,90 @@
 #include <stdio.h>
 #include "audio_frame2_to_disk.h"
 
-// Write interleaved audio samples from an audio_frame2 to a file, truncating it.
-void write_audio_frame2_to_file (char *path, audio_frame2 *frame) {
+/*
+ * write_audio_frame2 - Appends an audio_frame2 raw data to a file interleaving
+ * the channels, with multiple options.
+ *
+ * Uses a file named prefix + "RATE_CHANNELS_BPS", i.e. for preffix="audio", RATE=8000,
+ * CHANNELS=1 and BPS=1 the generated file name will be: audio_8000_1_1.raw
+ * 
+ * BPS can be configured with bps parameter.
+ *
+ * Verbose output can be configured with verbose boolean.
+ *
+ * TODO: Write only once depending on a IN bool.
+ *
+ */
+void write_audio_frame2(char *preffix, const audio_frame2 *frame, int bps, bool verbose) {
 
     FILE *file = NULL;
     char *err = NULL;
     int bytes = 0;
+    
+    char name[255];
 
-    file = fopen(path, "wb");
+    sprintf(name, "%s_%i_%i_%i.raw", preffix, frame->sample_rate, frame->ch_count, bps);
+
+    file = fopen(name, "ab");
     if (file == NULL) {
-        sprintf(err, "Error: %s\n", path);
+        sprintf(err, "Error: %s\n", name);
         perror(err);
         return;
     }
 
-    printf("Writing frame to %s ... ", path);
-    // Interleave the channels
-    for (int sample = 0; sample < (frame->data_len[0] / frame->bps); sample++) {
-        for (int ch = 0; ch < frame->ch_count ; ch++) {
-            fwrite((char *)(frame->data[ch] + sample), frame->bps, 1, file);
-            bytes += frame->bps;
-        }
-    }
-
-    fclose(file);
-    printf("Done (%i bytes)!\n", bytes);
-}
-
-// Write interleaved audio samples from an audio_frame2 to a file, appending it.
-void add_audio_frame2_to_file (char *path, audio_frame2 *frame) {
-
-    FILE *file = NULL;
-    char *err = NULL;
-    int bytes = 0;
-
-    file = fopen(path, "ab");
-    if (file == NULL) {
-        sprintf(err, "Error: %s\n", path);
-        perror(err);
-        return;
-    }
-
-    printf("Adding frame to %s ... ", path);
+    if (verbose) printf("Adding frame to %s ... ", name);
     switch (frame->ch_count) {
         case 1: // Write whole frame
             fwrite(frame->data[0], frame->data_len[0], 1, file);
             bytes = frame->data_len[0];
-            printf("One-Shot ... ");
+            if (verbose) printf("One-Shot ... ");
             break;
         default: // Interleave the channels
-            for (int sample = 0; sample < (frame->data_len[0] / frame->bps); sample++) {
+            for (int sample = 0; sample < (frame->data_len[0] / bps); sample++) {
                 for (int ch = 0; ch < frame->ch_count ; ch++) {
-                    fwrite((char *)(frame->data[ch] + sample), frame->bps, 1, file);
-                    bytes += frame->bps;
+                    fwrite((char *)(frame->data[ch] + sample), bps, 1, file);
+                    bytes += bps;
                 }
             }
+            if (verbose) printf("Interleaved ... ");
     }
 
     fclose(file);
-    printf("Done (%i bytes)!\n", bytes);
+    if (verbose) printf("Done (%i bytes)!\n", bytes);
 }
 
+/*
+ * write_audio_frame2_channels - Appends each channel of a stereo audio_frame2 raw data to 
+ * a different file on the disk, with multiple options.
+ *
+ * Uses a file named prefix + "RATE_CHANNELS_BPS_chan" + NCHAN, i.e. for preffix="audio", RATE=8000,
+ * CHANNELS=1 and BPS=1 the generated file name will be: audio_8000_1_1_chan1.raw
+ * 
+ * Verbose output can be configured with verbose boolean.
+ *
+ * TODO: Write only once depending on a IN bool.
+ *
+ */
+void write_audio_frame2_channels(char *preffix, const audio_frame2 *frame, bool verbose) {
+
+    FILE *file = NULL;
+    char *err = NULL;
+
+    for(int ch = 0; ch < frame->ch_count; ch++) {
+        char name[255];
+
+        sprintf(name, "%s_%i_%i_%i_chan%i.raw", preffix, frame->sample_rate, frame->ch_count, frame->bps, ch);
+        file = fopen(name, "ab");
+        if (file == NULL) {
+            sprintf(err, "Error: %s\n", name);
+            perror(err);
+            return;
+        }
+
+        if (verbose) printf("Adding frame to %s ... ", name);
+        fwrite(frame->data[ch], frame->data_len[ch], 1, file);
+
+        fclose(file);
+        if (verbose) printf("Done (%i bytes)!\n", frame->data_len[ch]);
+    }
+}
