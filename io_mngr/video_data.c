@@ -270,8 +270,9 @@ void stop_decoder(video_data_t *data){
 video_data_t *init_video_data(video_type_t type){
     video_data_t *data = malloc(sizeof(video_data_t));
 
-    data->decoded_frames = init_video_frame_cq(2,100);
-    data->coded_frames = init_video_frame_cq(2,100);
+    //TODO: get rid of magic numbers
+    data->decoded_frames = init_video_frame_cq(3,1000);
+    data->coded_frames = init_video_frame_cq(3,1000);
     data->type = type;
     data->fps = 25;
     data->decoder = NULL; //As decoder and encoder are union, this is valid for both

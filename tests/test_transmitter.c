@@ -190,7 +190,7 @@ int main(int argc, char **argv)
     debug_msg(" done!\n");
 
     stop_transmitter(transmitter);
-
+    printf("Transmitter stopped\n");
     destroy_stream_list(streams);
 
     return 0;

@@ -51,6 +51,11 @@ int set_video_data_frame(video_data_frame_t *frame, codec_t codec, uint32_t widt
 video_frame_cq_t *init_video_frame_cq(uint8_t max, uint32_t timeout){
     video_frame_cq_t* frame_cq = malloc(sizeof(video_frame_cq_t));
     
+    if (max <= 1){
+        error_msg("video frame queue must have at least 2 positions");
+        return NULL;
+    }
+    
     frame_cq->rear = 0;
     frame_cq->front = 0;
     frame_cq->max = max;
@@ -75,7 +80,9 @@ int destroy_video_frame_cq(video_frame_cq_t* frame_cq){
 
 int set_video_frame_cq(video_frame_cq_t *frame_cq, codec_t codec, uint32_t width, uint32_t height){ 
     for(uint8_t i = 0; i < frame_cq->max; i++){
-        set_video_data_frame(frame_cq->frames[i], codec, width, height);
+        if(! set_video_data_frame(frame_cq->frames[i], codec, width, height)){
+            return FALSE;
+        }
     }
     
     return TRUE;
@@ -141,6 +148,7 @@ int remove_frame(video_frame_cq_t *frame_cq){
     return TRUE;
 }
 
+
 int flush_frames(video_frame_cq_t *frame_cq){
     uint8_t r;
     
@@ -154,3 +162,4 @@ int flush_frames(video_frame_cq_t *frame_cq){
     
     return TRUE;
 }
+
