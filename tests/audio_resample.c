@@ -41,6 +41,7 @@
 #define RECEIVER_ENABLE 1   // Receive code.
 #define SENDER_ENABLE 1     // Send code.
 #include "audio_frame2_to_disk.h"
+#include "resized_resample.h"
 
 
 /**************************************
@@ -185,7 +186,8 @@ static void *receiver_thread(void *arg)
             write_audio_frame2_channels("aoutput_1_mulaw", audio_decoder.frame, false);
             decompressed_frame = audio_codec_decompress(d->audio_coder, audio_decoder.frame);
             write_audio_frame2_channels("aoutput_2_PCM", decompressed_frame, false);
-            shared_frame = resampler_resample(audio_decoder.resampler, decompressed_frame);
+            //shared_frame = resampler_resample(audio_decoder.resampler, decompressed_frame);
+            shared_frame = resize_resample(audio_decoder.resampler, decompressed_frame, (void *)resampler_resample, 42);
             write_audio_frame2_channels("aoutput_3_resampled", shared_frame, false);
         }
         pdb_iter_done(&it);
