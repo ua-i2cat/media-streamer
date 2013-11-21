@@ -93,10 +93,6 @@ void *encoder_routine(void *arg)
 
         remove_frame(video->decoded_frames);
         put_frame(video->coded_frames);
-       
-        pthread_mutex_lock(&encoder->output_lock);
-        pthread_cond_broadcast(&encoder->output_cond);
-        pthread_mutex_unlock(&encoder->output_lock);
         
         encoder->index = (encoder->index + 1) % 2;
     }
@@ -119,19 +115,6 @@ encoder_thread_t *init_encoder(video_data_t *data)
         return NULL;
     }
 
-    if (pthread_cond_init(&encoder->output_cond, NULL) < 0) {
-        error_msg("init_encoder: pthread_cond_init error");
-        free(encoder);
-        return NULL;
-    }
-    
-    if (pthread_mutex_init(&encoder->output_lock, NULL) < 0) {
-        error_msg("init_encoder: pthread_mutex_init error");
-        pthread_cond_destroy(&encoder->output_cond);
-        free(encoder);
-        return NULL;
-    }
-
     encoder->run = FALSE;
     
     // TODO assign the encoder here?
@@ -141,8 +124,6 @@ encoder_thread_t *init_encoder(video_data_t *data)
     ret = pthread_create(&encoder->thread, NULL, encoder_routine, data);
     if (ret < 0) {
         error_msg("init_encoder: pthread_create error");
-        pthread_cond_destroy(&encoder->output_cond);
-        pthread_mutex_destroy(&encoder->output_lock);
         free(encoder);
         return NULL;
     }

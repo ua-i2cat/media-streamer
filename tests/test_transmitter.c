@@ -123,16 +123,11 @@ int main(int argc, char **argv)
     participant_data_t *p1 = init_participant(0, OUTPUT, "127.0.0.1", 8000);
     participant_data_t *p2 = init_participant(0, OUTPUT, "127.0.0.1", 9000);
 
-    add_transmitter_participant(transmitter, p1);
-    add_participant_stream(p1, stream);    
+    add_participant_stream(stream, p1);    
 
-    add_transmitter_participant(transmitter, p2);
-    add_participant_stream(p2, stream);
+    add_participant_stream(stream, p2);
 
     init_encoder(stream->video);
-    
-    printf("[test_transmitter] transmitter->participants->first->id: %d\n", transmitter->participants->first->id);
-    printf("[test_transmitter] transmitter->participants->last->id: %d\n", transmitter->participants->last->id);
     
     // Stuff ... 
     AVFormatContext *pformat_ctx = avformat_alloc_context();

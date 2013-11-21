@@ -7,24 +7,20 @@
 BasicRTSPOnlySubsession*
 BasicRTSPOnlySubsession::createNew(UsageEnvironment& env,
 				Boolean reuseFirstSource,
-				stream_data_t* stream, 
-                transmitter_t* transmitter){
-	return new BasicRTSPOnlySubsession(env, reuseFirstSource,stream, transmitter);
+				stream_data_t* stream){
+	return new BasicRTSPOnlySubsession(env, reuseFirstSource, stream);
 }
  
 BasicRTSPOnlySubsession
 ::BasicRTSPOnlySubsession(UsageEnvironment& env,
 				Boolean reuseFirstSource,
-				stream_data_t* stream, 
-                transmitter_t* transmitter
-                         )
+				stream_data_t* stream)
   : ServerMediaSubsession(env),
     fSDPLines(NULL), 
     fReuseFirstSource(reuseFirstSource), fLastStreamToken(NULL) {
 	fDestinationsHashTable = HashTable::create(ONE_WORD_HASH_KEYS);
 	gethostname(fCNAME, sizeof fCNAME);
 	this->fStream = stream;
-    this->fTransmitter = transmitter;
 	fCNAME[sizeof fCNAME-1] = '\0'; // just in case
 }
 
@@ -128,8 +124,7 @@ void BasicRTSPOnlySubsession::startStream(unsigned clientSessionId,
 	} else {
         participant_data_t *participant;
         participant = init_participant(clientSessionId, OUTPUT, inet_ntoa(dst->addr), ntohs(dst->rtpPort.num()));
-        add_participant_stream(participant, fStream);
-        add_transmitter_participant(fTransmitter, participant);
+        add_participant_stream(fStream, participant);
 	}
 }
 
@@ -139,6 +134,6 @@ void BasicRTSPOnlySubsession::deleteStream(unsigned clientSessionId, void*& stre
     if (dst == NULL){
         return;
     } else {
-        destroy_transmitter_participant(fTransmitter, clientSessionId);
+        remove_participant(fStream->plist, clientSessionId);
     }
 }

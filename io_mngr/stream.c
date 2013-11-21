@@ -64,6 +64,8 @@ stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, s
     } else if (io_type == OUTPUT){
         stream->video = init_video_data(ENCODER);
     }
+    
+    stream->plist = init_participant_list();
 
     return stream;
 }
@@ -77,8 +79,11 @@ int destroy_stream(stream_data_t *stream)
     } else if (stream->type == AUDIO){
         //Free audio structures
     }
-
+    
     pthread_rwlock_destroy(&stream->lock);
+    
+    destroy_participant_list(stream->plist);
+    
 	free(stream->stream_name);
     free(stream);
     return TRUE;
@@ -180,4 +185,62 @@ void set_stream_state(stream_data_t *stream, stream_state_t state) {
     }
     
     pthread_rwlock_unlock(&stream->lock);
+}
+
+int add_participant_stream(stream_data_t *stream, participant_data_t *participant){
+    //TODO: are these locks needed?
+    pthread_rwlock_wrlock(&stream->lock);
+    
+    add_participant(stream->plist, participant);
+    participant->stream = stream;
+    
+    pthread_rwlock_unlock(&stream->lock);
+}
+
+participant_data_t *get_participant_stream_id(stream_list_t *list, uint32_t id){
+    stream_data_t *stream;
+    participant_data_t *part = NULL;
+    
+    pthread_rwlock_rdlock(&list->lock);
+    
+    stream = list->first;
+    while(stream != NULL && part == NULL){
+        part = get_participant_id(stream->plist, id);
+        stream = stream->next;
+    }
+        
+    pthread_rwlock_unlock(&list->lock);
+    return part;
+}
+
+participant_data_t *get_participant_stream_ssrc(stream_list_t *list, uint32_t ssrc){
+    stream_data_t *stream;
+    participant_data_t *part = NULL;
+    
+    pthread_rwlock_rdlock(&list->lock);
+    
+    stream = list->first;
+    while(stream != NULL && part == NULL){
+        part = get_participant_ssrc(stream->plist, ssrc);
+        stream = stream->next;
+    }
+        
+    pthread_rwlock_unlock(&list->lock);
+    return part;
+}
+
+participant_data_t *get_participant_stream_non_init(stream_list_t *list){
+    stream_data_t *stream;
+    participant_data_t *part = NULL;
+    
+    pthread_rwlock_rdlock(&list->lock);
+    
+    stream = list->first;
+    while(stream != NULL && part == NULL){
+        part = get_participant_non_init(stream->plist);
+        stream = stream->next;
+    }
+        
+    pthread_rwlock_unlock(&list->lock);
+    return part;
 }

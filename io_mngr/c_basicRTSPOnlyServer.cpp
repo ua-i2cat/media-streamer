@@ -4,7 +4,7 @@
 
 int c_start_server(rtsp_serv_t* server){
     int ret;
-    BasicRTSPOnlyServer *srv = BasicRTSPOnlyServer::initInstance(server->port, server->streams, server->transmitter);
+    BasicRTSPOnlyServer *srv = BasicRTSPOnlyServer::initInstance(server->port, server->transmitter);
     srv->init_server();
     ret = pthread_create(&server->server_th, NULL, BasicRTSPOnlyServer::start_server, &server->watch);
     if (ret == 0){
@@ -15,10 +15,9 @@ int c_start_server(rtsp_serv_t* server){
     return ret;
 }
 
-rtsp_serv_t *init_rtsp_server(uint port, stream_list_t *streams, transmitter_t *transmitter){
+rtsp_serv_t *init_rtsp_server(uint port, transmitter_t *transmitter){
     rtsp_serv_t *server = (rtsp_serv_t*) malloc(sizeof(rtsp_serv_t));
     server->port = port;
-    server->streams = streams;
     server->transmitter = transmitter;
     server->watch = 0;
     server->run = FALSE;

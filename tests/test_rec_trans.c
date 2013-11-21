@@ -33,7 +33,7 @@ int main(){
     stream_data_t *out_str;
     transmitter_t *transmitter;
     
-    //Outgoing streams
+    //Outgoing streams and incomping streams
     stream_data_t *out_str1;
     stream_data_t *out_str2;
     
@@ -45,15 +45,16 @@ int main(){
     participant_data_t *in_p2;
     
     //Attach signal handler
-    //signal(SIGINT, signal_handler);
+    signal(SIGINT, signal_handler);
     
     //Initialization of all data
     in_str_list     = init_stream_list();
     out_str_list    = init_stream_list();
     out_str1        = init_stream(VIDEO, OUTPUT, 1, ACTIVE, "i2cat_rocks");
     out_str2        = init_stream(VIDEO, OUTPUT, 2, ACTIVE, "i2cat_rocks_2nd");
-    transmitter     = init_transmitter(out_str_list, 24.0);
-    server          = init_rtsp_server(8554, out_str_list, transmitter);
+    in_str          = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
+    transmitter     = init_transmitter(out_str_list, 20.0);
+    server          = init_rtsp_server(8554, transmitter);
     receiver        = init_receiver(in_str_list, 5004);
     in_p1           = init_participant(1, INPUT, NULL, 0);
     in_p2           = init_participant(2, INPUT, NULL, 0);
@@ -66,11 +67,14 @@ int main(){
     add_stream(out_str_list, out_str1);
     //Starting RTSP server
     c_start_server(server);
-    //Adding 1st incoming participant
-    add_participant(receiver->participant_list, in_p1);
+    //Allocating place for unknown incoming stream
+    set_video_frame_cq(in_str->video->coded_frames, H264, 0, 0);
+    //Adding 1st incoming stream and participant
+    add_participant_stream(in_str, in_p1);
+    add_stream(receiver->stream_list, in_str);
     
     //Start receiving
-    if (start_receiver(receiver)) {
+    if (start_receiver(receiver) && start_transmitter(transmitter)) {
 
         printf("This test stops normally after 120 seconds\n");
         
@@ -127,10 +131,13 @@ int main(){
             if (b.tv_sec - a.tv_sec >= 120){
                 stop = TRUE;
             }  if (out_str_list->count < 2 && b.tv_sec - a.tv_sec >= 50){
-                 //Adding 2nd outgoing stream
-                add_stream(out_str_list, out_str2);               
                 //Adding 2nd incoming participant
-                add_participant(receiver->participant_list, in_p2);
+                in_str = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
+                set_video_frame_cq(in_str->video->coded_frames, H264, 0, 0);
+                add_participant_stream(in_str, in_p1);
+                add_stream(receiver->stream_list, in_str);
+                //Adding 2nd outgoing stream
+                add_stream(out_str_list, out_str2);               
             }  else {
                 usleep(5000);
             }
@@ -142,7 +149,9 @@ int main(){
     
     c_stop_server(server);
     stop_transmitter(transmitter);
+    destroy_transmitter(transmitter);
     stop_receiver(receiver);
+    destroy_receiver(receiver);
     destroy_stream_list(in_str_list);
     destroy_stream_list(out_str_list);
 }

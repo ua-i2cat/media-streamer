@@ -21,10 +21,8 @@ receiver_t *init_receiver(stream_list_t *stream_list, uint32_t port){
     receiver->part_db = pdb_init();
     receiver->run = FALSE;
     receiver->port = port;
-    receiver->participant_list = init_participant_list();
     receiver->stream_list = stream_list;
-    
- 
+     
     receiver->session = rtp_init_if(NULL, NULL, receiver->port, 0, ttl, rtcp_bw, 0, rtp_recv_callback, (void *)receiver->part_db, 0);
       
     if (receiver->session != NULL) {
@@ -75,21 +73,14 @@ void *receiver_thread(receiver_t *receiver) {
 			cp = pdb_iter_init(receiver->part_db, &it);
 
 			while (cp != NULL) {
-                
-				pthread_rwlock_rdlock(&receiver->participant_list->lock);
 
-				participant = get_participant_ssrc(receiver->participant_list, cp->ssrc);
+				participant = get_participant_stream_ssrc(receiver->stream_list, cp->ssrc);
 				if (participant == NULL){
-					participant = get_participant_non_init(receiver->participant_list);
+					participant = get_participant_stream_non_init(receiver->stream_list);
 					if (participant != NULL){
 						set_participant_ssrc(participant, cp->ssrc);
-						stream_data_t *stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
-						set_video_frame_cq(stream->video->coded_frames, H264, 0, 0);
-    					add_participant_stream(participant, stream);
-						add_stream(receiver->stream_list, participant->stream);
 					}
 				}
-				pthread_rwlock_unlock(&receiver->participant_list->lock);
 
                 if (participant == NULL){
                     cp = pdb_iter_next(&it);
@@ -117,6 +108,7 @@ void *receiver_thread(receiver_t *receiver) {
                                                RGB, 
                                                coded_frame->width, 
                                                coded_frame->height);
+                            printf("starting decoder\n");
 							start_decoder(participant->stream->video); 
 						}
 						participant->stream->state = ACTIVE;
@@ -138,9 +130,7 @@ void *receiver_thread(receiver_t *receiver) {
 			pdb_iter_done(&it);
 		}
 	}
-  	
-    rtp_done(receiver->session);
-    free(receiver);
+    
     pthread_exit((void *)NULL);   
 }
 
@@ -156,13 +146,24 @@ int start_receiver(receiver_t *receiver){
 int stop_receiver(receiver_t *receiver){
   	receiver->run = FALSE;
   
-  	pthread_join(receiver->th_id, NULL); //TODO: add some timeout
+  	pthread_join(receiver->th_id, NULL); 
   
   	return TRUE;
 }
 
-int add_receiver_participant(receiver_t *receiver, uint32_t id)
-{
-    participant_data_t *participant = init_participant(id, INPUT, (char *)NULL, 0);
-    return add_participant(receiver->participant_list, participant);
+int destroy_receiver(receiver_t *receiver){
+    if (receiver->run) {
+        return FALSE;
+    }
+    
+    rtp_done(receiver->session);
+    pdb_destroy(&receiver->part_db);
+    free(receiver);
+    return TRUE;
 }
+
+// int add_receiver_participant(receiver_t *receiver, uint32_t id)
+// {
+//     participant_data_t *participant = init_participant(id, INPUT, (char *)NULL, 0);
+//     return add_participant(receiver->participant_list, participant);
+// }

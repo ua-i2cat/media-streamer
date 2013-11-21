@@ -19,15 +19,27 @@ int main(){
   	receiver = init_receiver(stream_list, 5004);
     participant_data_t *p1 = init_participant(1, INPUT, NULL, 0);
     participant_data_t *p2 = init_participant(2, INPUT, NULL, 0);
-  	add_participant(receiver->participant_list, p1);
-  	add_participant(receiver->participant_list, p2);
+    
+  	//Allocating place for unknown incoming stream
+    stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
+    set_video_frame_cq(stream->video->coded_frames, H264, 0, 0);
+    //Adding 1st incoming stream and participant
+    add_participant_stream(stream, p1);
+    add_stream(receiver->stream_list, stream);
+    
+    //Allocating place for unknown incoming stream
+    stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
+    set_video_frame_cq(stream->video->coded_frames, H264, 0, 0);
+    //Adding 1st incoming stream and participant
+    add_participant_stream(stream, p2);
+    add_stream(receiver->stream_list, stream);
   
   	if (start_receiver(receiver)) {
 
-        printf("First 700 frames to disk of first participant\n");
+        printf("First 200 frames to disk of first participant\n");
 	  
-        int i = 0, c = 0;
-        while(i < 700){
+        int i = 0;
+        while(i < 200){
             usleep(1000);
             pthread_rwlock_rdlock(&stream_list->lock);
             stream = stream_list->first;
@@ -39,7 +51,7 @@ int main(){
             decoded_frame = curr_out_frame(stream->video->decoded_frames);
             if (decoded_frame == NULL){
                 pthread_rwlock_unlock(&stream_list->lock);
-                continue;
+                  continue;
             }
             
             if (F_video_rx0 == NULL) {
@@ -52,9 +64,9 @@ int main(){
             pthread_rwlock_unlock(&stream_list->lock);
         }
 
-        printf("First 700 frames to disk of second participant\n");
+        printf("First 200 frames to disk of second participant\n");
         i=0;
-        while(i < 700){
+        while(i < 200){
             usleep(100);
             pthread_rwlock_rdlock(&stream_list->lock);
             stream = stream_list->first->next;
@@ -81,6 +93,7 @@ int main(){
         }
     
         stop_receiver(receiver);
+        destroy_receiver(receiver);
         printf("Stopped receiver\n");
         destroy_stream_list(stream_list);
         printf("Finished\n");

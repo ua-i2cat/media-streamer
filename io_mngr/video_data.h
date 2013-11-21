@@ -25,8 +25,8 @@ typedef struct encoder_thread {
 
     struct video_frame *frame;  // TODO: should be gone!
                                 // redundant with stream->coded_frame
-	pthread_mutex_t output_lock;
-    pthread_cond_t output_cond;
+    //pthread_mutex_t output_lock;
+    //pthread_cond_t output_cond;
     struct compress_state *cs;
 } encoder_thread_t;
 
@@ -36,6 +36,7 @@ typedef struct video_data {
     video_frame_cq_t *coded_frames;
     uint32_t interlacing;  //TODO: fix this. It has to be UG enum
     uint32_t fps;       //TODO: fix this. It has to be UG enum
+    uint32_t seqno;
     union {
         struct encoder_thread *encoder;
         struct decoder_thread *decoder;
