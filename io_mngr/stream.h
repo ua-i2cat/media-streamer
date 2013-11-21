@@ -23,7 +23,6 @@ typedef struct audio_data {
 } audio_data_t;
 
 typedef struct stream_data {
-    pthread_rwlock_t lock;
     stream_type_t type;
     io_type_t io_type;
     stream_state_t state;

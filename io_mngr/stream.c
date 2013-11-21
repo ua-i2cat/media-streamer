@@ -39,13 +39,7 @@ stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, s
         error_msg("init_video_stream malloc error");
         return NULL;
     }
-
-    if (pthread_rwlock_init(&stream->lock, NULL) < 0) {
-        error_msg("init_stream: pthread_rwlock_init error");
-        free(stream);
-        return NULL;
-    }
-    
+  
     if (stream_name == NULL){
         stream->stream_name = NULL;
     } else {
@@ -72,15 +66,11 @@ stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, s
 
 int destroy_stream(stream_data_t *stream)
 {
-    pthread_rwlock_wrlock(&stream->lock);
-
     if (stream->type == VIDEO){
         destroy_video_data(stream->video);
     } else if (stream->type == AUDIO){
         //Free audio structures
     }
-    
-    pthread_rwlock_destroy(&stream->lock);
     
     destroy_participant_list(stream->plist);
     
@@ -92,7 +82,6 @@ int destroy_stream(stream_data_t *stream)
 int add_stream(stream_list_t *list, stream_data_t *stream) 
 {
     pthread_rwlock_wrlock(&list->lock);
-    pthread_rwlock_wrlock(&stream->lock);
 
     int ret = TRUE;
 
@@ -112,7 +101,6 @@ int add_stream(stream_list_t *list, stream_data_t *stream)
         ret = FALSE;
     }
     
-    pthread_rwlock_unlock(&stream->lock);
     pthread_rwlock_unlock(&list->lock);
     return ret;
 }
@@ -149,7 +137,6 @@ int remove_stream(stream_list_t *list, uint32_t id)
         return FALSE;
     }
 
-    pthread_rwlock_wrlock(&stream->lock);
     if (stream->prev == NULL) {
         assert(list->first == stream);
         list->first = stream->next;
@@ -165,8 +152,7 @@ int remove_stream(stream_list_t *list, uint32_t id)
     }
 
     list->count--;
-    
-    pthread_rwlock_unlock(&stream->lock);
+
     destroy_stream(stream);
     
     pthread_rwlock_unlock(&list->lock);
@@ -175,26 +161,16 @@ int remove_stream(stream_list_t *list, uint32_t id)
 }
 
 void set_stream_state(stream_data_t *stream, stream_state_t state) {
-    
-    pthread_rwlock_wrlock(&stream->lock); 
-
     if (state == NON_ACTIVE){
         stream->state = state;
     } else if (stream->state == NON_ACTIVE) {
         stream->state = I_AWAIT;
     }
-    
-    pthread_rwlock_unlock(&stream->lock);
 }
 
-int add_participant_stream(stream_data_t *stream, participant_data_t *participant){
-    //TODO: are these locks needed?
-    pthread_rwlock_wrlock(&stream->lock);
-    
+int add_participant_stream(stream_data_t *stream, participant_data_t *participant){  
     add_participant(stream->plist, participant);
     participant->stream = stream;
-    
-    pthread_rwlock_unlock(&stream->lock);
 }
 
 participant_data_t *get_participant_stream_id(stream_list_t *list, uint32_t id){

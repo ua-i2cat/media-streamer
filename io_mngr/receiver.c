@@ -94,9 +94,7 @@ void *receiver_thread(receiver_t *receiver) {
                     continue;
                 }
 
-				if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, coded_frame)) {	
-                    
-					pthread_rwlock_wrlock(&participant->stream->lock);
+				if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, coded_frame)) {
 						
 					if (participant->stream->state == I_AWAIT && 
                         coded_frame->frame_type == INTRA && 
@@ -117,14 +115,12 @@ void *receiver_thread(receiver_t *receiver) {
 					if (participant->stream->state == ACTIVE && coded_frame->frame_type != BFRAME) {
                         put_frame(participant->stream->video->coded_frames);
 					} else {
-                        debug_msg("No support for Bframes\n"); //TODO: test it properly, it should not cause decoding damage
+                        debug_msg("No support for Bframes\n");
 					}
-
-						pthread_rwlock_unlock(&participant->stream->lock);
-                        //TODO: should be at the beginning of the loop
-						pbuf_remove_first(cp->playout_buffer);
+                    //TODO: should be at the beginning of the loop
+					pbuf_remove_first(cp->playout_buffer);
 						
-					}
+				}
 				cp = pdb_iter_next(&it);
 			} 
 			pdb_iter_done(&it);

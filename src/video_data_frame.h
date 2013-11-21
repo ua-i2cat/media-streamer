@@ -4,9 +4,10 @@
 #define MAX_WIDTH 1920
 #define MAX_HEIGHT 1080
 
-#define CQ_FULL 1
+//TODO: maybe should be an enum
 #define CQ_OK 0
-#define CQ_EMPTY -1
+#define CQ_EMPTY 1
+#define CQ_FULL 2
 
 typedef enum frame_type {
     INTRA,
@@ -32,6 +33,8 @@ typedef struct video_frame_cq {
     uint8_t max;
     uint32_t timeout; //in usec
     int state;
+    int in_process; //True false
+    int out_process;
 	video_data_frame_t **frames;
 } video_frame_cq_t;
 
