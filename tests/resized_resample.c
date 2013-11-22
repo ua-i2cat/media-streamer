@@ -10,6 +10,8 @@
 #include "resized_resample.h"
 #include "utils.h"
 
+#define MAX_FRAME_SIZE 48000 * 2
+
 /*
  * private data
  */
@@ -26,6 +28,9 @@ static void init() {
     if (!init) {
         chunk = audio_frame2_init();
         result = audio_frame2_init();
+        // Allocate enought memory (far enought!) only once.
+        audio_frame2_allocate(chunk, MAX_AUDIO_CHANNELS, MAX_FRAME_SIZE);
+        audio_frame2_allocate(result, MAX_AUDIO_CHANNELS, MAX_FRAME_SIZE);
     }
 }
 
@@ -93,8 +98,6 @@ audio_frame2 *resize_resample(struct resampler *s, audio_frame2 *frame, void *ca
     }
 
     init();
-    // Allocate space for the chunk audio_frame2
-    audio_frame2_allocate(chunk, frame->ch_count, max_size);
 
     int nframes = frame->data_len[0]/max_size;
     if (frame->data_len[0] % max_size) nframes++;
@@ -103,14 +106,9 @@ audio_frame2 *resize_resample(struct resampler *s, audio_frame2 *frame, void *ca
         // Call the callback for each chunk
         audio_frame2 *resample_result = resample_callback(s, resample_chop(frame, max_size, f));
 
-        // Resize result audio_frame2 if needed or only once.
-        if (result->sample_rate != resample_result->sample_rate) {
-            audio_frame2_allocate(result, resample_result->ch_count, resample_result->data_len[0] * nframes);
-        }
-
         // Glue the current audio_frame2
         resample_glue(result, resample_result);
     }
-    
+
     return result;
 }

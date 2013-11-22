@@ -35,15 +35,18 @@
 // Includes for resamplming
 #include "audio/resampler.h"
 
+#include "resized_resample.h"
+
 #define DEFAULT_AUDIO_FEC       "mult:3"
 
 // For debug pourpouses
 #define RECEIVER_ENABLE 1       // Receive code.
 #define SENDER_ENABLE   1       // Send code.
-#define FRAME_SIZE      200     // Macro for resize_resample
-//#include "audio_frame2_to_disk.h"
-#include "resized_resample.h"
-
+#define FRAME_SIZE      42      // Macro for resize_resample
+//#define WRITE_TO_DISK
+#ifdef WRITE_TO_DISK
+#include "audio_frame2_to_disk.h"
+#endif //WRITE_TO_DISK
 
 /**************************************
  *     Variables 
@@ -91,7 +94,7 @@ extern const char *get_name_to_audio_codec(audio_codec_t codec);
 
 static void usage(void)
 {
-    printf("Usage: audio_mulaw_only [-r <receive_port>] [-h <sendto_host>] [-s <sendto_port>] [-c <channels>] [-p <sample_rate>] [-t <resample_to>]\n");
+    printf("Usage: audio_mulaw_only [-r <receive_port>] [-h <sendto_host>] [-s <sendto_port>] [-c <channels>] [-p <sample_rate>] [-t <resample_to>] [-f <resample_frame_size>]\n");
     printf(" By Txor >:D\n");
 }
 
@@ -184,12 +187,18 @@ static void *receiver_thread(void *arg)
         // using the audio_frame2 from pbuf_data.decoder (received_frame).
         // Then resample.
         if (!consumed) {
-            //write_audio_frame2_channels("aoutput_1_mulaw", audio_decoder.frame, false);
+#ifdef WRITE_TO_DISK
+            write_audio_frame2_channels("aoutput_1_mulaw", audio_decoder.frame, false);
+#endif //WRITE_TO_DISK
             decompressed_frame = audio_codec_decompress(d->audio_coder, audio_decoder.frame);
-            //write_audio_frame2_channels("aoutput_2_PCM", decompressed_frame, false);
+#ifdef WRITE_TO_DISK
+            write_audio_frame2_channels("aoutput_2_PCM", decompressed_frame, false);
+#endif //WRITE_TO_DISK
             //shared_frame = resampler_resample(audio_decoder.resampler, decompressed_frame);
             shared_frame = resize_resample(audio_decoder.resampler, decompressed_frame, (void *)resampler_resample, FRAME_SIZE);
-            //write_audio_frame2_channels("aoutput_3_resampled", shared_frame, false);
+#ifdef WRITE_TO_DISK
+            write_audio_frame2_channels("aoutput_3_resampled", shared_frame, false);
+#endif //WRITE_TO_DISK
         }
         pdb_iter_done(&it);
 #endif //RECEIVER_ENABLE
@@ -233,7 +242,9 @@ static void *sender_thread(void *arg)
             while((compressed = audio_codec_compress(d->audio_coder, uncompressed))) {
                 audio_tx_send_mulaw(d->tx_session, d->rtp_session, compressed);
                 uncompressed = NULL;
-                //write_audio_frame2_channels("aoutput_4_compressed", compressed, false);
+#ifdef WRITE_TO_DISK
+                write_audio_frame2_channels("aoutput_4_compressed", compressed, false);
+#endif //WRITE_TO_DISK
             }
         }
 #endif //SENDER_ENABLE
@@ -266,6 +277,7 @@ int main(int argc, char *argv[])
     int sample_rate = 8000;
     int bps = 1;
     int resample_to = 8000;
+    int resample_frame_size = FRAME_SIZE;
 
     // u-law codec options
     audio_codec_t audio_codec = AC_MULAW;
@@ -278,12 +290,13 @@ int main(int argc, char *argv[])
         {"channels", required_argument, 0, 'c'},
         {"sample_rate", required_argument, 0, 'p'},
         {"resample_to", required_argument, 0, 't'},
+        {"resample_frame_size", required_argument, 0, 'f'},
         {0, 0, 0, 0}
     };
     int ch;
     int option_index = 0;
 
-    while ((ch = getopt_long(argc, argv, "h:s:r:c:p:t:", getopt_options, &option_index)) != -1) {
+    while ((ch = getopt_long(argc, argv, "h:s:r:c:p:t:f:", getopt_options, &option_index)) != -1) {
         switch (ch) {
             case 'h':
                 sendto_host = optarg;
@@ -305,6 +318,10 @@ int main(int argc, char *argv[])
                 // TODO: Check valid values.
                 resample_to = atoi(optarg);
                 break;
+            case 'f':
+                // TODO: Check valid values.
+                resample_frame_size = atoi(optarg);
+                break;
             case '?':
                 usage();
                 exit(0);
@@ -324,6 +341,7 @@ int main(int argc, char *argv[])
     printf("  bps: %i\n", bps);
     printf("  Codec: %s\n", get_name_to_audio_codec(audio_codec));
     printf("Resampling to: %i\n", resample_to);
+    printf("Resample frame size: %i\n", resample_frame_size);
 
     // We will create two threads with one different RTP session each, similar than audio_cfg_init (audio/audio.c:180) does.
 
