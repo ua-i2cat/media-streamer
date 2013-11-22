@@ -109,6 +109,7 @@ enum fec_scheme_t {
 // Mulaw audio memory reservation
 #define BUFFER_MTU_SIZE 1500
 static char *data_buffer_mulaw;
+static int buffer_mulaw_init = 0;
 
 struct rtp_nal_t {
         uint8_t *data;
@@ -167,11 +168,9 @@ struct tx {
 
 // Mulaw audio memory reservation
 static void init_tx_mulaw_buffer() {
-
-    static int init = 0;
-
-    if (!init) {
+    if (!buffer_mulaw_init) {
         data_buffer_mulaw = malloc(BUFFER_MTU_SIZE);
+        buffer_mulaw_init = 1;
     }
 }
 
@@ -823,9 +822,17 @@ void audio_tx_send_mulaw(struct tx* tx, struct rtp *rtp_session, audio_frame2 * 
 
     // For each interval that fits in an RTP payload field.
     for (int p = 0 ; p < packets ; p++) {
+        
+        int samples_per_packet;
+        if (data_remainig >= (payload_size / buffer->ch_count)) {
+            samples_per_packet = payload_size / buffer->ch_count;
+        }
+        else {
+            samples_per_packet = data_remainig / buffer->ch_count;
+        }
 
         // Interleave the samples
-        for (int ch_sample = 0 ; ch_sample < buffer->data_len[0] ; ch_sample++){
+        for (int ch_sample = 0 ; ch_sample < samples_per_packet ; ch_sample++){
             for (int ch = 0 ; ch < buffer->ch_count ; ch++) {
                 memcpy(curr_sample, (char *)(buffer->data[ch] + ch_sample), sizeof(uint8_t)); 
                 curr_sample += sizeof(uint8_t);
