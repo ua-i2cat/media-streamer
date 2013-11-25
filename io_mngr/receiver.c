@@ -80,7 +80,7 @@ void *receiver_thread(receiver_t *receiver) {
 					participant = get_participant_non_init(receiver->participant_list);
 					if (participant != NULL){
 						set_participant_ssrc(participant, cp->ssrc);
-						stream_data_t *stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
+						stream_data_t *stream = init_stream(VIDEO, INPUT, participant->id, I_AWAIT, NULL);
 						set_video_data_frame(stream->video->coded_frame, H264, 0, 0);
     					add_participant_stream(participant, stream);
 						add_stream(receiver->stream_list, participant->stream);
