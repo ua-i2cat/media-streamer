@@ -56,6 +56,8 @@ int destroy_stream(stream_data_t *stream);
 stream_data_t *get_stream_id(stream_list_t *list, uint32_t id);
 void set_stream_state(stream_data_t *stream, stream_state_t state);
 int add_participant_stream(stream_data_t *stream, participant_data_t *participant);
+int remove_participant_from_stream(stream_data_t *stream, uint32_t id);
+
 
 //TODO: rethink these function names
 participant_data_t *get_participant_stream_id(stream_list_t *list, uint32_t id);

@@ -173,6 +173,11 @@ int add_participant_stream(stream_data_t *stream, participant_data_t *participan
     participant->stream = stream;
 }
 
+int remove_participant_from_stream(stream_data_t *stream, uint32_t id)
+{
+    return remove_participant(stream->plist, id);
+}
+
 participant_data_t *get_participant_stream_id(stream_list_t *list, uint32_t id){
     stream_data_t *stream;
     participant_data_t *part = NULL;
