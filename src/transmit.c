@@ -76,6 +76,12 @@
 #include "video_codec.h"
 #include "compat/platform_spin.h"
 
+// For debug pourpouses
+//#define WRITE_TO_DISK
+#ifdef WRITE_TO_DISK
+#include "../tests/audio_resample.h"
+#endif //WRITE_TO_DISK
+
 #define TRANSMIT_MAGIC	0xe80ab15f
 
 long packet_rate;
@@ -789,8 +795,8 @@ void audio_tx_send(struct tx* tx, struct rtp *rtp_session, audio_frame2 * buffer
 }
 
 /*
- * audio_tx_send_mulaw - Send interleaved channels from the audio_frame2 at a bps of 1.
- *                          This is the mulaw standard.
+ * audio_tx_send_mulaw - Send interleaved channels from the audio_frame2 at 1 bps,
+ *                       as the mulaw standard.
  */
 void audio_tx_send_mulaw(struct tx* tx, struct rtp *rtp_session, audio_frame2 * buffer)
 {
@@ -802,10 +808,10 @@ void audio_tx_send_mulaw(struct tx* tx, struct rtp *rtp_session, audio_frame2 * 
     // Configure the right Payload type,
     // 8000 Hz, 1 channel is the ITU-T G.711 standard
     // More channels or Hz goes to DynRTP-Type97
-    if (buffer->ch_count > 1 || buffer->sample_rate != 8000) {
-        pt = PT_DynRTP_Type97;
-    } else {
+    if (buffer->ch_count == 1 && buffer->sample_rate == 8000) {
         pt = PT_ITU_T_G711_PCMU;
+    } else {
+        pt = PT_DynRTP_Type97;
     }
 
     // The sizes for the different audio_frame2 channels must be the same.
@@ -824,11 +830,14 @@ void audio_tx_send_mulaw(struct tx* tx, struct rtp *rtp_session, audio_frame2 * 
     for (int p = 0 ; p < packets ; p++) {
         
         int samples_per_packet;
-        if (data_remainig >= (payload_size / buffer->ch_count)) {
+        int data_to_send;
+        if (data_remainig >= payload_size) {
             samples_per_packet = payload_size / buffer->ch_count;
+            data_to_send = payload_size;
         }
         else {
             samples_per_packet = data_remainig / buffer->ch_count;
+            data_to_send = data_remainig;
         }
 
         // Interleave the samples
@@ -843,10 +852,15 @@ void audio_tx_send_mulaw(struct tx* tx, struct rtp *rtp_session, audio_frame2 * 
         // Update first sample timestamp
         timestamp = get_std_audio_local_mediatime((buffer->data_len[0] - (data_remainig/buffer->ch_count)));
 
+#ifdef WRITE_TO_DISK
+        FILE *transmit_file;
+        fwrite(data_buffer_mulaw, data_to_send, 1, transmit_file);
+#endif //WRITE_TO_DISK
+
         // Send the packet
         rtp_send_data(rtp_session, timestamp, pt, 0, 0,        /* contributing sources */
                 0,        /* contributing sources length */
-                data_buffer_mulaw, data_len,
+                data_buffer_mulaw, data_to_send,
                 0, 0, 0);
     }
 

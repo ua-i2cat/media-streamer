@@ -34,7 +34,6 @@
 
 // Includes for resamplming
 #include "audio/resampler.h"
-
 #include "resized_resample.h"
 
 #define DEFAULT_AUDIO_FEC       "mult:3"
@@ -46,6 +45,7 @@
 //#define WRITE_TO_DISK
 #ifdef WRITE_TO_DISK
 #include "audio_frame2_to_disk.h"
+#include "audio_resample.h"
 #endif //WRITE_TO_DISK
 
 /**************************************
@@ -56,6 +56,7 @@ static volatile bool stop = false;
 static audio_frame2 *shared_frame = NULL;
 static volatile bool consumed = true;
 static struct audio_desc audio_configuration;
+FILE *transmit_file;
 
 // Like state_audio (audio/audio.c:105)
 // Used to communicate data to threads.
@@ -239,13 +240,30 @@ static void *sender_thread(void *arg)
             // Iteratively compress-and-send, see audio/codec.c:210.
             audio_frame2 *uncompressed = shared_frame;
             audio_frame2 *compressed = NULL;
+#ifdef WRITE_TO_DISK
+            char name[256];
+            FILE *frame_write[8];
+            transmit_file = fopen("aoutput_4_send","ab");
+            for (int ch = 0; ch < shared_frame->ch_count ; ch++) {
+                sprintf(name, "%s_%i_%i_%i_chan%i.raw", "aoutput_5_compressed", shared_frame->sample_rate, shared_frame->ch_count, 1, ch);
+                frame_write[ch] = fopen(name,"ab");
+            }
+#endif //WRITE_TO_DISK
             while((compressed = audio_codec_compress(d->audio_coder, uncompressed))) {
                 audio_tx_send_mulaw(d->tx_session, d->rtp_session, compressed);
                 uncompressed = NULL;
 #ifdef WRITE_TO_DISK
-                write_audio_frame2_channels("aoutput_4_compressed", compressed, false);
+                for (int ch = 0; ch < compressed->ch_count ; ch++) {
+                    fwrite(compressed->data[ch], compressed->data_len[ch], 1, frame_write[ch]);
+                }
 #endif //WRITE_TO_DISK
             }
+#ifdef WRITE_TO_DISK
+            fclose(transmit_file);
+            for (int ch = 0; ch < shared_frame->ch_count ; ch++) {
+                fclose(frame_write[ch]);
+            }
+#endif //WRITE_TO_DISK
         }
 #endif //SENDER_ENABLE
     }
