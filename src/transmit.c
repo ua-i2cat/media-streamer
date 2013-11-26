@@ -76,12 +76,6 @@
 #include "video_codec.h"
 #include "compat/platform_spin.h"
 
-// For debug pourpouses
-//#define WRITE_TO_DISK
-#ifdef WRITE_TO_DISK
-#include "../tests/audio_resample.h"
-#endif //WRITE_TO_DISK
-
 #define TRANSMIT_MAGIC	0xe80ab15f
 
 long packet_rate;
@@ -851,11 +845,6 @@ void audio_tx_send_mulaw(struct tx* tx, struct rtp *rtp_session, audio_frame2 * 
 
         // Update first sample timestamp
         timestamp = get_std_audio_local_mediatime((buffer->data_len[0] - (data_remainig/buffer->ch_count)));
-
-#ifdef WRITE_TO_DISK
-        FILE *transmit_file;
-        fwrite(data_buffer_mulaw, data_to_send, 1, transmit_file);
-#endif //WRITE_TO_DISK
 
         // Send the packet
         rtp_send_data(rtp_session, timestamp, pt, 0, 0,        /* contributing sources */

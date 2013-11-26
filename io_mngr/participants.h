@@ -4,8 +4,8 @@
  *
  */
 
-#ifndef _PARTICIPANTS_H_
-#define _PARTICIPANTS_H_
+#ifndef __PARTICIPANTS_H__
+#define __PARTICIPANTS_H__
 
 #include <semaphore.h>
 #include "config_unix.h"
@@ -63,4 +63,4 @@ participant_data_t *init_participant(uint32_t id, io_type_t type, char *addr, ui
 void set_active_participant(participant_data_t *participant, uint8_t active);
 void destroy_participant(participant_data_t *src);
 
-#endif
+#endif //__PARTICIPANTS_H__
