@@ -16,7 +16,7 @@ int main(){
   
 //  	add_participant(part_list, 2, INPUT, NULL, 0);
 
-  	receiver = init_receiver(stream_list, 5004);
+  	receiver = init_receiver(stream_list, 5004, 5006);
     participant_data_t *p1 = init_participant(1, INPUT, NULL, 0);
     participant_data_t *p2 = init_participant(2, INPUT, NULL, 0);
     

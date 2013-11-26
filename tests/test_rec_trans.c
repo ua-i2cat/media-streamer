@@ -55,7 +55,7 @@ int main(){
     in_str          = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
     transmitter     = init_transmitter(out_str_list, 20.0);
     server          = init_rtsp_server(8554, transmitter);
-    receiver        = init_receiver(in_str_list, 5004);
+    receiver        = init_receiver(in_str_list, 5004, 5006);
     in_p1           = init_participant(1, INPUT, NULL, 0);
     in_p2           = init_participant(2, INPUT, NULL, 0);
     

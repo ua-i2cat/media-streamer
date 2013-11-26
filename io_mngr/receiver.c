@@ -44,7 +44,6 @@ receiver_t *init_receiver(stream_list_t *stream_list, uint32_t video_port, uint3
     receiver->audio_part_db = pdb_init();
     receiver->audio_run = FALSE;
     receiver->audio_port = audio_port;
-    receiver->audio_participant_list = init_participant_list();
     receiver->audio_stream_list = stream_list;
     receiver->audio_session = rtp_init_if(NULL, NULL, receiver->audio_port,
             0, ttl, rtcp_bw, 0, rtp_recv_callback, (void *)receiver->audio_part_db, 0);
