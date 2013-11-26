@@ -3,7 +3,7 @@ SUBDIRS = src io_mngr
 
 AM_CFLAGS = -std=gnu99 -g -lm -DHAVE_CONFIG_H -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
 
-bin_PROGRAMS = receiver transmitter rec_trans audio_rtp_only audio_compression audio_mulaw_only
+bin_PROGRAMS = receiver transmitter rec_trans audio_rtp_only audio_compression audio_mulaw_only audio_resample
 
 receiver_SOURCES = tests/test_receiver.c
 receiver_CFLAGS = $(AM_CFLAGS) -Isrc -Itests -Iio_mngr -Isrc/rtp -Isrc/utils -Isrc/audio -Idxt_compress
@@ -34,3 +34,10 @@ audio_mulaw_only_SOURCES = tests/audio_mulaw_only.c
 audio_mulaw_only_CFLAGS = $(AM_CFLAGS) -Isrc -Itests -Isrc/rtp -Isrc/utils -Isrc/audio
 audio_mulaw_only_LDFLAGS = -L./src -lrtp -lacompression
 audio_mulaw_only_DEPENDENCIES = src/librtp.la src/libacompression.la
+
+audio_resample_SOURCES = tests/audio_resample.c \
+                            tests/audio_frame2_to_disk.c \
+                            tests/resized_resample.c
+audio_resample_CFLAGS = $(AM_CFLAGS) -Isrc -Itests -Isrc/rtp -Isrc/utils -Isrc/audio
+audio_resample_LDFLAGS = -L./src -lrtp -lacompression
+audio_resample_DEPENDENCIES = src/librtp.la src/libacompression.la

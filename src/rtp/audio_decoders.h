@@ -5,6 +5,8 @@
 struct state_audio_decoder {
     audio_frame2 *frame;
 
+    struct resampler *resampler;
+
     struct audio_desc *desc;
 };
 
