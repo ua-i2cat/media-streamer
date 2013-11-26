@@ -5,7 +5,6 @@ AM_CFLAGS = -std=gnu99 -g -lm -DHAVE_CONFIG_H -fPIC -pipe -W -Wall -Wcast-qual -
 
 bin_PROGRAMS = receiver transmitter rtsp_transmitter rec_trans audio_rtp_only audio_compression audio_mulaw_only audio_resample
 
-
 receiver_SOURCES = tests/test_receiver.c
 receiver_CFLAGS = $(AM_CFLAGS) -Isrc -Itests -Iio_mngr -Isrc/rtp -Isrc/utils -Isrc/audio -Idxt_compress
 receiver_LDFLAGS = -L. -L./src -L./io_mngr -lvcompress -lvdecompress -liomanager -lavcodec

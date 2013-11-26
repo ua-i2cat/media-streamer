@@ -159,10 +159,11 @@ int remove_stream(stream_list_t *list, uint32_t id)
     }
 
     list->count--;
-    pthread_rwlock_unlock(&list->lock);
     
     pthread_rwlock_unlock(&stream->lock);
     destroy_stream(stream);
+    
+    pthread_rwlock_unlock(&list->lock);
     
     return TRUE;
 }

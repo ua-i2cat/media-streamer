@@ -1,8 +1,6 @@
 #include "debug.h"
 #include "video_data_frame.h"
 
-video_data_frame_t *init_video_data_frame();
-
 video_data_frame_t *init_video_data_frame(){
 	video_data_frame_t *frame = malloc(sizeof(video_data_frame_t));
 
@@ -34,6 +32,12 @@ int set_video_data_frame(video_data_frame_t *frame, codec_t codec, uint32_t widt
     frame->codec = codec;
     frame->width = width;
     frame->height = height;
+    
+    if (width == 0 || height == 0){
+        width = MAX_WIDTH;
+        height = MAX_HEIGHT;
+    }
+    
     frame->buffer_len = width*height*3*sizeof(uint8_t); 
 
     if (frame->buffer == NULL){

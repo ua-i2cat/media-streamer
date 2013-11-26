@@ -13,7 +13,6 @@ typedef enum video_type {
 typedef struct decoder_thread {
     pthread_t thread;
     uint8_t run;
-    pthread_cond_t notify_frame;
     struct state_decompress *sd;
     uint32_t last_seqno;
 } decoder_thread_t;
@@ -23,11 +22,6 @@ typedef struct encoder_thread {
     uint8_t run;
 
     pthread_mutex_t lock;
-
-    /* TODO:
-       thread management:
-       - like the decoder?
-    */
 
     int index;
 
@@ -42,8 +36,6 @@ typedef struct encoder_thread {
 
 typedef struct video_data {
     pthread_rwlock_t lock;
-    pthread_mutex_t new_coded_frame_lock;
-    pthread_mutex_t new_decoded_frame_lock;
     uint8_t new_coded_frame;
     uint8_t new_decoded_frame;
     video_type_t type;

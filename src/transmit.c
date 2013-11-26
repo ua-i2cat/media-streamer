@@ -1206,19 +1206,16 @@ static void tx_send_base_h264(struct tx *tx, struct tile *tile, struct rtp *rtp_
  * sends one or more frames (tiles) with same TS in one RTP stream. Only one m-bit is set.
  */
 void
-tx_send_h264(struct tx *tx, struct video_frame *frame, struct rtp *rtp_session, float framerate)
+tx_send_h264(struct tx *tx, struct video_frame *frame, struct rtp *rtp_session, uint32_t ts)
 {
         unsigned int i;
-        uint32_t ts = 0;
+       
 
         assert(!frame->fragment || tx->fec_scheme == FEC_NONE); // currently no support for FEC with fragments
         assert(!frame->fragment || frame->tile_count); // multiple tile are not currently supported for fragmented send
 
         platform_spin_lock(&tx->spin);
-
-        ts = get_local_mediatime(); // Do not force the timestamp
-//uint32_t ts_delta = (1.0/framerate) * 90000;
-//ts = tx->last_ts + ts_delta; // TODO!!
+  
         if(frame->fragment &&
                         tx->last_frame_fragment_id == frame->frame_fragment_id) {
                 ts = tx->last_ts;

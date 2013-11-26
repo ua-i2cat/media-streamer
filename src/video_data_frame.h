@@ -1,6 +1,8 @@
 #include "config_unix.h"
 #include "types.h"
 
+#define MAX_WIDTH 1920
+#define MAX_HEIGHT 1080
 
 typedef enum frame_type {
     INTRA,
@@ -15,6 +17,7 @@ typedef struct video_data_frame {
 	uint8_t *buffer;  // TODO: char *?
     uint32_t buffer_len;
     uint32_t seqno;
+    uint32_t media_time;
     frame_type_t frame_type;
     codec_t codec;
 } video_data_frame_t;

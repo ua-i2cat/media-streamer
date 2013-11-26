@@ -7,9 +7,6 @@
 #include "debug.h"
 
 #define INITIAL_VIDEO_RECV_BUFFER_SIZE  ((4*1920*1080)*110/100) //command line net.core setup: sysctl -w net.core.rmem_max=9123840
-#define MAX_WIDTH 1920
-#define MAX_HEIGHT 1080
-
 
 void *receiver_thread(receiver_t *receiver);
 
@@ -36,7 +33,7 @@ receiver_t *init_receiver(stream_list_t *stream_list, uint32_t port){
       	}
       
       	if (!rtp_set_sdes(receiver->session, rtp_my_ssrc(receiver->session),
-				RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING))) { //TODO: is this needed?
+				RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING))) { //TODO: is this needed?			
 			return NULL;
       	}
 
@@ -84,7 +81,7 @@ void *receiver_thread(receiver_t *receiver) {
 					if (participant != NULL){
 						set_participant_ssrc(participant, cp->ssrc);
 						stream_data_t *stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
-						set_video_data_frame(stream->video->coded_frame, H264, MAX_WIDTH, MAX_HEIGHT);
+						set_video_data_frame(stream->video->coded_frame, H264, 0, 0);
     					add_participant_stream(participant, stream);
 						add_stream(receiver->stream_list, participant->stream);
 					}
@@ -98,7 +95,11 @@ void *receiver_thread(receiver_t *receiver) {
 						gettimeofday(&curr_time, NULL);
 						pthread_rwlock_wrlock(&participant->stream->lock);
 						
-						if (participant->stream->state == I_AWAIT && participant->stream->video->coded_frame->frame_type == INTRA){
+						if (participant->stream->state == I_AWAIT && 
+                            participant->stream->video->coded_frame->frame_type == INTRA && 
+                            participant->stream->video->coded_frame->width != 0 && 
+                            participant->stream->video->coded_frame->height != 0){
+                            
 							if(participant->stream->video->decoder == NULL){
 								uint32_t width = participant->stream->video->coded_frame->width;
 								uint32_t height = participant->stream->video->coded_frame->height;
@@ -110,11 +111,8 @@ void *receiver_thread(receiver_t *receiver) {
 
 						if (participant->stream->state == ACTIVE && participant->stream->video->coded_frame->frame_type != BFRAME) {
 
-							pthread_mutex_lock(&participant->stream->video->new_coded_frame_lock);
 							participant->stream->video->new_coded_frame = TRUE;
 							participant->stream->video->coded_frame->seqno ++;
-							pthread_cond_signal(&participant->stream->video->decoder->notify_frame);
-							pthread_mutex_unlock(&participant->stream->video->new_coded_frame_lock);
 						
 						} else {
 							debug_msg("No support for Bframes\n"); //TODO: test it properly, it should not cause decoding damage
