@@ -7,7 +7,7 @@
 #include "config_win32.h"
 #endif
 
-#include <transmit.h>
+#include "transmit.h"
 
 #ifdef __cplusplus
 extern "C" {
