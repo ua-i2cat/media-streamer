@@ -1,5 +1,5 @@
-#ifndef _STREAM_H_
-#define _STREAM_H_
+#ifndef __STREAM_H__
+#define __STREAM_H__
 
 #include "video_data.h"
 #include <pthread.h>
@@ -26,7 +26,7 @@ typedef struct stream_data {
     stream_type_t type;
     io_type_t io_type;
     stream_state_t state;
-	char *stream_name;
+    char *stream_name;
     uint32_t id;
     participant_list_t *plist;
     struct stream_data *prev;
@@ -62,4 +62,5 @@ participant_data_t *get_participant_stream_id(stream_list_t *list, uint32_t id);
 participant_data_t *get_participant_stream_ssrc(stream_list_t *list, uint32_t ssrc);
 participant_data_t *get_participant_stream_non_init(stream_list_t *list);
 
-#endif
+#endif //__STREAM_H__
+

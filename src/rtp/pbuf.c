@@ -490,13 +490,10 @@ rtp_audio_pbuf_decode(struct pbuf *playout_buf, struct timeval curr_time,
                  * of frame time. The current RTP library isn't currently able to keep concurrently more frames.
                  */
                 UNUSED(curr_time);
-                if (!curr->decoded // && tv_gt(curr_time, curr->playout_time)
-                                ) {
-//                        if (frame_complete(curr)) {
+                if (!curr->decoded) {
                         int ret = decode_func(curr->cdata, data);
                         curr->decoded = 1;
                         return ret;
-//                        }
                 }
                 curr = curr->nxt;
         }

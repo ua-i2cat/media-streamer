@@ -1,10 +1,9 @@
 /*
- * audio_test_receiver.c - Test program that starts io_mngr receiver and writes
- * 10 seconds of audio from one source in a file and then 10 seconds of audio
- * from another source to another file.
+ * audio_receiver.c - Test program that starts io_mngr receiver, writes 10
+ * seconds of audio from one source in a file and then 10 seconds of audio from
+ * another source to another file.
  *
  * By Txor <jordi.casas@i2cat.net>
- *
  */
 
 #include <stdio.h>
@@ -18,20 +17,32 @@ FILE *F_audio2 = NULL;
 char *name_audio1 = "test_receiver_audio1.pcm";
 char *name_audio2 = "test_receiver_audio2.pcm";
 
-void main() {
+int main() {
 
-    printf("Starting audio_test_receiver test...\n");
-    //TODO: REFACTOR
+    printf("Starting audio_receiver test...\n");
 
-//    stream_list_t *stream_list;
+    // Initialization
+    receiver_t *receiver;
+    stream_list_t *stream_list;
 //    stream_data_t *stream;
-//    receiver_t *receiver;
-//
-//    stream_list = init_stream_list();
-//
+
+    stream_list = init_stream_list();
+
+    receiver = init_receiver(stream_list, 5004, 5006);
+
+    if (start_receiver(receiver)) printf(" receiver started!\n");
+
+    if (stop_receiver(receiver)) printf(" receiver stopped!\n");
+
+    if (destroy_receiver(receiver)) printf(" receiver destroyed!\n");
+
+    destroy_stream_list(stream_list);
+
+    printf("Finished.\n");
+}
+
 //    //  	add_participant(part_list, 2, INPUT, NULL, 0);
 //
-//    receiver = init_receiver(stream_list, 5004);
 //    participant_data_t *p1 = init_participant(1, INPUT, NULL, 0);
 //    participant_data_t *p2 = init_participant(2, INPUT, NULL, 0);
 //    add_participant(receiver->participant_list, p1);
@@ -104,4 +115,3 @@ void main() {
 //
 //        printf("Finished\n");
 //    }
-}

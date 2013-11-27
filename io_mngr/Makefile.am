@@ -1,7 +1,7 @@
 lib_LTLIBRARIES = libiomanager.la
 
 
-AM_CFLAGS = -std=gnu99 -g -lm -DHAVE_CONFIG_H -g -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
+AM_CFLAGS = -std=gnu99 -g -lm -DHAVE_CONFIG_H -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
 AM_CXXFLAGS = -O2 -g -DHAVE_CONFIG_H -g -fPIC -Wno-multichar -Wno-deprecated -msse2
 
 
@@ -11,6 +11,7 @@ libiomanager_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -I.. -I../src -I../src/rtp -I../sr
 libiomanager_la_SOURCES = stream.c \
 						  participants.c \
 						  video_data.c \
+						  audio_data.c \
 						  transmitter.c \
 						  receiver.c \
 						  BasicRTSPOnlyServer.cpp \
@@ -27,6 +28,7 @@ uginclude_HEADERS =	receiver.h \
 					transmitter.h \
 					stream.h \
 					video_data.h \
+					audio_data.h \
 					../src/video_data_frame.h \
 					../src/video.h \
 					../src/video_codec.h \
