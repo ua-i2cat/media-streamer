@@ -72,7 +72,6 @@ int destroy_rtp_session(rtp_session_t *rtp){
 //         module_done(CAST_MODULE(rtp->tx_session));
 //     }
 
-    free(rtp->addr);
     free(rtp);
     
     return TRUE;

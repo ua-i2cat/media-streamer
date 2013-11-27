@@ -50,9 +50,9 @@ int main(){
     //Initialization of all data
     in_str_list     = init_stream_list();
     out_str_list    = init_stream_list();
-    out_str1        = init_stream(VIDEO, OUTPUT, 1, ACTIVE, "i2cat_rocks");
-    out_str2        = init_stream(VIDEO, OUTPUT, 2, ACTIVE, "i2cat_rocks_2nd");
-    in_str          = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
+    out_str1        = init_stream(VIDEO, OUTPUT, 1, ACTIVE, 24.0, "i2cat_rocks");
+    out_str2        = init_stream(VIDEO, OUTPUT, 2, ACTIVE, 24.0, "i2cat_rocks_2nd");
+    in_str          = init_stream(VIDEO, INPUT, rand(), I_AWAIT, 24.0, NULL);
     transmitter     = init_transmitter(out_str_list, 20.0);
     server          = init_rtsp_server(8554, transmitter);
     receiver        = init_receiver(in_str_list, 5004);
@@ -132,9 +132,9 @@ int main(){
                 stop = TRUE;
             }  if (out_str_list->count < 2 && b.tv_sec - a.tv_sec >= 50){
                 //Adding 2nd incoming participant
-                in_str = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
+                in_str = init_stream(VIDEO, INPUT, rand(), I_AWAIT, 24.0, NULL);
                 set_video_frame_cq(in_str->video->coded_frames, H264, 0, 0);
-                add_participant_stream(in_str, in_p1);
+                add_participant_stream(in_str, in_p2);
                 add_stream(receiver->stream_list, in_str);
                 //Adding 2nd outgoing stream
                 add_stream(out_str_list, out_str2);               

@@ -32,7 +32,7 @@ void destroy_stream_list(stream_list_t *list)
     free(list);
 }
 
-stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, stream_state_t state, char *stream_name)
+stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, stream_state_t state, float fps, char *stream_name)
 {
     stream_data_t *stream = malloc(sizeof(stream_data_t));
     if (stream == NULL) {
@@ -54,9 +54,9 @@ stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, s
     stream->next = NULL;
 
     if (io_type == INPUT){
-        stream->video = init_video_data(DECODER);
+        stream->video = init_video_data(DECODER, fps);
     } else if (io_type == OUTPUT){
-        stream->video = init_video_data(ENCODER);
+        stream->video = init_video_data(ENCODER, fps);
     }
     
     stream->plist = init_participant_list();
