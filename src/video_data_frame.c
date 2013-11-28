@@ -157,14 +157,18 @@ int remove_frame(video_frame_cq_t *frame_cq){
 
 int flush_frames(video_frame_cq_t *frame_cq){
     uint8_t r;
-    
+
     if (frame_cq->state == CQ_FULL){
-        r = (frame_cq->rear + 1) % frame_cq->max;
-        if (r != frame_cq->rear){
-            frame_cq->state = CQ_OK;
-            frame_cq->rear = r;
-        }
+        frame_cq->state = CQ_OK;
     }
+    
+    // if (frame_cq->state == CQ_FULL){
+    //     r = (frame_cq->rear + 1) % frame_cq->max;
+    //     if (r != frame_cq->rear){
+    //         frame_cq->state = CQ_OK;
+    //         frame_cq->rear = r;
+    //     }
+    // }
     
     return TRUE;
 }

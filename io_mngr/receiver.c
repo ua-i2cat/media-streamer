@@ -89,7 +89,6 @@ void *receiver_thread(receiver_t *receiver) {
                 
                 coded_frame = curr_in_frame(participant->stream->video->coded_frames);
                 if (coded_frame == NULL){
-                    error_msg("Missing packets\n");
                     cp = pdb_iter_next(&it);
                     continue;
                 }

@@ -219,6 +219,7 @@ void *decoder_th(void* data){
         
         decoded_frame = curr_in_frame(v_data->decoded_frames);
         while (decoded_frame == NULL){
+            error_msg("Warning! Discarting decoded frames\n");
             flush_frames(v_data->decoded_frames);
             decoded_frame = curr_in_frame(v_data->decoded_frames);
         }
