@@ -339,9 +339,9 @@ void pbuf_remove(struct pbuf *playout_buf, struct timeval curr_time)
         /* their playout time are also discarded.                           */
 
         struct pbuf_node *curr, *temp;
-
+        
         pbuf_validate(playout_buf);
-
+        
         curr = playout_buf->frst;
         while (curr != NULL) {
                 temp = curr->nxt;

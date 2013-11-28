@@ -4,6 +4,7 @@
 #include "debug.h"
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include "commons.h"
 
 int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pCodecCtx, int *videostream);
 int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCodecCtx, uint8_t *buff);
@@ -19,7 +20,7 @@ int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pC
     pFormatCtx->iformat = av_find_input_format("rawvideo");
     unsigned int i;
 
-    av_dict_set(&rawdict, "video_size", "1280x720", 0);
+    av_dict_set(&rawdict, "video_size", "1280x534", 0);
     av_dict_set(&rawdict, "pixel_format", "rgb24", 0);
 
     // Open video file
@@ -109,10 +110,10 @@ int main(int argc, char **argv)
     printf("[test] init_stream_list\n");
     stream_list_t *streams = init_stream_list();
     printf("[test] init_stream\n");
-    stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE, "i2CATRocks");
+    stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE, 25.0, "i2CATRocks");
     printf("[test] set_stream_video_data\n");
-    set_video_data_frame(stream->video->decoded_frame, RAW, 1280, 720);
-    set_video_data_frame(stream->video->coded_frame, H264, 1280, 720);
+    set_video_frame_cq(stream->video->decoded_frames, RAW, 1280, 534);
+    set_video_frame_cq(stream->video->coded_frames, H264, 1280, 534);
     printf("[test] add_stream\n");
     add_stream(streams, stream);
 
@@ -123,16 +124,11 @@ int main(int argc, char **argv)
     participant_data_t *p1 = init_participant(0, OUTPUT, "127.0.0.1", 8000);
     participant_data_t *p2 = init_participant(0, OUTPUT, "127.0.0.1", 9000);
 
-    add_transmitter_participant(transmitter, p1);
-    add_participant_stream(p1, stream);    
+    add_participant_stream(stream, p1);    
 
-    add_transmitter_participant(transmitter, p2);
-    add_participant_stream(p2, stream);
+    add_participant_stream(stream, p2);
 
     init_encoder(stream->video);
-    
-    printf("[test_transmitter] transmitter->participants->first->id: %d\n", transmitter->participants->first->id);
-    printf("[test_transmitter] transmitter->participants->last->id: %d\n", transmitter->participants->last->id);
     
     // Stuff ... 
     AVFormatContext *pformat_ctx = avformat_alloc_context();
@@ -141,7 +137,7 @@ int main(int argc, char **argv)
     av_register_all();
 
     int width = 1280;
-    int height = 720;
+    int height = 534;
 
     load_video(yuv_path, pformat_ctx, &codec_ctx, &video_stream);
 
@@ -153,6 +149,7 @@ int main(int argc, char **argv)
     printf("[test] entering main test loop\n");
 
     struct timeval a, b;
+    video_data_frame_t *decoded_frame;
 
     while(1) {
     
@@ -166,15 +163,22 @@ int main(int argc, char **argv)
         if (ret == 0) {
             counter++;
 
-            pthread_rwlock_wrlock(&stream->video->decoded_frame->lock);
-            stream->video->decoded_frame->buffer_len = vc_get_linesize(width, RGB)*height;
-            memcpy(stream->video->decoded_frame->buffer, b1, stream->video->decoded_frame->buffer_len); 
-            pthread_rwlock_unlock(&stream->video->decoded_frame->lock);
-
-            sem_post(&stream->video->encoder->input_sem);
+            decoded_frame = curr_in_frame(stream->video->decoded_frames);
+            if (decoded_frame == NULL){
+                continue;
+            }
+            
+            decoded_frame->buffer_len = vc_get_linesize(width, RGB)*height;
+            memcpy(decoded_frame->buffer, b1, decoded_frame->buffer_len);
+            decoded_frame->seqno = stream->video->seqno;
+            decoded_frame->media_time = get_local_mediatime();
+            stream->video->seqno++;
+            
+            put_frame(stream->video->decoded_frames);
         } else {
             break;
         }
+        
         gettimeofday(&b, NULL);
         long diff = (b.tv_sec - a.tv_sec)*1000000 + b.tv_usec - a.tv_usec;
 
@@ -190,7 +194,7 @@ int main(int argc, char **argv)
     debug_msg(" done!\n");
 
     stop_transmitter(transmitter);
-
+    printf("Transmitter stopped\n");
     destroy_stream_list(streams);
 
     return 0;

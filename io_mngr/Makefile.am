@@ -27,10 +27,14 @@ uginclude_HEADERS =	receiver.h \
 					transmitter.h \
 					stream.h \
 					video_data.h \
+					commons.h \
 					../src/video_data_frame.h \
 					../src/video.h \
 					../src/video_codec.h \
 					../src/types.h \
+					../src/module.h \
+					../src/transmit.h \
+					../src/messaging.h \
 					../src/video_frame.h \
 					../src/debug.h \
 					../src/rtp/rtpdec.h \

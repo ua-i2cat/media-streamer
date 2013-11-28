@@ -93,8 +93,8 @@ void change_bps(char *out, int out_bps, const char *in, int in_bps, int in_len /
 /*
  * Multiplexes channel into interleaved stream
  */
-//void mux_channel(char *out, char *in, int bps, int in_len, int out_stream_channels, int chan_pos_stream, double scale);
-//void demux_channel(char *out, char *in, int bps, int in_len, int in_stream_channels, int pos_in_stream);
+void mux_channel(char *out, char *in, int bps, int in_len, int out_stream_channels, int chan_pos_stream, double scale);
+void demux_channel(char *out, char *in, int bps, int in_len, int in_stream_channels, int pos_in_stream);
 
 /*
  * Additional function that allosw mixing channels

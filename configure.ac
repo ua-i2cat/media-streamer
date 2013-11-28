@@ -20,6 +20,7 @@ AC_PROG_CC
 AC_PROG_MAKE_SET
 
 # Checks for libraries.
+#TODO: add speex
 AC_CHECK_LIB([GL], [glutInit])
 AC_CHECK_LIB([GLEW], [glewInit])
 AC_CHECK_LIB([GLU], [glutInit])

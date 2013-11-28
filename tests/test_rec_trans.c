@@ -1,13 +1,27 @@
+#include <signal.h>
 #include "config.h"
 #include "io_mngr/participants.h"
 #include "io_mngr/receiver.h"
 #include "io_mngr/transmitter.h"
 #include "io_mngr/c_basicRTSPOnlyServer.h"
 
+static volatile bool stop = false;
+
+static void signal_handler(int signal)
+{
+    if (signal) { // Avoid annoying warnings.
+        stop = true;
+    }
+    return;
+}
+
 int main(){
     
     struct timeval a, b;
-    uint8_t run = TRUE;
+    
+    //video_frames structures
+    video_data_frame_t *in_frame;
+    video_data_frame_t *out_frame;
     
     //Receiver structures
     stream_list_t *in_str_list;
@@ -19,7 +33,7 @@ int main(){
     stream_data_t *out_str;
     transmitter_t *transmitter;
     
-    //Outgoing streams
+    //Outgoing streams and incomping streams
     stream_data_t *out_str1;
     stream_data_t *out_str2;
     
@@ -30,13 +44,17 @@ int main(){
     participant_data_t *in_p1;
     participant_data_t *in_p2;
     
+    //Attach signal handler
+    signal(SIGINT, signal_handler);
+    
     //Initialization of all data
     in_str_list     = init_stream_list();
     out_str_list    = init_stream_list();
-    out_str1        = init_stream(VIDEO, OUTPUT, 1, ACTIVE, "i2cat_rocks");
-    out_str2        = init_stream(VIDEO, OUTPUT, 2, ACTIVE, "i2cat_rocks_2nd");
+    out_str1        = init_stream(VIDEO, OUTPUT, 1, ACTIVE, 24.0, "i2cat_rocks");
+    out_str2        = init_stream(VIDEO, OUTPUT, 2, ACTIVE, 24.0, "i2cat_rocks_2nd");
+    in_str          = init_stream(VIDEO, INPUT, rand(), I_AWAIT, 24.0, NULL);
     transmitter     = init_transmitter(out_str_list, 20.0);
-    server          = init_rtsp_server(8554, out_str_list, transmitter);
+    server          = init_rtsp_server(8554, transmitter);
     receiver        = init_receiver(in_str_list, 5004);
     in_p1           = init_participant(1, INPUT, NULL, 0);
     in_p2           = init_participant(2, INPUT, NULL, 0);
@@ -49,15 +67,19 @@ int main(){
     add_stream(out_str_list, out_str1);
     //Starting RTSP server
     c_start_server(server);
-    //Adding 1st incoming participant
-    add_participant(receiver->participant_list, in_p1);
+    //Allocating place for unknown incoming stream
+    set_video_frame_cq(in_str->video->coded_frames, H264, 0, 0);
+    //Adding 1st incoming stream and participant
+    add_participant_stream(in_str, in_p1);
+    add_stream(receiver->stream_list, in_str);
     
     //Start receiving
-    if (start_receiver(receiver)) {
+    if (start_receiver(receiver) && start_transmitter(transmitter)) {
 
         printf("This test stops normally after 120 seconds\n");
         
-        while(run){
+        while(!stop){
+                       
             pthread_rwlock_rdlock(&in_str_list->lock);
             pthread_rwlock_rdlock(&out_str_list->lock);
             
@@ -67,36 +89,39 @@ int main(){
             pthread_rwlock_unlock(&out_str_list->lock);
             pthread_rwlock_unlock(&in_str_list->lock);
             
-            while(in_str != NULL && out_str != NULL){
-                             
+            while(in_str != NULL && out_str != NULL){     
                 if (out_str->video->encoder == NULL && in_str->video->decoder != NULL) {
-                    set_video_data_frame(out_str->video->decoded_frame, RAW, 
-                                         in_str->video->decoded_frame->width, 
-                                         in_str->video->decoded_frame->height);
-                    set_video_data_frame(out_str->video->coded_frame, H264, 
-                                         in_str->video->decoded_frame->width, 
-                                         in_str->video->decoded_frame->height);
+                    in_frame = curr_out_frame(in_str->video->decoded_frames);
+                    if (in_frame == NULL){
+                        continue;
+                    }
+                    
+                    set_video_frame_cq(out_str->video->decoded_frames, RAW, 
+                                         in_frame->width, 
+                                         in_frame->height);
+                    set_video_frame_cq(out_str->video->coded_frames, H264,
+                                         in_frame->width, 
+                                         in_frame->height);
                     init_encoder(out_str->video);
                     c_update_server(server);
+                    continue;
                 }
                 
-                pthread_mutex_lock(&in_str->video->new_decoded_frame_lock);
-                if (in_str->video->new_decoded_frame){
-                    pthread_rwlock_rdlock(&in_str->video->decoded_frame->lock);
-                    pthread_rwlock_wrlock(&out_str->video->decoded_frame->lock);
-                
-                    memcpy(out_str->video->decoded_frame->buffer, 
-                           in_str->video->decoded_frame->buffer, 
-                           in_str->video->decoded_frame->buffer_len);
-                    out_str->video->decoded_frame->buffer_len 
-                        = in_str->video->decoded_frame->buffer_len;
-                 
-                    pthread_rwlock_unlock(&out_str->video->decoded_frame->lock);
-                    pthread_rwlock_unlock(&in_str->video->decoded_frame->lock);
-                    in_str->video->new_decoded_frame = FALSE;
-                    sem_post(&out_str->video->encoder->input_sem);
+                in_frame = curr_out_frame(in_str->video->decoded_frames);
+                out_frame = curr_in_frame(out_str->video->decoded_frames);
+                              
+                if (in_frame == NULL || out_frame == NULL){
+                    continue;
                 }
-                pthread_mutex_unlock(&in_str->video->new_decoded_frame_lock);
+                
+                memcpy(out_frame->buffer, 
+                       in_frame->buffer, 
+                       in_frame->buffer_len);
+                out_frame->buffer_len 
+                    = out_frame->buffer_len;
+                    
+                remove_frame(in_str->video->decoded_frames);
+                put_frame(out_str->video->decoded_frames);
                 
                 in_str = in_str->next;
                 out_str = out_str->next;
@@ -104,12 +129,15 @@ int main(){
             
             gettimeofday(&b, NULL);
             if (b.tv_sec - a.tv_sec >= 120){
-                run = FALSE;
+                stop = TRUE;
             }  if (out_str_list->count < 2 && b.tv_sec - a.tv_sec >= 50){
-                 //Adding 2nd outgoing stream
-                add_stream(out_str_list, out_str2);               
                 //Adding 2nd incoming participant
-                add_participant(receiver->participant_list, in_p2);
+                in_str = init_stream(VIDEO, INPUT, rand(), I_AWAIT, 24.0, NULL);
+                set_video_frame_cq(in_str->video->coded_frames, H264, 0, 0);
+                add_participant_stream(in_str, in_p2);
+                add_stream(receiver->stream_list, in_str);
+                //Adding 2nd outgoing stream
+                add_stream(out_str_list, out_str2);               
             }  else {
                 usleep(5000);
             }
@@ -121,7 +149,9 @@ int main(){
     
     c_stop_server(server);
     stop_transmitter(transmitter);
+    destroy_transmitter(transmitter);
     stop_receiver(receiver);
+    destroy_receiver(receiver);
     destroy_stream_list(in_str_list);
     destroy_stream_list(out_str_list);
 }

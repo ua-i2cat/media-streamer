@@ -2,14 +2,12 @@
 
 BasicRTSPOnlyServer *BasicRTSPOnlyServer::srvInstance = NULL;
 
-BasicRTSPOnlyServer::BasicRTSPOnlyServer(int port, stream_list_t* streams, 
-                        transmitter_t* transmitter){
-    if(transmitter == NULL || streams == NULL){
+BasicRTSPOnlyServer::BasicRTSPOnlyServer(int port, transmitter_t* transmitter){
+    if(transmitter == NULL){
         exit(1);
     }
     
     this->fPort = port;
-    this->fStreams = streams;
     this->fTransmitter = transmitter;
     this->rtspServer = NULL;
     this->env = NULL;
@@ -17,11 +15,11 @@ BasicRTSPOnlyServer::BasicRTSPOnlyServer(int port, stream_list_t* streams,
 }
 
 BasicRTSPOnlyServer* 
-BasicRTSPOnlyServer::initInstance(int port, stream_list_t* streams, transmitter_t* transmitter){
+BasicRTSPOnlyServer::initInstance(int port, transmitter_t* transmitter){
     if (srvInstance != NULL){
         return srvInstance;
     }
-    return new BasicRTSPOnlyServer(port, streams, transmitter);
+    return new BasicRTSPOnlyServer(port, transmitter);
 }
 
 BasicRTSPOnlyServer* 
@@ -35,7 +33,7 @@ BasicRTSPOnlyServer::getInstance(){
 int BasicRTSPOnlyServer::init_server() {
     
     if (env != NULL || rtspServer != NULL || 
-        fStreams == NULL || fTransmitter == NULL){
+        fTransmitter == NULL){
         exit(1);
     }
     
@@ -67,8 +65,8 @@ int BasicRTSPOnlyServer::init_server() {
 int BasicRTSPOnlyServer::update_server(){
     stream_data_t* stream = (stream_data_t*) malloc(sizeof(stream_data_t));
     
-    pthread_rwlock_rdlock(&fStreams->lock);
-    stream = fStreams->first;
+    pthread_rwlock_rdlock(&fTransmitter->stream_list->lock);
+    stream = fTransmitter->stream_list->first;
   
     ServerMediaSession* sms;
   
@@ -80,7 +78,7 @@ int BasicRTSPOnlyServer::update_server(){
                     stream->stream_name);
     
             sms->addSubsession(BasicRTSPOnlySubsession
-               ::createNew(*env, True, stream, fTransmitter));
+               ::createNew(*env, True, stream));
             rtspServer->addServerMediaSession(sms);
     
             char* url = rtspServer->rtspURL(sms);
@@ -89,7 +87,7 @@ int BasicRTSPOnlyServer::update_server(){
         }
         stream = stream->next;
     }
-    pthread_rwlock_unlock(&fStreams->lock);
+    pthread_rwlock_unlock(&fTransmitter->stream_list->lock);
 }
 
 void *BasicRTSPOnlyServer::start_server(void *args){

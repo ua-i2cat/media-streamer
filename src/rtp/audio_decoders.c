@@ -140,7 +140,7 @@ int decode_audio_frame_mulaw(struct coded_data *cdata, void *data)
          */
 
         char *to;
-        int samples_copied = 0;
+        int bytes_copied = 0;
 
         while (cdata != NULL) {
             // Check that the amount of data on cdata->data->data is congruent with 0 modulus audio->frame->ch_count.
@@ -150,7 +150,7 @@ int decode_audio_frame_mulaw(struct coded_data *cdata, void *data)
             }
 
             // If there is space on the current audio_frame2 buffer.
-            if (cdata->data->data_len <= (int)(audio->frame->max_size - samples_copied)) {
+            if ((cdata->data->data_len / audio->frame->ch_count) <= (int)(audio->frame->max_size - bytes_copied)) {
                 char *from = cdata->data->data;
 
                 // For each group of samples.
@@ -159,15 +159,15 @@ int decode_audio_frame_mulaw(struct coded_data *cdata, void *data)
                     for (int ch = 0 ; ch < audio->frame->ch_count ; ch ++) {
                         // Copy the current sample from the RTP packet to the audio_frame2.
                         to = audio->frame->data[ch];
-                        to += samples_copied * sizeof(uint8_t);
+                        to += bytes_copied;
 
-                        memcpy(to, from, sizeof(uint8_t));
+                        memcpy(to, from, audio->frame->bps);
 
-                        from += sizeof(uint8_t);
-                        audio->frame->data_len[ch]++;
+                        from += audio->frame->bps;
+                        audio->frame->data_len[ch] += audio->frame->bps;
                     }
 
-                    samples_copied++;
+                    bytes_copied += audio->frame->bps;
                 }
             } else {
                 // Filled audio_frame2 out, exit now.

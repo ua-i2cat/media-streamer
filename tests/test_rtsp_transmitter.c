@@ -20,7 +20,7 @@ int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pC
     pFormatCtx->iformat = av_find_input_format("rawvideo");
     unsigned int i;
 
-    av_dict_set(&rawdict, "video_size", "1280x720", 0);
+    av_dict_set(&rawdict, "video_size", "1280x534", 0);
     av_dict_set(&rawdict, "pixel_format", "rgb24", 0);
 
     // Open video file
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
     av_register_all();
 
     int width = 1280;
-    int height = 720;
+    int height = 534;
 
     load_video(yuv_path, pformat_ctx, &codec_ctx, &video_stream);
 
@@ -148,7 +148,8 @@ int main(int argc, char **argv)
     int counter = 0;
 
     struct timeval a, b;
-
+    video_data_frame_t *decoded_frame;
+    
     while(1) {
     
         gettimeofday(&a, NULL);
@@ -160,12 +161,16 @@ int main(int argc, char **argv)
 
         if (ret == 0) {
             counter++;
-
-            pthread_rwlock_wrlock(&stream->video->decoded_frame->lock);
-            stream->video->decoded_frame->buffer_len = vc_get_linesize(width, RGB)*height;
-            memcpy(stream->video->decoded_frame->buffer, b1, stream->video->decoded_frame->buffer_len); 
-            pthread_rwlock_unlock(&stream->video->decoded_frame->lock);
-            sem_post(&stream->video->encoder->input_sem);
+            
+            decoded_frame = curr_in_frame(stream->video->decoded_frames);
+            if (decoded_frame == NULL){
+                continue;
+            }
+            
+            decoded_frame->buffer_len = vc_get_linesize(width, RGB)*height;
+            memcpy(decoded_frame->buffer, b1, decoded_frame->buffer_len); 
+            
+            put_frame(stream->video->decoded_frames);
         } else {
             break;
         }

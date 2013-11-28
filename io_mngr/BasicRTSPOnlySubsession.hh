@@ -26,12 +26,12 @@ public:
 	static BasicRTSPOnlySubsession*
 		createNew(UsageEnvironment& env,
 			Boolean reuseFirstSource,
-			stream_data_t* stream, transmitter_t* transmitter); 
+			stream_data_t* stream); 
 
 protected:
 	
 	BasicRTSPOnlySubsession(UsageEnvironment& env, Boolean reuseFirstSource,
-								  stream_data_t* stream, transmitter_t* transmitter);
+								  stream_data_t* stream);
 	
 	virtual ~BasicRTSPOnlySubsession();	
 	
@@ -73,7 +73,6 @@ private:
 	void* fLastStreamToken;
 	char fCNAME[100];
 	stream_data_t *fStream;
-	transmitter_t* fTransmitter;
 };
 
 class Destinations {

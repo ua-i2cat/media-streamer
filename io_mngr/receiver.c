@@ -21,10 +21,8 @@ receiver_t *init_receiver(stream_list_t *stream_list, uint32_t port){
     receiver->part_db = pdb_init();
     receiver->run = FALSE;
     receiver->port = port;
-    receiver->participant_list = init_participant_list();
     receiver->stream_list = stream_list;
-    
- 
+     
     receiver->session = rtp_init_if(NULL, NULL, receiver->port, 0, ttl, rtcp_bw, 0, rtp_recv_callback, (void *)receiver->part_db, 0);
       
     if (receiver->session != NULL) {
@@ -49,6 +47,7 @@ receiver_t *init_receiver(stream_list_t *stream_list, uint32_t port){
 void *receiver_thread(receiver_t *receiver) {
 	struct pdb_e *cp;
 	participant_data_t *participant;
+    video_data_frame_t* coded_frame;
 
 	struct timeval curr_time;
 	struct timeval timeout;
@@ -74,69 +73,59 @@ void *receiver_thread(receiver_t *receiver) {
 			cp = pdb_iter_init(receiver->part_db, &it);
 
 			while (cp != NULL) {
-				pthread_rwlock_rdlock(&receiver->participant_list->lock);
-				participant = get_participant_ssrc(receiver->participant_list, cp->ssrc);
+
+				participant = get_participant_stream_ssrc(receiver->stream_list, cp->ssrc);
 				if (participant == NULL){
-					participant = get_participant_non_init(receiver->participant_list);
+					participant = get_participant_stream_non_init(receiver->stream_list);
 					if (participant != NULL){
 						set_participant_ssrc(participant, cp->ssrc);
-						stream_data_t *stream = init_stream(VIDEO, INPUT, participant->id, I_AWAIT, NULL);
-						set_video_data_frame(stream->video->coded_frame, H264, 0, 0);
-    					add_participant_stream(participant, stream);
-						add_stream(receiver->stream_list, participant->stream);
 					}
 				}
-				pthread_rwlock_unlock(&receiver->participant_list->lock);
 
-				if (participant != NULL) {
-					if (!participant->stream->video->new_coded_frame && 
-							pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, participant->stream->video->coded_frame)) {	
+                if (participant == NULL){
+                    cp = pdb_iter_next(&it);
+                    continue;
+                }
+                
+                coded_frame = curr_in_frame(participant->stream->video->coded_frames);
+                if (coded_frame == NULL){
+                    cp = pdb_iter_next(&it);
+                    continue;
+                }
 
-						gettimeofday(&curr_time, NULL);
-						pthread_rwlock_wrlock(&participant->stream->lock);
+				if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, coded_frame)) {
 						
-						if (participant->stream->state == I_AWAIT && 
-                            participant->stream->video->coded_frame->frame_type == INTRA && 
-                            participant->stream->video->coded_frame->width != 0 && 
-                            participant->stream->video->coded_frame->height != 0){
+					if (participant->stream->state == I_AWAIT && 
+                        coded_frame->frame_type == INTRA && 
+                        coded_frame->width != 0 && 
+                        coded_frame->height != 0){
                             
-							if(participant->stream->video->decoder == NULL){
-								uint32_t width = participant->stream->video->coded_frame->width;
-								uint32_t height = participant->stream->video->coded_frame->height;
-								set_video_data_frame(participant->stream->video->decoded_frame, RGB, width, height);
-								start_decoder(participant->stream->video); 
-							}
-							participant->stream->state = ACTIVE;
+						if(participant->stream->video->decoder == NULL){
+							set_video_frame_cq(participant->stream->video->decoded_frames, 
+                                               RGB, 
+                                               coded_frame->width, 
+                                               coded_frame->height);
+                            printf("starting decoder\n");
+							start_decoder(participant->stream->video); 
 						}
-
-						if (participant->stream->state == ACTIVE && participant->stream->video->coded_frame->frame_type != BFRAME) {
-
-							pthread_mutex_lock(&participant->stream->video->new_coded_frame_lock);
-							participant->stream->video->new_coded_frame = TRUE;
-							participant->stream->video->coded_frame->seqno ++;
-							pthread_cond_signal(&participant->stream->video->decoder->notify_frame);
-							pthread_mutex_unlock(&participant->stream->video->new_coded_frame_lock);
-						
-						} else {
-							debug_msg("No support for Bframes\n"); //TODO: test it properly, it should not cause decoding damage
-						}
-
-						pthread_rwlock_unlock(&participant->stream->lock);
-						pbuf_remove_first(cp->playout_buffer);
-						
+						participant->stream->state = ACTIVE;
 					}
-				} else {
-				//TODO: delete cp form pdb or ignore it
-				}
 
+					if (participant->stream->state == ACTIVE && coded_frame->frame_type != BFRAME) {
+                        put_frame(participant->stream->video->coded_frames);
+					} else {
+                        debug_msg("No support for Bframes\n");
+					}
+                    //TODO: should be at the beginning of the loop
+					pbuf_remove_first(cp->playout_buffer);
+						
+				}
 				cp = pdb_iter_next(&it);
 			} 
 			pdb_iter_done(&it);
 		}
 	}
-  	
-    rtp_done(receiver->session);
-    free(receiver);
+    
     pthread_exit((void *)NULL);   
 }
 
@@ -152,13 +141,18 @@ int start_receiver(receiver_t *receiver){
 int stop_receiver(receiver_t *receiver){
   	receiver->run = FALSE;
   
-  	pthread_join(receiver->th_id, NULL); //TODO: add some timeout
+  	pthread_join(receiver->th_id, NULL); 
   
   	return TRUE;
 }
 
-int add_receiver_participant(receiver_t *receiver, uint32_t id)
-{
-    participant_data_t *participant = init_participant(id, INPUT, (char *)NULL, 0);
-    return add_participant(receiver->participant_list, participant);
+int destroy_receiver(receiver_t *receiver){
+    if (receiver->run) {
+        return FALSE;
+    }
+    
+    rtp_done(receiver->session);
+    pdb_destroy(&receiver->part_db);
+    free(receiver);
+    return TRUE;
 }
