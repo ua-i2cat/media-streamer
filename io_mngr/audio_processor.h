@@ -6,7 +6,6 @@
 //#include "types.h"
 //#include "video_data_frame.h"
 
-
 typedef enum audio_type {
     ENCODER,
     DECODER,
@@ -37,8 +36,9 @@ typedef struct audio_data {
     audio_type_t type;
     audio_frame_cq_t *decoded_frames;
     audio_frame_cq_t *coded_frames;
-    uint32_t interlacing;  //TODO: fix this. It has to be UG enum
-    uint32_t fps;       //TODO: fix this. It has to be UG enum
+    // Audio configurations
+    //TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
     uint32_t seqno;
     union {
         struct encoder_thread *encoder;

@@ -1,15 +1,15 @@
-#include <stdlib.h>
-#include "video_data.h"
-#include "video_decompress.h"
-#include "video_decompress/libavcodec.h"
-#include "video_codec.h"
-#include "video_compress.h"
-#include "video_frame.h"
-#include "module.h"
-#include "debug.h"
-
-#define PIXEL_FORMAT RGB
-#define DEFAULT_FPS 25
+//#include <stdlib.h>
+//#include "video_data.h"
+//#include "video_decompress.h"
+//#include "video_decompress/libavcodec.h"
+//#include "video_codec.h"
+//#include "video_compress.h"
+//#include "video_frame.h"
+//#include "module.h"
+//#include "debug.h"
+//
+//#define PIXEL_FORMAT RGB
+//#define DEFAULT_FPS 25
 
 // private functions
 void *decoder_th(void* data);

@@ -1,171 +1,102 @@
+/**
+ * @file circular_queue.c
+ * @brief Thread resistant circular queue.
+ *
+ */
+
 #include "debug.h"
-#include "video_data_frame.h"
+#include "circular_queue.h"
 
-video_data_frame_t *init_video_data_frame();
-int destroy_video_data_frame(video_data_frame_t *frame);
-int set_video_data_frame(video_data_frame_t *frame, codec_t codec, uint32_t width, uint32_t height);
+circular_queue_t *cq_init(int max, void *(*init_object)(), void (*destroy_object)(void *)) {
 
-video_data_frame_t *init_video_data_frame(){
-    video_data_frame_t *frame = malloc(sizeof(video_data_frame_t));
-
-    frame->buffer = NULL;
-    frame->seqno = 0;
-    frame->frame_type = BFRAME;
-
-    return frame;
-}
-
-int destroy_video_data_frame(video_data_frame_t *frame){
-    free(frame->buffer);
-    free(frame);
-    return TRUE;
-}
-
-int set_video_data_frame(video_data_frame_t *frame, codec_t codec, uint32_t width, uint32_t height){
-    frame->codec = codec;
-    frame->width = width;
-    frame->height = height;
-    
-    if (width == 0 || height == 0){
-        width = MAX_WIDTH;
-        height = MAX_HEIGHT;
-    }
-    
-    frame->buffer_len = width*height*3*sizeof(uint8_t); 
-
-    if (frame->buffer == NULL){
-        frame->buffer = malloc(frame->buffer_len);
-    } else {
-        free(frame->buffer);
-        frame->buffer = malloc(frame->buffer_len);
-    }
-
-    if (frame->buffer == NULL) {
-        error_msg("set_stream_video_data: malloc error");
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
-video_frame_cq_t *init_video_frame_cq(uint8_t max, uint32_t timeout){
-    video_frame_cq_t* frame_cq = malloc(sizeof(video_frame_cq_t));
-    
     if (max <= 1){
         error_msg("video frame queue must have at least 2 positions");
         return NULL;
     }
-    
-    frame_cq->rear = 0;
-    frame_cq->front = 0;
-    frame_cq->max = max;
-    frame_cq->timeout = timeout;
-    frame_cq->state = CQ_EMPTY;
-    frame_cq->in_process = FALSE;
-    frame_cq->out_process = FALSE;
-    frame_cq->frames = malloc(sizeof(video_data_frame_t*)*max);
-    
-    for(uint8_t i; i < max; i++){
-        frame_cq->frames[i] = init_video_data_frame();
+
+    circular_queue_t* cq = malloc(sizeof(circular_queue_t));
+    cq->rear = 0;
+    cq->front = 0;
+    cq->max = max;
+    cq->level = CQ_EMPTY;
+    cq->init_object = init_object;
+    cq->destroy_object = destroy_object;
+    for (int i = 0; i < max; i++) {
+        cq->bags[i] = cq->init_object();
     }
-    
-    return frame_cq;
+
+    return cq;
 }
 
-int destroy_video_frame_cq(video_frame_cq_t* frame_cq){
-    for(uint8_t i = 0; i < frame_cq->max; i++){
-       destroy_video_data_frame(frame_cq->frames[i]);
+int cq_destroy(circular_queue_t* cq) {
+
+    for(int i = 0; i < cq->max; i++) {
+        cq->destroy_object(cq->bags[i]);
     }
-    free(frame_cq);
+    free(cq);
+
     return TRUE;
 }
 
-int set_video_frame_cq(video_frame_cq_t *frame_cq, codec_t codec, uint32_t width, uint32_t height){ 
-    for(uint8_t i = 0; i < frame_cq->max; i++){
-        if(! set_video_data_frame(frame_cq->frames[i], codec, width, height)){
-            return FALSE;
-        }
+void *cq_get_rear(circular_queue_t *cq) {
+
+    if (cq->level == CQ_FULL) {
+        return NULL;
     }
-    
-    return TRUE;
+    return cq->bags[cq->rear];
 }
 
-video_data_frame_t* curr_in_frame(video_frame_cq_t *frame_cq){
-    
-    while (frame_cq->state == CQ_FULL){
-        usleep(frame_cq->timeout);
-        if (frame_cq->state == CQ_FULL) {
-            return NULL;
-        }
-    }
-    frame_cq->in_process = TRUE;
-    return frame_cq->frames[frame_cq->rear];
-}
+int cq_add_bag(circular_queue_t *cq) {
 
-int put_frame(video_frame_cq_t *frame_cq){
-    uint8_t r;
-    
-    if (! frame_cq->in_process){
-        return FALSE;
-    }
-    
-    frame_cq->in_process = FALSE;
-    
-    r =  (frame_cq->rear + 1) % frame_cq->max;
-    if (r == frame_cq->front) {
-        frame_cq->state = CQ_FULL;
+    int r;
+
+    r =  (cq->rear + 1) % cq->max;
+    if (r == cq->front) {
+        cq->level = CQ_FULL;
     } else {
-        frame_cq->state = CQ_OK;
+        cq->level = CQ_OK;
     }
-    frame_cq->rear = r;
-    
+    cq->rear = r;
+
     return TRUE;
 }
 
-video_data_frame_t* curr_out_frame(video_frame_cq_t *frame_cq){
-    
-    while (frame_cq->state == CQ_EMPTY){
-        usleep(frame_cq->timeout);
-        if (frame_cq->state == CQ_EMPTY) {
-            return NULL;
-        }
+void* cq_get_front(circular_queue_t *cq) {
+
+    if (cq->level == CQ_EMPTY) {
+        return NULL;
     }
-    frame_cq->out_process = TRUE;
-    return frame_cq->frames[frame_cq->front];
+
+    return cq->bags[cq->front];
 }
 
-int remove_frame(video_frame_cq_t *frame_cq){
-    uint8_t f;
-    
-    if (! frame_cq->out_process){
-        return FALSE;
-    }
-    
-    frame_cq->out_process = FALSE;
-    
-    f =  (frame_cq->front + 1) % frame_cq->max;
-    if (f == frame_cq->rear) {
-        frame_cq->state = CQ_EMPTY;
+int cq_remove_bag(circular_queue_t *cq) {
+
+    int f;
+
+    f =  (cq->front + 1) % cq->max;
+    if (f == cq->rear) {
+        cq->level = CQ_EMPTY;
     } else {
-        frame_cq->state = CQ_OK;
+        cq->level = CQ_OK;
     }
-    frame_cq->front = f;
-    
+    cq->front = f;
+
     return TRUE;
 }
 
+int cq_flush(circular_queue_t *cq) {
 
-int flush_frames(video_frame_cq_t *frame_cq){
-    uint8_t r;
-    
-    if (frame_cq->state == CQ_FULL){
-        r = (frame_cq->rear + 1) % frame_cq->max;
-        if (r != frame_cq->rear){
-            frame_cq->state = CQ_OK;
-            frame_cq->rear = r;
+    int r;
+
+    if (cq->level == CQ_FULL){
+        r = (cq->rear + 1) % cq->max;
+        if (r != cq->rear){
+            cq->level = CQ_OK;
+            cq->rear = r;
         }
     }
-    
+
     return TRUE;
 }
 
