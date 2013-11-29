@@ -153,9 +153,10 @@ void *receiver_thread(receiver_t *receiver) {
 }
 
 void *audio_receiver_thread(receiver_t *receiver) {
+
     struct pdb_e *cp;
     participant_data_t *participant;
-    video_data_frame_t* coded_frame;
+    struct state_audio_decoder *coded_frame;
 
     struct timeval curr_time;
     struct timeval timeout;
@@ -163,71 +164,44 @@ void *audio_receiver_thread(receiver_t *receiver) {
     gettimeofday(&start_time, NULL);
 
     timeout.tv_sec = 0;
-    timeout.tv_usec = 10000;
-    uint32_t timestamp; //TODO: why is this used
+    timeout.tv_usec = 999999 / 59.94;
+    uint32_t timestamp;
 
     while(receiver->run){
         gettimeofday(&curr_time, NULL);
         timestamp = tv_diff(curr_time, start_time) * 90000;
-        rtp_update(receiver->session, curr_time);
-        //rtp_send_ctrl(receiver->session, timestamp, 0, curr_time); //TODO: why is this used?
-
-        timeout.tv_sec = 0;
-        timeout.tv_usec = 10000;
+        rtp_update(receiver->audio_sessionh_id, curr_time);
+        //rtp_send_ctrl(receiver->audio_sessionh_id, timestamp, 0, curr_time); //TODO: use this.
 
         //TODO: repàs dels locks en accedir a src
-        if (!rtp_recv_r(receiver->session, &timeout, timestamp)){
+        if (!rtp_recv_r(receiver->audio_sessionh_id, &timeout, timestamp)){
             pdb_iter_t it;
-            cp = pdb_iter_init(receiver->part_db, &it);
+            cp = pdb_iter_init(receiver->audio_part_db, &it);
 
             while (cp != NULL) {
 
-                participant = get_participant_stream_ssrc(receiver->stream_list, cp->ssrc);
-                if (participant == NULL){
-                    participant = get_participant_stream_non_init(receiver->stream_list);
-                    if (participant != NULL){
+                //TODO: Possible optimization using participant hash
+                if (participant = get_participant_stream_ssrc(receiver->audio_stream_list, cp->ssrc) == NULL) {
+                    if (participant = get_participant_stream_non_init(receiver->audio_stream_list) == NULL) {
+                        debug_msg("audio_receiver_thread: Can't find configured streams, dropping data");
+                        cp = pdb_iter_next(&it);
+                        continue;
+                    }
+                    else {
                         set_participant_ssrc(participant, cp->ssrc);
                     }
                 }
 
-                if (participant == NULL){
+                if (coded_frame = cq_get_rear(participant->stream->audio->coded_cq) == NULL) {
+                    debug_msg("receiver thread: coded circular queue is full");
                     cp = pdb_iter_next(&it);
                     continue;
                 }
 
-                coded_frame = curr_in_frame(participant->stream->video->coded_frames);
-                if (coded_frame == NULL){
-                    error_msg("Missing packets\n");
-                    cp = pdb_iter_next(&it);
-                    continue;
-                }
-
-                if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, coded_frame)) {
-
-                    if (participant->stream->state == I_AWAIT && 
-                            coded_frame->frame_type == INTRA && 
-                            coded_frame->width != 0 && 
-                            coded_frame->height != 0){
-
-                        if(participant->stream->video->decoder == NULL){
-                            set_video_frame_cq(participant->stream->video->decoded_frames, 
-                                    RGB, 
-                                    coded_frame->width, 
-                                    coded_frame->height);
-                            printf("starting decoder\n");
-                            start_decoder(participant->stream->video); 
-                        }
-                        participant->stream->state = ACTIVE;
-                    }
-
-                    if (participant->stream->state == ACTIVE && coded_frame->frame_type != BFRAME) {
-                        put_frame(participant->stream->video->coded_frames);
-                    } else {
-                        debug_msg("No support for Bframes\n");
-                    }
-                    //TODO: should be at the beginning of the loop
-                    pbuf_remove_first(cp->playout_buffer);
-
+                // TODO: Generate tools to get the correct decoder callback from audio_processor_t audio configuration.
+                // Maybe a codec_t table and its decoding callbacks paired with a getter function.
+                if (rtp_audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame_mulaw, coded_frame)) {
+                    cq_add_bag(participant->stream->audio->coded_cq);
                 }
                 cp = pdb_iter_next(&it);
             } 

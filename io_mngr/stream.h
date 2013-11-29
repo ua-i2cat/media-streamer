@@ -32,7 +32,7 @@ typedef struct stream_data {
     struct stream_data *prev;
     struct stream_data *next;
     union {
-        audio_data_t *audio;
+        audio_processor_t *audio;
         video_data_t *video;
     };
 } stream_data_t;

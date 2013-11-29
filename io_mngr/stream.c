@@ -53,12 +53,25 @@ stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, s
     stream->prev = NULL;
     stream->next = NULL;
 
-    if (io_type == INPUT){
-        stream->video = init_video_data(DECODER);
-    } else if (io_type == OUTPUT){
-        stream->video = init_video_data(ENCODER);
+    if (type == VIDEO) {
+        if (io_type == INPUT){
+            stream->video = init_video_data(DECODER);
+        } else if (io_type == OUTPUT){
+            stream->video = init_video_data(ENCODER);
+        }
     }
-    
+    else if (type == AUDIO) {
+        if (io_type == INPUT){
+            stream->audio = ap_init(DECODER);
+        } else if (io_type == OUTPUT){
+            stream->audio = ap_init(ENCODER);
+        }
+    }
+    else {
+        error_msg("No VIDEO nor AUDIO type? WTF!");
+        return NULL;
+    }
+
     stream->plist = init_participant_list();
 
     return stream;
