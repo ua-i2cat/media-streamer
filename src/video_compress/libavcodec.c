@@ -595,7 +595,7 @@ struct tile * libavcodec_compress_tile(struct module *mod, struct tile *tx, stru
 
         s->in_frame->pts = frame_seq++;
 #ifdef HAVE_AVCODEC_ENCODE_VIDEO2
-        av_free_packet(&s->pkt[buffer_idx]);
+    //    av_free_packet(&s->pkt[buffer_idx]); TODO: CAUSED SEGFAULT WHEN RECONFIGURING ENCODER. CHECK IF MEMORY LEAK
         av_init_packet(&s->pkt[buffer_idx]);
         s->pkt[buffer_idx].data = NULL;
         s->pkt[buffer_idx].size = 0;
@@ -693,7 +693,7 @@ static void cleanup(struct state_video_compress_libav *s)
 #ifdef HAVE_AVCODEC_ENCODE_VIDEO2
                 tile_free(s->out[i]);
                 s->out[i] = 0;
-                av_free_packet(&s->pkt[i]);
+            //    av_free_packet(&s->pkt[i]); TODO: THIS CAUSED SEGFAULT WHEN RECONFIGURING. CHECK IF MEMORY LEAK
 #else
                 tile_free_data(s->out[i]);
                 s->out[i] = 0;

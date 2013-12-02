@@ -31,14 +31,8 @@ int set_video_data_frame(video_data_frame_t *frame, codec_t codec, uint32_t widt
         height = MAX_HEIGHT;
     }
     
-    frame->buffer_len = width*height*3*sizeof(uint8_t); 
-
-    if (frame->buffer == NULL){
-        frame->buffer = malloc(frame->buffer_len);
-    } else {
-        free(frame->buffer);
-        frame->buffer = malloc(frame->buffer_len);
-    }
+    frame->buffer_len = width*height*3; 
+    frame->buffer = realloc(frame->buffer, frame->buffer_len);
 
     if (frame->buffer == NULL) {
         error_msg("set_stream_video_data: malloc error");
@@ -82,6 +76,7 @@ int destroy_video_frame_cq(video_frame_cq_t* frame_cq){
 
 int set_video_frame_cq(video_frame_cq_t *frame_cq, codec_t codec, uint32_t width, uint32_t height){ 
     for(uint8_t i = 0; i < frame_cq->max; i++){
+        printf("Iterator: %d\n", i);
         if(! set_video_data_frame(frame_cq->frames[i], codec, width, height)){
             return FALSE;
         }
