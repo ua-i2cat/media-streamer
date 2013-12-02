@@ -76,7 +76,6 @@ int destroy_video_frame_cq(video_frame_cq_t* frame_cq){
 
 int set_video_frame_cq(video_frame_cq_t *frame_cq, codec_t codec, uint32_t width, uint32_t height){ 
     for(uint8_t i = 0; i < frame_cq->max; i++){
-        printf("Iterator: %d\n", i);
         if(! set_video_data_frame(frame_cq->frames[i], codec, width, height)){
             return FALSE;
         }
