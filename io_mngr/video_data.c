@@ -5,6 +5,7 @@
 #include "video_codec.h"
 #include "video_compress.h"
 #include "video_frame.h"
+#include "tv.h"
 #include "module.h"
 #include "debug.h"
 
@@ -14,6 +15,7 @@
 // private functions
 void *decoder_th(void* data);
 void *encoder_routine(void *arg);
+int reconf_video_frame(video_data_frame_t *frame, struct video_frame *enc_frame, uint32_t fps);
 
 int reconf_video_frame(video_data_frame_t *frame, struct video_frame *enc_frame, uint32_t fps){
     if (frame->width != vf_get_tile(enc_frame, 0)->width
@@ -267,7 +269,7 @@ void stop_decoder(video_data_t *data){
     destroy_decoder(data->decoder);
 }
 
-video_data_t *init_video_data(video_type_t type){
+video_data_t *init_video_data(role_t type){
     video_data_t *data = malloc(sizeof(video_data_t));
 
     //TODO: get rid of magic numbers

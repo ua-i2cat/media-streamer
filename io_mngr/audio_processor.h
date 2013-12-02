@@ -33,23 +33,10 @@
 #define __AUDIO_DATA_H__
 
 #include "circular_queue.h"
+#include "resampler.h"
+#include "codec.h"
 #include "audio.h"
-
-typedef enum role {
-    ENCODER,
-    DECODER,
-    NONE
-} role_t;
-
-typedef struct decoder_thread {
-    pthread_t thread;
-    int run;
-} decoder_thread_t;
-
-typedef struct encoder_thread {
-    pthread_t thread;
-    int run;
-} encoder_thread_t;
+#include "commons.h"
 
 typedef struct audio_processor {
     role_t role;
@@ -57,16 +44,16 @@ typedef struct audio_processor {
     circular_queue_t *coded_cq;
 
     // Audio configurations
-    int bps;                /* bytes per sample */
-    int sample_rate;
-    int ch_count;		/* count of channels */
-    audio_codec_t codec;
+    struct audio_desc *external_config;
+    struct audio_desc *internal_config;
+    struct resampler *resampler;
+    struct audio_codec_state *compression_config;
+    int normalized_frame_size;
 
-//    int seqno;
-    union {
-        struct encoder_thread *encoder;
-        struct decoder_thread *decoder;
-    };
+    // Thread data
+    int run;
+    void *worker;
+    pthread_t thread;
 } audio_processor_t;
 
 /**
@@ -78,57 +65,26 @@ audio_processor_t *ap_init(role_t role);
 
 /**
  * Destroys the audio processor
- * @param max Target audio_processor_t
+ * @param ap Target audio_processor_t
  */
-void ap_destroy(audio_processor_t *data);
+void ap_destroy(audio_processor_t *ap);
 
 /**
- * Initializes the decoder thread
- * @param ap The audio_processor_t where the thread operates
- * @return decoder_thread_t * if succeeded, NULL otherwise
+ * Configure the external and internal audio format.
+ * @param ap Target audio_processor_t.
+ * @param bps External bytes per second value.
+ * @param sample_rate External sample rate.
+ * @param channels External number of channels.
+ * @param codec External codification type.
  */
-decoder_thread_t *ap_decoder_init(audio_processor_t *ap);
+void ap_config(audio_processor_t *ap, int bps, int sample_rate, int channels, audio_codec_t codec);
 
 /**
- * Destroys the audio processor
- * @param max Target audio_processor_t
+ * Starts the worker thread.
+ * @param ap The audio_processor_t where the thread operates.
+ * @return decoder_thread_t * if succeeded, NULL otherwise.
  */
-void ap_decoder_destroy(decoder_thread_t *decoder);
-
-/**
- * TODO
- * @param TODO
- * @return TODO
- */
-void ap_decoder_start(audio_processor_t *ap);
-
-/**
- * TODO
- * @param TODO
- * @return TODO
- */
-void ap_decoder_stop(audio_processor_t *ap);
-
-/**
- * TODO
- * @param TODO
- * @return TODO
- */
-encoder_thread_t *ap_encoder_init(audio_processor_t *ap);
-
-/**
- * TODO
- * @param TODO
- * @return TODO
- */
-void ap_encoder_destroy(audio_processor_t *ap);
-
-/**
- * TODO
- * @param TODO
- * @return TODO
- */
-void ap_encoder_stop(audio_processor_t *ap);
+void ap_worker_start(audio_processor_t *ap);
 
 #endif //__AUDIO_DATA_H__
 

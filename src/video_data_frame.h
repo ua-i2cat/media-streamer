@@ -44,5 +44,6 @@ int set_video_frame_cq(video_frame_cq_t *frame_cq, codec_t codec, uint32_t width
 video_data_frame_t* curr_in_frame(video_frame_cq_t *frame_cq);
 video_data_frame_t* curr_out_frame(video_frame_cq_t *frame_cq);
 int remove_frame(video_frame_cq_t *frame_cq);
+int flush_frames(video_frame_cq_t *frame_cq);
 int put_frame(video_frame_cq_t *frame_cq);
 int increase_rear_frame(video_frame_cq_t *frame_cq);

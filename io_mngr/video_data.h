@@ -1,14 +1,8 @@
+#include <semaphore.h>
 #include "config_unix.h"
 #include "types.h"
-#include <semaphore.h>
 #include "video_data_frame.h"
-
-
-typedef enum video_type {
-    ENCODER,
-    DECODER,
-    NONE
-} video_type_t;
+#include "commons.h"
 
 typedef struct decoder_thread {
     pthread_t thread;
@@ -31,7 +25,7 @@ typedef struct encoder_thread {
 } encoder_thread_t;
 
 typedef struct video_data {
-    video_type_t type;
+    role_t type;
     video_frame_cq_t *decoded_frames;
     video_frame_cq_t *coded_frames;
     uint32_t interlacing;  //TODO: fix this. It has to be UG enum
@@ -52,5 +46,5 @@ void destroy_encoder(video_data_t *data);
 void stop_decoder(video_data_t *data);
 void stop_encoder(video_data_t *data);
 
-video_data_t *init_video_data(video_type_t type);
+video_data_t *init_video_data(role_t type);
 int destroy_video_data(video_data_t *data);

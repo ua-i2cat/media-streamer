@@ -9,9 +9,10 @@ libiomanager_la_LDFLAGS = -version-info 0:1:0 -L. -L.. -L../src -lpthread -lrtp 
 libiomanager_la_CFLAGS = $(AM_CFLAGS) -I. -I.. -I../src -I../src/rtp -I../src/utils -I../src/audio -I/usr/include/groupsock -I/usr/include/liveMedia -I/usr/include/BasicUsageEnvironment -I/usr/include/UsageEnvironment
 libiomanager_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -I.. -I../src -I../src/rtp -I../src/utils -I../src/audio -I/usr/include/groupsock -I/usr/include/liveMedia -I/usr/include/BasicUsageEnvironment -I/usr/include/UsageEnvironment
 libiomanager_la_SOURCES = stream.c \
-						  participants.c \
-						  video_data.c \
-						  audio_data.c \
+                                                  circular_queue.c \
+                                                  participants.c \
+                                                  video_data.c \
+                                                  audio_processor.c \
 						  transmitter.c \
 						  receiver.c \
 						  BasicRTSPOnlyServer.cpp \
@@ -28,7 +29,9 @@ uginclude_HEADERS =	receiver.h \
 					transmitter.h \
 					stream.h \
 					video_data.h \
-					audio_data.h \
+                                        audio_processor.h \
+                                        audio_config.h \
+                                        circular_queue.h \
 					../src/video_data_frame.h \
 					../src/video.h \
 					../src/video_codec.h \

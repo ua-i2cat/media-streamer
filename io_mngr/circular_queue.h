@@ -23,73 +23,74 @@
 
 /**
  * @file circular_queue.h
- * @brief Thread resistant circular queue composed of 'bags' where you can store generic pointers.
+ * @brief Thread resistant circular queue composed of 'bags', there you can store generic objects.
  */
 
 #ifndef __CIRCULAR_QUEUE_H__
 #define __CIRCULAR_QUEUE_H__
 
-enum {
-    CQ_OK,
-    CQ_EMPTY,
-    CQ_FULL
-} cq_level;
+typedef enum {
+    CIRCULAR_QUEUE_FREE,
+    CIRCULAR_QUEUE_EMPTY,
+    CIRCULAR_QUEUE_FULL
+} cq_level_t;
 
 typedef struct circular_queue {
     int rear;
     int front;
     int max;
-    cq_level level;
-    void *(*init_object)();
+    cq_level_t level;
+    void *(*init_object)(void *);
     void (*destroy_object)(void *);
     void **bags;
 } circular_queue_t;
 
 /**
- * Initializes the circular queue
- * @param max Maximum number of 'bags'
- * @param init_object Callback to initialize pointed objects
- * @param destroy_object Callback to destroy pointed objects
- * @return circular_queue_t * if succeeded, NULL otherwise
+ * Initializes a 'bag' circular queue.
+ * @param max Maximum number of 'bags'.
+ * @param init_object Callback to initialize 'bag' objects.
+ * @param destroy_object Callback to destroy 'bag' objects.
+ * @param init_data Initialization data to be passed to the init_object function.
+ * @return circular_queue_t * if succeeded, NULL otherwise.
  */
-circular_queue_t *cq_init(int max, void *(*init_object)(), void (*destroy_object)(void *));
+circular_queue_t *cq_init(int max, void *(*init_object)(void *), void (*destroy_object)(void *), void *init_data);
 
 /**
- * Destroys the circular queue
- * @param max Target circular_queue_t
+ * Destroys the circular queue.
+ * @param max Target circular_queue_t.
  */
 void cq_destroy(circular_queue_t* cq);
 
 /**
- * Returns the pointer from the front 'bag', useful to get the element from the 'bag'
- * @param max Target circular_queue_t
- * @return A pointer to the front element or NULL if the queue is empty
+ * Returns the pointer from the front 'bag', useful to get the element from the 'bag'.
+ * @param max Target circular_queue_t.
+ * @return A pointer to the front element or NULL if the queue is empty.
  */
 void* cq_get_front(circular_queue_t *cq);
 
 /**
- * Advances the front one position removing the latter front 'bag' from filled 'bags' set
- * @param max Target circular_queue_t
+ * Advances the front one position removing the latter front 'bag' from filled 'bags' set.
+ * @param max Target circular_queue_t.
  */
 void cq_remove_bag(circular_queue_t *cq);
 
 /**
- * Returns the pointer pointing to the free 'bag' from rear, useful for fill the 'bag'
- * @param max Target circular_queue_t
- * @return A pointer to the free rear 'bag' or NULL if the queue is full
+ * Returns the pointer pointing to the free 'bag' from rear, useful for fill the 'bag'.
+ * @param max Target circular_queue_t.
+ * @return A pointer to the free rear 'bag' or NULL if the queue is full.
  */
 void *cq_get_rear(circular_queue_t *cq);
 
 /**
- * Advances the rear one position adding the latter rear element to the filled 'bags' set
- * @param max Target circular_queue_t
+ * Advances the rear one position adding the latter rear element to the filled 'bags' set.
+ * @param max Target circular_queue_t.
  */
 void cq_add_bag(circular_queue_t *cq);
 
 
 /**
- * Mercilessly forgets the rear element only if the queue is full
- * @param max Target circular_queue_t
+ * Mercilessly forgets the rear element only if the queue is full.
+ * @param max Target circular_queue_t.
  */
 void cq_flush(circular_queue_t *cq);
 

@@ -42,7 +42,7 @@ int main(){
     
     //Incoming participants
     participant_data_t *in_p1;
-    participant_data_t *in_p2;
+    //participant_data_t *in_p2;
     
     //Attach signal handler
     signal(SIGINT, signal_handler);
@@ -57,7 +57,7 @@ int main(){
     server          = init_rtsp_server(8554, transmitter);
     receiver        = init_receiver(in_str_list, 5004, 5006);
     in_p1           = init_participant(1, INPUT, NULL, 0);
-    in_p2           = init_participant(2, INPUT, NULL, 0);
+    //in_p2           = init_participant(2, INPUT, NULL, 0);
     
     //Timestamp of start time
     gettimeofday(&a, NULL);

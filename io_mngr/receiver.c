@@ -2,6 +2,7 @@
 #include "receiver.h"
 #include "rtp/rtp_callback.h"
 #include "rtp/rtp.h"
+#include "rtp/audio_decoders.h"
 #include "pdb.h"
 #include "tv.h"
 #include "debug.h"
@@ -170,19 +171,19 @@ void *audio_receiver_thread(receiver_t *receiver) {
     while(receiver->run){
         gettimeofday(&curr_time, NULL);
         timestamp = tv_diff(curr_time, start_time) * 90000;
-        rtp_update(receiver->audio_sessionh_id, curr_time);
-        //rtp_send_ctrl(receiver->audio_sessionh_id, timestamp, 0, curr_time); //TODO: use this.
+        rtp_update(receiver->audio_session, curr_time);
+        //rtp_send_ctrl(receiver->audio_session, timestamp, 0, curr_time); //TODO: use this.
 
         //TODO: repàs dels locks en accedir a src
-        if (!rtp_recv_r(receiver->audio_sessionh_id, &timeout, timestamp)){
+        if (!rtp_recv_r(receiver->audio_session, &timeout, timestamp)){
             pdb_iter_t it;
             cp = pdb_iter_init(receiver->audio_part_db, &it);
 
             while (cp != NULL) {
 
                 //TODO: Possible optimization using participant hash
-                if (participant = get_participant_stream_ssrc(receiver->audio_stream_list, cp->ssrc) == NULL) {
-                    if (participant = get_participant_stream_non_init(receiver->audio_stream_list) == NULL) {
+                if ((participant = get_participant_stream_ssrc(receiver->audio_stream_list, cp->ssrc)) == NULL) {
+                    if ((participant = get_participant_stream_non_init(receiver->audio_stream_list)) == NULL) {
                         debug_msg("audio_receiver_thread: Can't find configured streams, dropping data");
                         cp = pdb_iter_next(&it);
                         continue;
@@ -192,7 +193,7 @@ void *audio_receiver_thread(receiver_t *receiver) {
                     }
                 }
 
-                if (coded_frame = cq_get_rear(participant->stream->audio->coded_cq) == NULL) {
+                if ((coded_frame = cq_get_rear(participant->stream->audio->coded_cq)) == NULL) {
                     debug_msg("receiver thread: coded circular queue is full");
                     cp = pdb_iter_next(&it);
                     continue;

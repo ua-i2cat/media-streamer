@@ -1,5 +1,5 @@
 /*
- *  audio_processor.c
+ *  audio_processor.c - Audio stream processor based on video_data.c
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -17,46 +17,48 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  Jordi "Txor" Casas Ríos <jordi.casas@i2cat.net>,
- *            David Cassany <david.cassany@i2cat.net>,
- *            Ignacio Contreras <ignacio.contreras@i2cat.net>,
- *            Marc Palau <marc.palau@i2cat.net>
+ *  Authors:  Jordi "Txor" Casas Ríos <jordi.casas@i2cat.net>
  */
 
-//#include <stdlib.h>
-//#include "video_data.h"
-//#include "video_decompress.h"
-//#include "video_decompress/libavcodec.h"
-//#include "video_codec.h"
-//#include "video_compress.h"
-//#include "video_frame.h"
-//#include "module.h"
+#include <stdlib.h>
 #include "debug.h"
 #include "audio_processor.h"
+#include "audio_config.h"
+#include "circular_queue.h"
+#include "audio_frame2.h"
+
+// private data
+struct bag_init_val {
+    int chan;
+    int size;
+};
 
 // private functions
 static void *decoder_thread(void *arg);
 static void *encoder_thread(void *arg);
+static void *bag_init(void *arg);
+static void bag_destroy(void *arg);
 
 static void *decoder_thread(void* arg) {
 
     audio_processor_t *ap = (audio_processor_t *) arg;
 
-    audio_frame2 *frame;
+    audio_frame2 *frame = NULL;
 
-    while(ap->decoder->run){
-        //        usleep(100);
+    while(ap->run){
+        if(ap->coded_cq->level != CIRCULAR_QUEUE_EMPTY) {
+            // Get normalized audio_frame2 size
+            frame++;
+            //        if (frame = (audio_frame2 *)cq_get_front(ap->coded_cq) == NULL) continue ;
 
-        // Get normalized audio_frame2 size
-//        if (frame = (audio_frame2 *)cq_get_front(ap->coded_cq) == NULL) continue ;
+            // Decompress audio_frame2
 
-        // Decompress audio_frame2
+            // Resample audio_frame2
 
-        // Resample audio_frame2
-
-//        decoded_frame = curr_in_frame(ap->decoded_frames);
-//        remove_frame(ap->coded_frames);
-//        put_frame(ap->decoded_frames);
+            //        decoded_frame = curr_in_frame(ap->decoded_frames);
+            //        remove_frame(ap->coded_frames);
+            //        put_frame(ap->decoded_frames);
+        }
     }
 
     pthread_exit((void *)NULL);    
@@ -66,123 +68,116 @@ static void *encoder_thread(void *arg) {
 
     audio_processor_t *ap = (audio_processor_t *)arg;
 
-//    ap->encoder->run = TRUE; 
+    audio_frame2 *frame = NULL;
 
     while (ap->run) {
+        if(ap->decoded_cq->level != CIRCULAR_QUEUE_FULL) {
+            //TODO: Encoder code
+            frame++;
+        }
 
-        //TODO: Encoder code
     }
 
     pthread_exit((void *)NULL);
 }
 
+static void *bag_init(void *init) {
+
+    audio_frame2 *frame;
+    struct bag_init_val *init_object = (struct bag_init_val *)init;
+    int channels = init_object->chan;
+    int max_size = init_object->size;
+
+    frame = rtp_audio_frame2_init();
+    rtp_audio_frame2_allocate(frame, channels, max_size);
+
+    return (void *)frame;
+}
+
+static void bag_destroy(void *bag) {
+
+    rtp_audio_frame2_free((audio_frame2 *)bag);
+}
+
 audio_processor_t *ap_init(role_t role) {
 
-    if (audio_processor_t *ap = malloc(sizeof(audio_processor_t) == NULL)) {
+    struct bag_init_val init_data;
+    audio_processor_t *ap;
+
+    if ((ap = malloc(sizeof(audio_processor_t))) == NULL) {
         error_msg("ap_init: malloc: out of memory!");
         return NULL;
     }
-    ap->role = role;
-    // TODO: configure the correct audio data unit on the bags callbacks: init and destroy.
-    ap->decoded = cq_init(10, init, destroy);
-    ap->coded = cq_init(10, init, destroy);
-    //  TODO: More fields
-    //  
 
-    data->decoder = NULL; // As decoder and encoder share its space inside a union, both becomes initialized.
+    ap->role = role;
+    // Default values
+    ap_config(ap, AUDIO_DEFAULT_BPS, AUDIO_DEFAULT_SAMPLE_RATE, AUDIO_DEFAULT_CHANNELS, AUDIO_DEFAULT_CODEC);
+    // Coded circular queue
+    init_data.chan = AUDIO_DEFAULT_CHANNELS;
+    init_data.size = (AUDIO_DEFAULT_SAMPLE_RATE * AUDIO_DEFAULT_BPS);
+    ap->coded_cq = cq_init(CIRCULAR_QUEUE_SIZE, bag_init, bag_destroy, &init_data);
+    // Decoded circular queue
+    init_data.chan = AUDIO_INTERNAL_CHANNELS;
+    init_data.size = (AUDIO_INTERNAL_SAMPLE_RATE * AUDIO_INTERNAL_BPS);
+    ap->decoded_cq = cq_init(CIRCULAR_QUEUE_SIZE, bag_init, bag_destroy, &init_data);
+
+    switch(ap->role) {
+        case DECODER:
+            ap->worker = decoder_thread;
+            break;
+        case ENCODER:
+            ap->worker = encoder_thread;
+            break;
+        default:
+            break;
+    }
 
     return ap;
 }
 
 void ap_destroy(audio_processor_t *ap) {
 
-    if (ap->type == DECODER && ap->decoder != NULL){
-        stop_decoder(ap);
-    } else if (ap->type == ENCODER && ap->encoder != NULL){
-        ap_encoder_stop(ap);
-    }
+    ap->run = FALSE;
+    pthread_join(ap->thread, NULL);
     cq_destroy(ap->decoded_cq);
     cq_destroy(ap->coded_cq);
     free(ap);
 }
 
-decoder_thread_t *ap_decoder_init(audio_processor_t *ap) {
+void ap_config(audio_processor_t *ap, int bps, int sample_rate, int channels, audio_codec_t codec) {
 
-    decoder_thread_t *decoder;
-    if (decoder = malloc(sizeof(decoder_thread_t) == NULL)) {
-        error_msg("ap_decoder_init: malloc: out of memory!");
-        return NULL;
-    }
-    decoder->run = FALSE;
+    // External and internal audio configuration
+    ap->external_config->bps = bps;
+    ap->external_config->sample_rate = sample_rate;
+    ap->external_config->ch_count = channels;
+    ap->external_config->codec = codec;
+    ap->internal_config->bps = AUDIO_INTERNAL_BPS;
+    ap->internal_config->sample_rate = AUDIO_INTERNAL_SAMPLE_RATE;
+    ap->internal_config->ch_count = AUDIO_INTERNAL_CHANNELS;
+    ap->internal_config->codec = AUDIO_INTERNAL_CODEC;
 
-    // Audio decoder thread initialization
-    // TODO
-    if (1 /* config sucsessful */) {
-    } else {
-        error_msg("decompress not available");
-        free(decoder);
-        return NULL;
-    }
+    switch(ap->role) {
+        case DECODER:
+            // Specific configurations and conversion bussines logic.
+            ap->compression_config = audio_codec_init(ap->external_config->codec, AUDIO_DECODER);
+            ap->resampler = resampler_init(ap->internal_config->sample_rate);
+            break;
 
-    return decoder;
-}
+        case ENCODER:
+            // Specific configurations and conversion bussines logic.
+            ap->compression_config = audio_codec_init(ap->external_config->codec, AUDIO_CODER);
+            //TODO
+            break;
 
-void ap_decoder_destroy(decoder_thread_t *decoder) {
-
-    if (decoder != NULL) {
-        // TODO: End operations
-        free(decoder);
-    }
-}
-
-void ap_decoder_start(audio_processor_t *ap) {
-
-    assert(ap->decoder == NULL);
-
-    ap->decoder = ap_decoder_init(ap);
-    ap->decoder->run = TRUE;
-
-    if (pthread_create(&ap->decoder->thread, NULL, (void *) decoder_th, ap) != 0)
-        ap->decoder->run = FALSE;
-}
-
-void ap_decoder_stop(audio_processor_t *ap) {
-
-    if (ap->decoder != NULL) {
-        ap->decoder->run = FALSE;
-        pthread_join(ap->decoder->thread, NULL);
-        ap_decoder_destroy(ap->decoder);
+        default:
+            break;
     }
 }
 
-encoder_thread_t *ap_encoder_init(audio_processor_t *ap) {
+void ap_worker_start(audio_processor_t *ap) {
 
-    if (ap->encoder != NULL) {
-        debug_msg("ap_encoder_init: encoder already initialized");
-        return NULL;
-    }
-    if (ap->encoder = malloc(sizeof(encoder_thread_t)) == NULL) {
-        error_msg("ap_encoder_init: malloc: out of memory!");
-        return NULL;
-    }
-    ap->encoder->run = FALSE;
-    if (pthread_create(&ap->encoder->thread, NULL, encoder_routine, ap) < 0) {
-        error_msg("ap_encoder_init: pthread_create error");
-        free(encoder);
-        return NULL;
-    }
-
-    return ap->encoder;
-}
-
-void ap_encoder_destroy(audio_processor_t *ap)
-{
-    pthread_join(ap->encoder->thread, NULL);
-    free(ap->encoder);
-}
-
-void ap_encoder_stop(audio_processor_t *ap) {
-    ap->encoder->run = FALSE;
-    ap_encoder_destroy(ap);
+    ap->run = TRUE;
+    if (pthread_create(&ap->thread, NULL, ap->worker, (void *)ap) != 0)
+        ap->run = FALSE;
 }
 

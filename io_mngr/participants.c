@@ -8,6 +8,9 @@
 void destroy_participant(participant_data_t *src);
 int remove_participant(participant_list_t *list, uint32_t id);
 void destroy_participant_list(participant_list_t *list);
+void dummy_callback(struct rtp *session, rtp_event *e);
+rtp_session_t * init_rtp_session(uint32_t port, char *addr);
+int destroy_rtp_session(rtp_session_t *rtp);
 
 void dummy_callback(struct rtp *session, rtp_event *e)
 {

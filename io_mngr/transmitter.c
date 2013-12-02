@@ -8,8 +8,11 @@
 #include "tv.h"
 #include <stdlib.h>
 
-transmitter_t *init_transmitter(stream_list_t *stream_list, float fps)
-{
+int send_coded_frame(stream_data_t *stream, video_data_frame_t *coded_frame, struct timeval start_time);
+void *transmitter_thread(void *arg);
+
+transmitter_t *init_transmitter(stream_list_t *stream_list, float fps) {
+
     transmitter_t *transmitter = malloc(sizeof(transmitter_t));
     if (transmitter == NULL) {
         error_msg("init_transmitter: malloc error");
@@ -34,7 +37,8 @@ transmitter_t *init_transmitter(stream_list_t *stream_list, float fps)
     return transmitter;
 }
 
-int send_coded_frame(stream_data_t *stream, video_data_frame_t *coded_frame, struct timeval start_time){
+int send_coded_frame(stream_data_t *stream, video_data_frame_t *coded_frame, struct timeval start_time) {
+
     participant_data_t *participant;
     struct timeval curr_time;
     double timestamp;
@@ -62,7 +66,8 @@ int send_coded_frame(stream_data_t *stream, video_data_frame_t *coded_frame, str
     return ret;
 }
 
-void *transmitter_thread(void *arg){
+void *transmitter_thread(void *arg) {
+
     transmitter_t *transmitter = (transmitter_t *)arg;
     stream_data_t *stream;
     video_data_frame_t *coded_frame;

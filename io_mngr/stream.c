@@ -39,13 +39,13 @@ stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, s
         error_msg("init_video_stream malloc error");
         return NULL;
     }
-  
+
     if (stream_name == NULL){
         stream->stream_name = NULL;
     } else {
         stream->stream_name = strdup(stream_name);
     }
-    
+
     stream->id = id;
     stream->type = type;
     stream->io_type = io_type;
@@ -84,10 +84,10 @@ int destroy_stream(stream_data_t *stream)
     } else if (stream->type == AUDIO){
         //Free audio structures
     }
-    
+
     destroy_participant_list(stream->plist);
-    
-	free(stream->stream_name);
+
+    free(stream->stream_name);
     free(stream);
     return TRUE;
 }
@@ -113,7 +113,7 @@ int add_stream(stream_list_t *list, stream_data_t *stream)
         error_msg("add_stream list->count < 0");
         ret = FALSE;
     }
-    
+
     pthread_rwlock_unlock(&list->lock);
     return ret;
 }
@@ -167,37 +167,40 @@ int remove_stream(stream_list_t *list, uint32_t id)
     list->count--;
 
     destroy_stream(stream);
-    
+
     pthread_rwlock_unlock(&list->lock);
-    
+
     return TRUE;
 }
 
 void set_stream_state(stream_data_t *stream, stream_state_t state) {
-    if (state == NON_ACTIVE){
+
+    if (state == NON_ACTIVE) {
         stream->state = state;
     } else if (stream->state == NON_ACTIVE) {
         stream->state = I_AWAIT;
     }
 }
 
-int add_participant_stream(stream_data_t *stream, participant_data_t *participant){  
+void add_participant_stream(stream_data_t *stream, participant_data_t *participant) {
+
     add_participant(stream->plist, participant);
     participant->stream = stream;
 }
 
-participant_data_t *get_participant_stream_id(stream_list_t *list, uint32_t id){
+participant_data_t *get_participant_stream_id(stream_list_t *list, uint32_t id) {
+    
     stream_data_t *stream;
     participant_data_t *part = NULL;
-    
+
     pthread_rwlock_rdlock(&list->lock);
-    
+
     stream = list->first;
     while(stream != NULL && part == NULL){
         part = get_participant_id(stream->plist, id);
         stream = stream->next;
     }
-        
+
     pthread_rwlock_unlock(&list->lock);
     return part;
 }
@@ -205,15 +208,15 @@ participant_data_t *get_participant_stream_id(stream_list_t *list, uint32_t id){
 participant_data_t *get_participant_stream_ssrc(stream_list_t *list, uint32_t ssrc){
     stream_data_t *stream;
     participant_data_t *part = NULL;
-    
+
     pthread_rwlock_rdlock(&list->lock);
-    
+
     stream = list->first;
     while(stream != NULL && part == NULL){
         part = get_participant_ssrc(stream->plist, ssrc);
         stream = stream->next;
     }
-        
+
     pthread_rwlock_unlock(&list->lock);
     return part;
 }
@@ -221,15 +224,15 @@ participant_data_t *get_participant_stream_ssrc(stream_list_t *list, uint32_t ss
 participant_data_t *get_participant_stream_non_init(stream_list_t *list){
     stream_data_t *stream;
     participant_data_t *part = NULL;
-    
+
     pthread_rwlock_rdlock(&list->lock);
-    
+
     stream = list->first;
     while(stream != NULL && part == NULL){
         part = get_participant_non_init(stream->plist);
         stream = stream->next;
     }
-        
+
     pthread_rwlock_unlock(&list->lock);
     return part;
 }

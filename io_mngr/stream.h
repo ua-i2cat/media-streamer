@@ -1,9 +1,10 @@
 #ifndef __STREAM_H__
 #define __STREAM_H__
 
-#include "video_data.h"
 #include <pthread.h>
 #include <semaphore.h>
+#include "video_data.h"
+#include "audio_processor.h"
 #include "participants.h"
 #include "commons.h"
 
@@ -17,10 +18,6 @@ typedef enum stream_state{
     I_AWAIT,
     NON_ACTIVE
 } stream_state_t;
-
-typedef struct audio_data {
-    // TODO
-} audio_data_t;
 
 typedef struct stream_data {
     stream_type_t type;
@@ -55,7 +52,7 @@ int destroy_stream(stream_data_t *stream);
 // TODO set_stream_audio_data
 stream_data_t *get_stream_id(stream_list_t *list, uint32_t id);
 void set_stream_state(stream_data_t *stream, stream_state_t state);
-int add_participant_stream(stream_data_t *stream, participant_data_t *participant);
+void add_participant_stream(stream_data_t *stream, participant_data_t *participant);
 
 //TODO: rethink these function names
 participant_data_t *get_participant_stream_id(stream_list_t *list, uint32_t id);

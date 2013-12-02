@@ -20,29 +20,32 @@
  *  Authors:  Jordi "Txor" Casas Ríos <jordi.casas@i2cat.net>,
  *            David Cassany <david.cassany@i2cat.net>
  */
-  
+
+#include <stdlib.h>
+#include <unistd.h>
 #include "debug.h"
 #include "circular_queue.h"
 
-circular_queue_t *cq_init(int max, void *(*init_object)(), void (*destroy_object)(void *)) {
+circular_queue_t *cq_init(int max, void *(*init_object)(void *), void (*destroy_object)(void *), void *init_data) {
 
     if (max <= 1){
         error_msg("video frame queue must have at least 2 positions");
         return NULL;
     }
 
-    if (circular_queue_t* cq = malloc(sizeof(circular_queue_t)) == NULL) {
+    circular_queue_t* cq;
+    if ((cq = malloc(sizeof(circular_queue_t))) == NULL) {
         error_msg("cq_init malloc out of memory!");
         return NULL;
     }
     cq->rear = 0;
     cq->front = 0;
     cq->max = max;
-    cq->level = CQ_EMPTY;
+    cq->level = CIRCULAR_QUEUE_EMPTY;
     cq->init_object = init_object;
     cq->destroy_object = destroy_object;
     for (int i = 0; i < max; i++) {
-        cq->bags[i] = cq->init_object();
+        cq->bags[i] = cq->init_object(init_data);
     }
 
     return cq;
@@ -58,7 +61,7 @@ void cq_destroy(circular_queue_t* cq) {
 
 void *cq_get_rear(circular_queue_t *cq) {
 
-    if (cq->level == CQ_FULL) {
+    if (cq->level == CIRCULAR_QUEUE_FULL) {
         return NULL;
     }
     return cq->bags[cq->rear];
@@ -68,16 +71,16 @@ void cq_add_bag(circular_queue_t *cq) {
 
     int r =  (cq->rear + 1) % cq->max;
     if (r == cq->front) {
-        cq->level = CQ_FULL;
+        cq->level = CIRCULAR_QUEUE_FULL;
     } else {
-        cq->level = CQ_OK;
+        cq->level = CIRCULAR_QUEUE_FREE;
     }
     cq->rear = r;
 }
 
 void* cq_get_front(circular_queue_t *cq) {
 
-    if (cq->level == CQ_EMPTY) {
+    if (cq->level == CIRCULAR_QUEUE_EMPTY) {
         return NULL;
     }
 
@@ -88,19 +91,19 @@ void cq_remove_bag(circular_queue_t *cq) {
 
     int f = (cq->front + 1) % cq->max;
     if (f == cq->rear) {
-        cq->level = CQ_EMPTY;
+        cq->level = CIRCULAR_QUEUE_EMPTY;
     } else {
-        cq->level = CQ_OK;
+        cq->level = CIRCULAR_QUEUE_FREE;
     }
     cq->front = f;
 }
 
 void cq_flush(circular_queue_t *cq) {
 
-    if (cq->level == CQ_FULL){
+    if (cq->level == CIRCULAR_QUEUE_FULL){
         int r = (cq->rear + 1) % cq->max;
         if (r != cq->rear){
-            cq->level = CQ_OK;
+            cq->level = CIRCULAR_QUEUE_FREE;
             cq->rear = r;
         }
     }
