@@ -28,7 +28,6 @@ typedef struct receiver {
     struct pdb *audio_part_db;
 } receiver_t;
 
-
 receiver_t *init_receiver(stream_list_t *stream_list, uint32_t video_port, uint32_t audio_port);
 int start_receiver(receiver_t *receiver);
 int stop_receiver(receiver_t *receiver);

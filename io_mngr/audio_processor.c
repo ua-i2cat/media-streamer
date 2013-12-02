@@ -26,6 +26,7 @@
 #include "audio_config.h"
 #include "circular_queue.h"
 #include "audio_frame2.h"
+#include "audio.h"
 
 // private data
 struct bag_init_val {
@@ -109,6 +110,15 @@ audio_processor_t *ap_init(role_t role) {
         return NULL;
     }
 
+    if ((ap->external_config = malloc(sizeof(struct audio_desc))) == NULL) {
+        error_msg("ap_init: malloc: out of memory!");
+        return NULL;
+    }
+    if ((ap->internal_config = malloc(sizeof(struct audio_desc))) == NULL) {
+        error_msg("ap_init: malloc: out of memory!");
+        return NULL;
+    }
+
     ap->role = role;
     // Default values
     ap_config(ap, AUDIO_DEFAULT_BPS, AUDIO_DEFAULT_SAMPLE_RATE, AUDIO_DEFAULT_CHANNELS, AUDIO_DEFAULT_CODEC);
@@ -141,6 +151,8 @@ void ap_destroy(audio_processor_t *ap) {
     pthread_join(ap->thread, NULL);
     cq_destroy(ap->decoded_cq);
     cq_destroy(ap->coded_cq);
+    free(ap->external_config);
+    free(ap->internal_config);
     free(ap);
 }
 

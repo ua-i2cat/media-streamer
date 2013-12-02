@@ -7,6 +7,7 @@
  */
 
 #include <stdio.h>
+#include <errno.h>
 #include "config.h"
 #include "io_mngr/participants.h"
 #include "io_mngr/receiver.h"
@@ -21,97 +22,50 @@ int main() {
 
     printf("Starting audio_receiver test...\n");
 
-    // Initialization
-    receiver_t *receiver;
-    stream_list_t *stream_list;
-//    stream_data_t *stream;
+    // Open files to write audio
+    if ((F_audio1 = fopen(name_audio1, "wb")) == NULL) {
+        perror(name_audio1);
+        exit(errno);
+    }
+    if ((F_audio2 = fopen(name_audio2, "wb")) == NULL) {
+        perror(name_audio2);
+        exit(errno);
+    }
 
-    stream_list = init_stream_list();
+    // Receiver configuration
+    stream_list_t *stream_list = init_stream_list();
+    receiver_t *receiver = init_receiver(stream_list, 5004, 5006);
 
-    receiver = init_receiver(stream_list, 5004, 5006);
+    // First stream and participant configuration
+    participant_data_t *p1 = init_participant(1, INPUT, NULL, 0);
+    stream_data_t *stream1 = init_stream(AUDIO, INPUT, rand(), I_AWAIT, "Stream1");
+    add_participant_stream(stream1, p1);
+    add_stream(receiver->stream_list, stream1);
 
-    if (start_receiver(receiver)) printf(" receiver started!\n");
+    // Second stream and participant configuration
+    participant_data_t *p2 = init_participant(2, INPUT, NULL, 0);
+    stream_data_t *stream2 = init_stream(AUDIO, INPUT, rand(), I_AWAIT, "Stream2");
+    add_participant_stream(stream2, p2);
+    add_stream(receiver->stream_list, stream2);
 
-    if (stop_receiver(receiver)) printf(" receiver stopped!\n");
+    if (start_receiver(receiver)) {
+        printf(" ·Receiver started!\n");
 
-    if (destroy_receiver(receiver)) printf(" receiver destroyed!\n");
 
-    destroy_stream_list(stream_list);
+        stop_receiver(receiver);
+        destroy_receiver(receiver);
+        printf(" ·Receiver stopped\n");
+        destroy_stream_list(stream_list);
+    }
 
-    printf("Finished.\n");
+    if (fclose(F_audio1) != 0) {
+        perror(name_audio1);
+        exit(-1);
+    }
+    if (fclose(F_audio2) != 0) {
+        perror(name_audio2);
+        exit(-1);
+    }
+    printf("Finished\n");
 }
 
-//    //  	add_participant(part_list, 2, INPUT, NULL, 0);
-//
-//    participant_data_t *p1 = init_participant(1, INPUT, NULL, 0);
-//    participant_data_t *p2 = init_participant(2, INPUT, NULL, 0);
-//    add_participant(receiver->participant_list, p1);
-//    add_participant(receiver->participant_list, p2);
-//
-//    if (start_receiver(receiver)) {
-//
-//        printf("First 200 frames to disk\n");
-//
-//        int i = 0, c=0;
-//        while(i < 700){
-//            pthread_rwlock_rdlock(&stream_list->lock);
-//            stream = stream_list->first;
-//            if (stream == NULL){
-//                pthread_rwlock_unlock(&stream_list->lock);
-//                continue;	
-//            }	
-//            if (stream->video->new_decoded_frame){
-//                if (F_video_rx0 == NULL) {
-//                    printf("recording rx frame0...\n");
-//                    F_video_rx0 = fopen(OUTPUT_PATH0, "wb");
-//                }
-//                pthread_rwlock_rdlock(&stream->video->decoded_frame->lock);
-//                fwrite(stream->video->decoded_frame->buffer, stream->video->decoded_frame->buffer_len, 1, F_video_rx0);
-//                pthread_rwlock_unlock(&stream->video->decoded_frame->lock);
-//                stream->video->new_decoded_frame = FALSE;
-//                printf("Frame %d by stream 0\n", i);
-//                i++;
-//            }
-//            pthread_rwlock_unlock(&stream_list->lock);
-//        }
-//
-//        i=0;
-//        while(i < 700){
-//            pthread_rwlock_rdlock(&stream_list->lock);
-//            stream = stream_list->first->next;
-//            if (stream == NULL){
-//                pthread_rwlock_unlock(&stream_list->lock);
-//                continue;	
-//            }	
-//            if (stream->video->new_decoded_frame){
-//
-//                if (F_video_rx1 == NULL) {
-//                    printf("recording rx frame1...\n");
-//                    F_video_rx1 = fopen(OUTPUT_PATH1, "wb");
-//                }
-//                pthread_rwlock_rdlock(&stream->video->decoded_frame->lock);
-//                fwrite(stream->video->decoded_frame->buffer, stream->video->decoded_frame->buffer_len, 1, F_video_rx1);
-//                pthread_rwlock_unlock(&stream->video->decoded_frame->lock);
-//                stream->video->new_decoded_frame = FALSE;
-//                printf("Frame %d by stream 1\n", i);
-//                i++;
-//            }
-//            pthread_rwlock_unlock(&stream_list->lock);
-//        }	
-//        // if (i == 300){
-//        // 	printf("Disabling flow\n");
-//        //  			set_stream_state(stream, NON_ACTIVE);
-//        //    		printf("Flow disabled\n");
-//        //    		sleep(10);
-//        // 		printf("Enabling flow\n");
-//        // 		set_stream_state(stream, ACTIVE);
-//        // 		printf("Flow enabled\n");
-//        // 		i++;
-//        // }
-//
-//        stop_receiver(receiver);
-//        printf("Stopped receiver\n");
-//        destroy_stream_list(stream_list);
-//
-//        printf("Finished\n");
-//    }
