@@ -94,7 +94,6 @@ void *receiver_thread(receiver_t *receiver) {
                 }
 
 				if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, coded_frame)) {
-						
 					if (participant->stream->state == I_AWAIT && 
                         coded_frame->frame_type == INTRA && 
                         coded_frame->width != 0 && 
