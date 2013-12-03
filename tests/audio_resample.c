@@ -71,6 +71,7 @@ struct thread_data {
 
     // Resampling stuff
     int resample_to;
+    int resample_frame_size;
 
     // Sender stuff
     struct tx *tx_session;
@@ -95,7 +96,7 @@ extern const char *get_name_to_audio_codec(audio_codec_t codec);
 
 static void usage(void)
 {
-    printf("Usage: audio_mulaw_only [-r <receive_port>] [-h <sendto_host>] [-s <sendto_port>] [-c <channels>] [-p <sample_rate>] [-t <resample_to>] [-f <resample_frame_size>]\n");
+    printf("Usage: audio_resample [-r <receive_port>] [-h <sendto_host>] [-s <sendto_port>] [-c <channels>] [-p <sample_rate>] [-t <resample_to>] [-f <resample_frame_size>]\n");
     printf(" By Txor >:D\n");
 }
 
@@ -196,7 +197,7 @@ static void *receiver_thread(void *arg)
             write_audio_frame2_channels("aoutput_2_PCM", decompressed_frame, false);
 #endif //WRITE_TO_DISK
             //shared_frame = resampler_resample(audio_decoder.resampler, decompressed_frame);
-            shared_frame = resize_resample(audio_decoder.resampler, decompressed_frame, (void *)resampler_resample, FRAME_SIZE);
+            shared_frame = resize_resample(audio_decoder.resampler, decompressed_frame, (void *)resampler_resample, d->resample_frame_size);
 #ifdef WRITE_TO_DISK
             write_audio_frame2_channels("aoutput_3_resampled", shared_frame, false);
 #endif //WRITE_TO_DISK
@@ -392,6 +393,7 @@ int main(int argc, char *argv[])
     receiver_data->audio_coder = audio_codec_init(audio_codec, AUDIO_DECODER);
     // Resampling configuration
     receiver_data->resample_to = resample_to;
+    receiver_data->resample_frame_size = resample_frame_size;
 
     // Sender RTP session stuff
     struct rtp *sender_session;
@@ -413,6 +415,7 @@ int main(int argc, char *argv[])
     sender_data->audio_coder = audio_codec_init(audio_codec, AUDIO_CODER);
     // Resampling configuration (doen't care, sender_thread just ignores it).
     sender_data->resample_to = resample_to;
+    sender_data->resample_frame_size = resample_frame_size;
 
     // Launch them
     gettimeofday(&receiver_data->start_time, NULL);
