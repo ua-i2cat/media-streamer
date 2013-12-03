@@ -30,7 +30,7 @@
 #define __CIRCULAR_QUEUE_H__
 
 typedef enum {
-    CIRCULAR_QUEUE_FREE,
+    CIRCULAR_QUEUE_MID,
     CIRCULAR_QUEUE_EMPTY,
     CIRCULAR_QUEUE_FULL
 } cq_level_t;

@@ -75,7 +75,7 @@ void cq_add_bag(circular_queue_t *cq) {
     if (r == cq->front) {
         cq->level = CIRCULAR_QUEUE_FULL;
     } else {
-        cq->level = CIRCULAR_QUEUE_FREE;
+        cq->level = CIRCULAR_QUEUE_MID;
     }
     cq->rear = r;
 }
@@ -95,7 +95,7 @@ void cq_remove_bag(circular_queue_t *cq) {
     if (f == cq->rear) {
         cq->level = CIRCULAR_QUEUE_EMPTY;
     } else {
-        cq->level = CIRCULAR_QUEUE_FREE;
+        cq->level = CIRCULAR_QUEUE_MID;
     }
     cq->front = f;
 }
@@ -105,7 +105,7 @@ void cq_flush(circular_queue_t *cq) {
     if (cq->level == CIRCULAR_QUEUE_FULL){
         int r = (cq->rear + 1) % cq->max;
         if (r != cq->rear){
-            cq->level = CIRCULAR_QUEUE_FREE;
+            cq->level = CIRCULAR_QUEUE_MID;
             cq->rear = r;
         }
     }

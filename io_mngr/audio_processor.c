@@ -152,7 +152,7 @@ audio_processor_t *ap_init(role_t role) {
             break;
     }
 
-    ap_worker_start(ap);
+    //ap_worker_start(ap);
 
     return ap;
 }

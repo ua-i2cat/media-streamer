@@ -1,7 +1,7 @@
 /*
- * audio_receiver.c - Test program that starts io_mngr receiver, writes 10
- * seconds of audio from one source in a file and then 10 seconds of audio from
- * another source to another file.
+ * audio_receiver.c - Test program that starts io_mngr receiver, writes
+ * RECORD_TIME seconds from one audio stream in to a file and then 
+ * RECORD_TIME seconds more of another audio stream to another file.
  *
  * By Txor <jordi.casas@i2cat.net>
  */
@@ -13,20 +13,59 @@
 #include "io_mngr/participants.h"
 #include "io_mngr/receiver.h"
 
+#define RECORD_TIME 5
+
 // Debug control
+//#define QUEUE_PRINT
 #define STREAM1
-#define STREAM1_WRITE
 #define STREAM2
-#define STREAM2_WRITE
 
 FILE *F_audio1 = NULL;
 FILE *F_audio2 = NULL;
-char *name_audio1 = "test_receiver_audio1.pcm";
-char *name_audio2 = "test_receiver_audio2.pcm";
+char *name_audio1 = "atest_receiver_audio1.pcm";
+char *name_audio2 = "atest_receiver_audio2.pcm";
+
+#ifdef QUEUE_PRINT
+// Private circular_queue debug function
+static void print_cq_status(circular_queue_t *cq, char *msg);
+
+static void print_cq_status(circular_queue_t *cq, char *msg) {
+    static char level;
+    static int front;
+    static int rear;
+    static int count = 0;
+    static char *m = NULL;
+    if (m != msg) {
+        level = '0';
+        front = -1;
+        rear = -1;
+        m = msg;
+    }
+    char l;
+    switch(cq->level) {
+        case CIRCULAR_QUEUE_MID:
+            l = 'M';
+            break;
+        case CIRCULAR_QUEUE_EMPTY:
+            l = 'E';
+            break;
+        case CIRCULAR_QUEUE_FULL:
+            l = 'F';
+            break;
+    }
+    if (level != l || front != cq->front || rear != cq->rear) {
+        level = l;
+        front = cq->front;
+        rear = cq->rear;
+        fprintf(stderr, "[circular_queue %i %s] Level(%c), Front(%i), Rear(%i).\n", count, m, level, front, rear);
+    }
+    count++;
+}
+#endif //QUEUE_PRINT
 
 int main() {
 
-    printf("Starting audio_receiver test...\n");
+    fprintf(stderr, "Starting audio_receiver test...\n");
 
     // Open files to write audio
     if ((F_audio1 = fopen(name_audio1, "wb")) == NULL) {
@@ -59,29 +98,28 @@ int main() {
 
     // Temp vars
     audio_frame2 *audio_frame;
-    stream_data_t *stream;
 
     if (start_receiver(receiver)) {
-        printf(" ·Receiver started!\n");
+        fprintf(stderr, " ·Receiver started!\n");
 
 #ifdef STREAM1
-        // Wait until the first stream appears
-        bool appeared = false;
-        while (!appeared) {
-            pthread_rwlock_rdlock(&stream_list->lock);
-            stream = stream_list->first; // First stream
-            pthread_rwlock_unlock(&stream_list->lock);
-            if (stream != NULL) appeared = true;
-            else usleep(500);
+        fprintf(stderr, "  ·Waiting for audio_frame2 data\n");
+        // Wait for the first coded_cq gets filled and go ahead
+#ifdef QUEUE_PRINT
+        print_cq_status(stream1->audio->coded_cq, "first stream1");
+#endif
+        while (stream1->audio->coded_cq->level == CIRCULAR_QUEUE_EMPTY) {
+#ifdef QUEUE_PRINT
+            print_cq_status(stream1->audio->coded_cq, "wait stream1");
+#endif
         }
-#ifdef STREAM1_WRITE
-        // Wait for the first decoded_cq gets filled and go ahead
-        while (stream1->audio->decoded_cq->level == CIRCULAR_QUEUE_EMPTY) {
-            usleep(250); //Sleep 0'25 seconds
-        }
-        printf("  ·Copying first stream... ");
+#ifdef QUEUE_PRINT
+        print_cq_status(stream1->audio->coded_cq, "continue stream1");
+#endif
+        if (!stream1->audio->run) ap_worker_start(stream1->audio);
+        fprintf(stderr, "   ·Copying to file... ");
         start = time(NULL);
-        stop = start + 10; // 10 seconds
+        stop = start + RECORD_TIME;
         // Work on file 1
         while (time(NULL) < stop) {
             audio_frame = cq_get_front(stream1->audio->decoded_cq);
@@ -90,28 +128,27 @@ int main() {
                 cq_remove_bag(stream1->audio->decoded_cq);
             }
         }
-#endif //STREAM1_WRITE
-        printf("Done!\n");
 #endif //STREAM1
+        fprintf(stderr, "Done!\n");
 
 #ifdef STREAM2
-        // Wait until the second stream appears
-        appeared = false;
-        while (!appeared) {
-            pthread_rwlock_rdlock(&stream_list->lock);
-            stream = stream_list->first->next; // Second stream
-            pthread_rwlock_unlock(&stream_list->lock);
-            if (stream != NULL) appeared = true;
-            else usleep(500);
+        fprintf(stderr, "  ·Waiting for audio_frame2 data\n");
+        // Wait for the second coded_cq gets filled and go ahead
+#ifdef QUEUE_PRINT
+        print_cq_status(stream2->audio->coded_cq, "first stream2");
+#endif
+        while (stream2->audio->coded_cq->level == CIRCULAR_QUEUE_EMPTY) {
+#ifdef QUEUE_PRINT
+            print_cq_status(stream2->audio->coded_cq, "wait stream2");
+#endif
         }
-#ifdef STREAM2_WRITE
-        // Wait for the second decoded_cq gets filled and go ahead
-        while (stream2->audio->decoded_cq->level == CIRCULAR_QUEUE_EMPTY) {
-            usleep(250); //Sleep 0'25 seconds
-        }
-        printf("  ·Copying first stream... ");
+#ifdef QUEUE_PRINT
+        print_cq_status(stream2->audio->decoded_cq, "continue stream2");
+#endif
+        if (!stream2->audio->run) ap_worker_start(stream2->audio);
+        fprintf(stderr, "   ·Copying to file... ");
         start = time(NULL);
-        stop = start + 10; // 10 seconds
+        stop = start + RECORD_TIME;
         // Work on file 1
         while (time(NULL) < stop) {
             audio_frame = cq_get_front(stream2->audio->decoded_cq);
@@ -120,14 +157,13 @@ int main() {
                 cq_remove_bag(stream2->audio->decoded_cq);
             }
         }
-#endif //STREAM2_WRITE
-        printf("Done!\n");
 #endif //STREAM2
+        fprintf(stderr, "Done!\n");
 
         // Finish and destroy objects
         stop_receiver(receiver);
         destroy_receiver(receiver);
-        printf(" ·Receiver stopped\n");
+        fprintf(stderr, " ·Receiver stopped\n");
         destroy_stream_list(stream_list);
     }
 
@@ -139,6 +175,6 @@ int main() {
         perror(name_audio2);
         exit(-1);
     }
-    printf("Finished\n");
+    fprintf(stderr, "Finished\n");
 }
 
