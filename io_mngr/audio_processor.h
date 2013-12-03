@@ -86,5 +86,12 @@ void ap_config(audio_processor_t *ap, int bps, int sample_rate, int channels, au
  */
 void ap_worker_start(audio_processor_t *ap);
 
+/**
+ * Returns the so called external configuration.
+ * @param ap The target audio_processor_t.
+ * @return struct audio_desc *
+ */
+struct audio_desc *ap_get_config(audio_processor_t *ap);
+
 #endif //__AUDIO_DATA_H__
 

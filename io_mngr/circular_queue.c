@@ -44,6 +44,7 @@ circular_queue_t *cq_init(int max, void *(*init_object)(void *), void (*destroy_
     cq->level = CIRCULAR_QUEUE_EMPTY;
     cq->init_object = init_object;
     cq->destroy_object = destroy_object;
+    cq->bags = malloc(sizeof(void *) * max);
     for (int i = 0; i < max; i++) {
         cq->bags[i] = cq->init_object(init_data);
     }
@@ -56,6 +57,7 @@ void cq_destroy(circular_queue_t* cq) {
     for(int i = 0; i < cq->max; i++) {
         cq->destroy_object(cq->bags[i]);
     }
+    free(cq->bags);
     free(cq);
 }
 

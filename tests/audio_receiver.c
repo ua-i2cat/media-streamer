@@ -8,10 +8,16 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <time.h>
 #include "config.h"
 #include "io_mngr/participants.h"
 #include "io_mngr/receiver.h"
 
+// Debug control
+#define STREAM1
+#define STREAM1_WRITE
+#define STREAM2
+#define STREAM2_WRITE
 
 FILE *F_audio1 = NULL;
 FILE *F_audio2 = NULL;
@@ -32,6 +38,9 @@ int main() {
         exit(errno);
     }
 
+    // Timer settings
+    time_t start, stop;
+
     // Receiver configuration
     stream_list_t *stream_list = init_stream_list();
     receiver_t *receiver = init_receiver(stream_list, 5004, 5006);
@@ -48,10 +57,74 @@ int main() {
     add_participant_stream(stream2, p2);
     add_stream(receiver->stream_list, stream2);
 
+    // Temp vars
+    audio_frame2 *audio_frame;
+    stream_data_t *stream;
+
     if (start_receiver(receiver)) {
         printf(" ·Receiver started!\n");
 
+#ifdef STREAM1
+        // Wait until the first stream appears
+        bool appeared = false;
+        while (!appeared) {
+            pthread_rwlock_rdlock(&stream_list->lock);
+            stream = stream_list->first; // First stream
+            pthread_rwlock_unlock(&stream_list->lock);
+            if (stream != NULL) appeared = true;
+            else usleep(500);
+        }
+#ifdef STREAM1_WRITE
+        // Wait for the first decoded_cq gets filled and go ahead
+        while (stream1->audio->decoded_cq->level == CIRCULAR_QUEUE_EMPTY) {
+            usleep(250); //Sleep 0'25 seconds
+        }
+        printf("  ·Copying first stream... ");
+        start = time(NULL);
+        stop = start + 10; // 10 seconds
+        // Work on file 1
+        while (time(NULL) < stop) {
+            audio_frame = cq_get_front(stream1->audio->decoded_cq);
+            if (audio_frame != NULL) {
+                fwrite(audio_frame->data[0], audio_frame->data_len[0], 1, F_audio1);
+                cq_remove_bag(stream1->audio->decoded_cq);
+            }
+        }
+#endif //STREAM1_WRITE
+        printf("Done!\n");
+#endif //STREAM1
 
+#ifdef STREAM2
+        // Wait until the second stream appears
+        appeared = false;
+        while (!appeared) {
+            pthread_rwlock_rdlock(&stream_list->lock);
+            stream = stream_list->first->next; // Second stream
+            pthread_rwlock_unlock(&stream_list->lock);
+            if (stream != NULL) appeared = true;
+            else usleep(500);
+        }
+#ifdef STREAM2_WRITE
+        // Wait for the second decoded_cq gets filled and go ahead
+        while (stream2->audio->decoded_cq->level == CIRCULAR_QUEUE_EMPTY) {
+            usleep(250); //Sleep 0'25 seconds
+        }
+        printf("  ·Copying first stream... ");
+        start = time(NULL);
+        stop = start + 10; // 10 seconds
+        // Work on file 1
+        while (time(NULL) < stop) {
+            audio_frame = cq_get_front(stream2->audio->decoded_cq);
+            if (audio_frame != NULL) {
+                fwrite(audio_frame->data[0], audio_frame->data_len[0], 1, F_audio2);
+                cq_remove_bag(stream2->audio->decoded_cq);
+            }
+        }
+#endif //STREAM2_WRITE
+        printf("Done!\n");
+#endif //STREAM2
+
+        // Finish and destroy objects
         stop_receiver(receiver);
         destroy_receiver(receiver);
         printf(" ·Receiver stopped\n");

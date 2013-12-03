@@ -44,21 +44,31 @@ static void *decoder_thread(void* arg) {
 
     audio_processor_t *ap = (audio_processor_t *) arg;
 
-    audio_frame2 *frame = NULL;
+    audio_frame2 *frame, *output_frame;
 
-    while(ap->run){
+    while(ap->run) {
         if(ap->coded_cq->level != CIRCULAR_QUEUE_EMPTY) {
-            // Get normalized audio_frame2 size
-            frame++;
-            //        if (frame = (audio_frame2 *)cq_get_front(ap->coded_cq) == NULL) continue ;
+            // TODO: Frame size normalization
+            // TODO: Channel muxing
 
-            // Decompress audio_frame2
+            // Get the frame to process
+            if ((frame = (audio_frame2 *)cq_get_front(ap->coded_cq)) != NULL) {
 
-            // Resample audio_frame2
+                // Get the place to save the resampled frame (last step).
+                if ((output_frame = (audio_frame2 *)cq_get_rear(ap->decoded_cq)) != NULL) {
+                    resampler_set_resampled(ap->resampler, output_frame);
 
-            //        decoded_frame = curr_in_frame(ap->decoded_frames);
-            //        remove_frame(ap->coded_frames);
-            //        put_frame(ap->decoded_frames);
+                    // Decompress audio_frame2
+                    frame = audio_codec_decompress(ap->compression_config, frame);
+
+                    // Resample audio_frame2
+                    frame = resampler_resample(ap->resampler, frame);
+
+                    // Commit the cq changes.
+                    cq_remove_bag(ap->coded_cq);
+                    cq_add_bag(ap->decoded_cq);
+                }
+            }
         }
     }
 
@@ -142,6 +152,8 @@ audio_processor_t *ap_init(role_t role) {
             break;
     }
 
+    ap_worker_start(ap);
+
     return ap;
 }
 
@@ -172,7 +184,7 @@ void ap_config(audio_processor_t *ap, int bps, int sample_rate, int channels, au
         case DECODER:
             // Specific configurations and conversion bussines logic.
             ap->compression_config = audio_codec_init(ap->external_config->codec, AUDIO_DECODER);
-            ap->resampler = resampler_init(ap->internal_config->sample_rate);
+            ap->resampler = resampler_prepare(ap->internal_config->sample_rate);
             break;
 
         case ENCODER:
@@ -191,5 +203,10 @@ void ap_worker_start(audio_processor_t *ap) {
     ap->run = TRUE;
     if (pthread_create(&ap->thread, NULL, ap->worker, (void *)ap) != 0)
         ap->run = FALSE;
+}
+
+struct audio_desc *ap_get_config(audio_processor_t *ap) {
+
+    return ap->external_config;
 }
 

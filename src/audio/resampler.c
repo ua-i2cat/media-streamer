@@ -14,6 +14,26 @@ struct resampler
         int resample_to;
 };
 
+// resampler refactor due to privacity of the struct resample definition
+// Used by UG_modules project
+struct resampler *resampler_prepare(int dst_sample_rate)
+{
+    struct resampler *s = calloc(1, sizeof(struct resampler));
+
+    s->resample_buffer = malloc(1024 * 1024);
+    s->muxed = malloc(1024 * 1024);
+    s->resampled = NULL;
+    s->resample_to = dst_sample_rate;
+
+    return s;
+}
+
+void resampler_set_resampled(struct resampler *s, audio_frame2 *frame)
+{
+    s->resampled = frame;
+}
+
+
 struct resampler *resampler_init(int dst_sample_rate)
 {
         struct resampler *s = calloc(1, sizeof(struct resampler));

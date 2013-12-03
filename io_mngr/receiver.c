@@ -157,7 +157,7 @@ void *audio_receiver_thread(receiver_t *receiver) {
 
     struct pdb_e *cp;
     participant_data_t *participant;
-    struct state_audio_decoder *coded_frame;
+    struct state_audio_decoder decode_object;
 
     struct timeval curr_time;
     struct timeval timeout;
@@ -168,7 +168,9 @@ void *audio_receiver_thread(receiver_t *receiver) {
     timeout.tv_usec = 999999 / 59.94;
     uint32_t timestamp;
 
-    while(receiver->run){
+    decode_object.resampler = NULL;
+
+    while(receiver->run) {
         gettimeofday(&curr_time, NULL);
         timestamp = tv_diff(curr_time, start_time) * 90000;
         rtp_update(receiver->audio_session, curr_time);
@@ -193,15 +195,17 @@ void *audio_receiver_thread(receiver_t *receiver) {
                     }
                 }
 
-                if ((coded_frame = cq_get_rear(participant->stream->audio->coded_cq)) == NULL) {
+                if ((decode_object.frame = cq_get_rear(participant->stream->audio->coded_cq)) == NULL) {
                     debug_msg("receiver thread: coded circular queue is full");
                     cp = pdb_iter_next(&it);
                     continue;
                 }
+                decode_object.desc = ap_get_config(participant->stream->audio);
 
                 // TODO: Generate tools to get the correct decoder callback from audio_processor_t audio configuration.
                 // Maybe a codec_t table and its decoding callbacks paired with a getter function.
-                if (rtp_audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame_mulaw, coded_frame)) {
+
+                if (rtp_audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame_mulaw, &decode_object)) {
                     cq_add_bag(participant->stream->audio->coded_cq);
                 }
                 cp = pdb_iter_next(&it);
