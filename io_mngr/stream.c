@@ -98,6 +98,7 @@ int add_stream(stream_list_t *list, stream_data_t *stream)
         list->count++;
     } else {
         error_msg("add_stream list->count < 0");
+        pthread_rwlock_unlock(&list->lock);
         ret = FALSE;
     }
     

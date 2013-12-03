@@ -80,6 +80,7 @@ void *transmitter_thread(void *arg){
         while(stream != NULL && transmitter->run){
             coded_frame = curr_out_frame(stream->video->coded_frames);
             if (coded_frame == NULL){
+                stream = stream->next;
                 continue;
             }
             send_coded_frame(stream, coded_frame, start_time);
