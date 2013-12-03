@@ -39,12 +39,15 @@ static void *decoder_thread(void *arg);
 static void *encoder_thread(void *arg);
 static void *bag_init(void *arg);
 static void bag_destroy(void *arg);
+int normalize_get_size();
+audio_frame2 *normalize_extract(audio_frame2 *src);
 
 static void *decoder_thread(void* arg) {
 
     audio_processor_t *ap = (audio_processor_t *) arg;
 
-    audio_frame2 *frame, *output_frame;
+    audio_frame2 *frame, *output_frame, *normal;
+    bool normalized;
 
     while(ap->run) {
         if(ap->coded_cq->level != CIRCULAR_QUEUE_EMPTY) {
@@ -58,6 +61,13 @@ static void *decoder_thread(void* arg) {
                 if ((output_frame = (audio_frame2 *)cq_get_rear(ap->decoded_cq)) != NULL) {
                     resampler_set_resampled(ap->resampler, output_frame);
 
+                    normalized = false;
+                    //TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+                    if (frame->data_len[0] > ap->normalized_frame_size) {
+                        normal = normalize_extract(frame);
+                        normalized = true;
+                    }
+
                     // Decompress audio_frame2
                     frame = audio_codec_decompress(ap->compression_config, frame);
 
@@ -65,7 +75,7 @@ static void *decoder_thread(void* arg) {
                     frame = resampler_resample(ap->resampler, frame);
 
                     // Commit the cq changes.
-                    cq_remove_bag(ap->coded_cq);
+                    if (!normalized) cq_remove_bag(ap->coded_cq);
                     cq_add_bag(ap->decoded_cq);
                 }
             }
@@ -108,6 +118,15 @@ static void *bag_init(void *init) {
 static void bag_destroy(void *bag) {
 
     rtp_audio_frame2_free((audio_frame2 *)bag);
+}
+
+int normalize_get_size() {
+    // TODO: Calculate the normalized size at the entrance of decoder thread
+    // Using external codec type, bps, and sample_rate
+}
+
+audio_frame2 *normalize_extract(audio_frame2 *src) {
+    // TODO: Extract the normalized size bytes of data form one audio_frame2 to another
 }
 
 audio_processor_t *ap_init(role_t role) {
@@ -185,6 +204,7 @@ void ap_config(audio_processor_t *ap, int bps, int sample_rate, int channels, au
             // Specific configurations and conversion bussines logic.
             ap->compression_config = audio_codec_init(ap->external_config->codec, AUDIO_DECODER);
             ap->resampler = resampler_prepare(ap->internal_config->sample_rate);
+            ap->normalized_frame_size = normalize_get_size();
             break;
 
         case ENCODER:
