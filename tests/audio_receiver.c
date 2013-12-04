@@ -22,8 +22,8 @@
 
 FILE *F_audio1 = NULL;
 FILE *F_audio2 = NULL;
-char *name_audio1 = "atest_receiver_audio1.pcm";
-char *name_audio2 = "atest_receiver_audio2.pcm";
+char *name_audio1 = "atest_audio_receiver_stream1.pcm";
+char *name_audio2 = "atest_audio_receiver_stream2.pcm";
 
 #ifdef QUEUE_PRINT
 // Private circular_queue debug function
@@ -77,8 +77,9 @@ int main() {
         exit(errno);
     }
 
-    // Timer settings
+    // General pourpouse variables.
     time_t start, stop;
+    audio_frame2 *audio_frame;
 
     // Receiver configuration
     stream_list_t *stream_list = init_stream_list();
@@ -89,76 +90,70 @@ int main() {
     stream_data_t *stream1 = init_stream(AUDIO, INPUT, rand(), I_AWAIT, "Stream1");
     add_participant_stream(stream1, p1);
     add_stream(receiver->stream_list, stream1);
+    fprintf(stderr, " ·Stream1 configuration: 1 bps, 32000Hz, 1 channel, mulaw\n");
+    ap_config(stream1->audio, 1, 32000, 1, AC_MULAW);
+    ap_worker_start(stream1->audio);
 
     // Second stream and participant configuration
     participant_data_t *p2 = init_participant(2, INPUT, NULL, 0);
     stream_data_t *stream2 = init_stream(AUDIO, INPUT, rand(), I_AWAIT, "Stream2");
     add_participant_stream(stream2, p2);
     add_stream(receiver->stream_list, stream2);
-
-    // Temp vars
-    audio_frame2 *audio_frame;
+    fprintf(stderr, " ·Stream1 configuration: 1 bps, 8000Hz, 1 channel, mulaw\n");
+    ap_config(stream2->audio, 1, 8000, 1, AC_MULAW);
+    ap_worker_start(stream2->audio);
 
     if (start_receiver(receiver)) {
         fprintf(stderr, " ·Receiver started!\n");
 
 #ifdef STREAM1
+        // STREAM1 recording block
         fprintf(stderr, "  ·Waiting for audio_frame2 data\n");
-        // Wait for the first coded_cq gets filled and go ahead
+        while (stream1->audio->decoded_cq->level == CIRCULAR_QUEUE_EMPTY) {
 #ifdef QUEUE_PRINT
-        print_cq_status(stream1->audio->coded_cq, "first stream1");
-#endif
-        while (stream1->audio->coded_cq->level == CIRCULAR_QUEUE_EMPTY) {
-#ifdef QUEUE_PRINT
-            print_cq_status(stream1->audio->coded_cq, "wait stream1");
+            print_cq_status(stream1->audio->decoded_cq, "wait stream1");
 #endif
         }
 #ifdef QUEUE_PRINT
-        print_cq_status(stream1->audio->coded_cq, "continue stream1");
+        print_cq_status(stream1->audio->decoded_cq, "continue stream1");
 #endif
-        if (!stream1->audio->run) ap_worker_start(stream1->audio);
+
         fprintf(stderr, "   ·Copying to file... ");
         start = time(NULL);
         stop = start + RECORD_TIME;
-        // Work on file 1
-        while (time(NULL) < stop) {
+        while (time(NULL) < stop) { // RECORD_TIME seconds loop
             audio_frame = cq_get_front(stream1->audio->decoded_cq);
             if (audio_frame != NULL) {
                 fwrite(audio_frame->data[0], audio_frame->data_len[0], 1, F_audio1);
                 cq_remove_bag(stream1->audio->decoded_cq);
             }
         }
-#endif //STREAM1
         fprintf(stderr, "Done!\n");
+#endif //STREAM1
 
 #ifdef STREAM2
+        // STREAM2 recording block
         fprintf(stderr, "  ·Waiting for audio_frame2 data\n");
-        // Wait for the second coded_cq gets filled and go ahead
+        while (stream2->audio->decoded_cq->level == CIRCULAR_QUEUE_EMPTY) {
 #ifdef QUEUE_PRINT
-        print_cq_status(stream2->audio->coded_cq, "first stream2");
-#endif
-        while (stream2->audio->coded_cq->level == CIRCULAR_QUEUE_EMPTY) {
-#ifdef QUEUE_PRINT
-            print_cq_status(stream2->audio->coded_cq, "wait stream2");
+            print_cq_status(stream2->audio->decoded_cq, "wait stream2");
 #endif
         }
 #ifdef QUEUE_PRINT
         print_cq_status(stream2->audio->decoded_cq, "continue stream2");
 #endif
-        if (!stream2->audio->run) ap_worker_start(stream2->audio);
         fprintf(stderr, "   ·Copying to file... ");
         start = time(NULL);
         stop = start + RECORD_TIME;
-        // Work on file 1
-        while (time(NULL) < stop) {
+        while (time(NULL) < stop) { // RECORD_TIME seconds loop
             audio_frame = cq_get_front(stream2->audio->decoded_cq);
             if (audio_frame != NULL) {
                 fwrite(audio_frame->data[0], audio_frame->data_len[0], 1, F_audio2);
                 cq_remove_bag(stream2->audio->decoded_cq);
             }
         }
-#endif //STREAM2
         fprintf(stderr, "Done!\n");
+#endif //STREAM2
 
         // Finish and destroy objects
         stop_receiver(receiver);

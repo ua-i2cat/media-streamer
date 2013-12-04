@@ -200,11 +200,11 @@ void *audio_receiver_thread(receiver_t *receiver) {
                     cp = pdb_iter_next(&it);
                     continue;
                 }
+
                 decode_object.desc = ap_get_config(participant->stream->audio);
 
                 // TODO: Generate tools to get the correct decoder callback from audio_processor_t audio configuration.
                 // Maybe a codec_t table and its decoding callbacks paired with a getter function.
-
                 if (rtp_audio_pbuf_decode(cp->playout_buffer, curr_time, decode_audio_frame_mulaw, &decode_object)) {
                     cq_add_bag(participant->stream->audio->coded_cq);
                 }
