@@ -26,7 +26,7 @@
 #include "audio_config.h"
 #include "circular_queue.h"
 #include "audio_frame2.h"
-#include "audio.h"
+#include "utils.h"
 
 // private data
 struct bag_init_val {
@@ -34,19 +34,25 @@ struct bag_init_val {
     int size;
 };
 
+// Input sizes that return AUDIO_INTERNAL_SIZE size on applying resampling.
+// Sample rates:              8K  16K  32K  48K
+int resampler_size_values[4] = { 50, 100, 200, 300 };
+
 // private functions
 static void *decoder_thread(void *arg);
 static void *encoder_thread(void *arg);
 static void *bag_init(void *arg);
 static void bag_destroy(void *arg);
-int normalize_get_size();
-audio_frame2 *normalize_extract(audio_frame2 *src);
+static int normalize_get_size();
+static void normalize_extract(audio_frame2 *src, audio_frame2 *dst, int size);
 
 static void *decoder_thread(void* arg) {
 
     audio_processor_t *ap = (audio_processor_t *) arg;
 
     audio_frame2 *frame, *output_frame, *normal;
+
+    normal = audio_frame2_init();
     bool normalized;
 
     while(ap->run) {
@@ -61,26 +67,32 @@ static void *decoder_thread(void* arg) {
                 if ((output_frame = (audio_frame2 *)cq_get_rear(ap->decoded_cq)) != NULL) {
                     resampler_set_resampled(ap->resampler, output_frame);
 
+                    // TODO: always get the same size, not only when the frame is too big.
                     normalized = false;
-                    //TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
                     if (frame->data_len[0] > ap->normalized_frame_size) {
-                        normal = normalize_extract(frame);
+                        normalize_extract(frame, normal, ap->normalized_frame_size);
                         normalized = true;
                     }
 
                     // Decompress audio_frame2
-                    frame = audio_codec_decompress(ap->compression_config, frame);
+                    if (normalized) {
+                        frame = audio_codec_decompress(ap->compression_config, normal);
+                    }
+                    else {
+                        frame = audio_codec_decompress(ap->compression_config, frame);
+                        cq_remove_bag(ap->coded_cq);
+                    }
 
                     // Resample audio_frame2
                     frame = resampler_resample(ap->resampler, frame);
 
                     // Commit the cq changes.
-                    if (!normalized) cq_remove_bag(ap->coded_cq);
                     cq_add_bag(ap->decoded_cq);
                 }
             }
         }
     }
+    audio_frame2_free(normal);
 
     pthread_exit((void *)NULL);    
 }
@@ -120,15 +132,58 @@ static void bag_destroy(void *bag) {
     rtp_audio_frame2_free((audio_frame2 *)bag);
 }
 
-int normalize_get_size() {
-    // TODO: Calculate the normalized size at the entrance of decoder thread
-    // Using external codec type, bps, and sample_rate
+static int normalize_get_size(audio_processor_t *ap) {
+
+    int size, bps_factor, index;
+    
+    switch(ap->external_config->sample_rate) {
+        case 8000:
+            index = 0;
+            break;
+        case 16000:
+            index = 1;
+            break;
+        case 32000:
+            index = 2;
+            break;
+        case 48000:
+            index = 3;
+            break;
+    }
+    bps_factor = ap->internal_config->bps / ap->external_config->bps;
+    size = resampler_size_values[(int)index] * bps_factor;
+
+    return size;
 }
 
-audio_frame2 *normalize_extract(audio_frame2 *src) {
-    // TODO: Extract the normalized size bytes of data form one audio_frame2 to another
+static void normalize_extract(audio_frame2 *src, audio_frame2 *dst, int size) {
+
+    char *buf;
+    if ((buf = malloc(src->data_len[0])) == NULL) {
+        error_msg("normalize_extract: malloc: out of memory!");
+        return;
+    }
+
+    audio_frame2_allocate(dst, src->ch_count, size);
+
+    dst->bps = src->bps;
+    dst->sample_rate = src->sample_rate;
+    dst->codec = src->codec;
+
+    for (int i = 0; i < src->ch_count; i++) {
+        memcpy(buf, src->data[i], src->data_len[i]);
+
+        src->data_len[i] = src->data_len[i] - size;
+        memcpy(src->data[i], buf + size, src->data_len[i]);
+
+        dst->data_len[i] = size;
+        memcpy(dst->data[i], buf, size);
+    }
+
+    free(buf);
 }
 
+// Visible functions
 audio_processor_t *ap_init(role_t role) {
 
     struct bag_init_val init_data;
@@ -204,7 +259,7 @@ void ap_config(audio_processor_t *ap, int bps, int sample_rate, int channels, au
             // Specific configurations and conversion bussines logic.
             ap->compression_config = audio_codec_init(ap->external_config->codec, AUDIO_DECODER);
             ap->resampler = resampler_prepare(ap->internal_config->sample_rate);
-            ap->normalized_frame_size = normalize_get_size();
+            ap->normalized_frame_size = normalize_get_size(ap);
             break;
 
         case ENCODER:
