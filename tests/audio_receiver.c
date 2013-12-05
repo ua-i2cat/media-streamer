@@ -82,14 +82,15 @@ int main() {
     audio_frame2 *audio_frame;
 
     // Receiver configuration
-    stream_list_t *stream_list = init_stream_list();
-    receiver_t *receiver = init_receiver(stream_list, 5004, 5006);
+    stream_list_t *video_stream_list = init_stream_list(); // Not used
+    stream_list_t *audio_stream_list = init_stream_list();
+    receiver_t *receiver = init_receiver(video_stream_list, audio_stream_list, 5004, 5006);
 
     // First stream and participant configuration
     participant_data_t *p1 = init_participant(1, INPUT, NULL, 0);
     stream_data_t *stream1 = init_stream(AUDIO, INPUT, rand(), I_AWAIT, "Stream1");
     add_participant_stream(stream1, p1);
-    add_stream(receiver->stream_list, stream1);
+    add_stream(receiver->audio_stream_list, stream1);
     fprintf(stderr, " ·Stream1 configuration: 1 bps, 32000Hz, 1 channel, mulaw\n");
     ap_config(stream1->audio, 1, 32000, 1, AC_MULAW);
     ap_worker_start(stream1->audio);
@@ -98,7 +99,7 @@ int main() {
     participant_data_t *p2 = init_participant(2, INPUT, NULL, 0);
     stream_data_t *stream2 = init_stream(AUDIO, INPUT, rand(), I_AWAIT, "Stream2");
     add_participant_stream(stream2, p2);
-    add_stream(receiver->stream_list, stream2);
+    add_stream(receiver->audio_stream_list, stream2);
     fprintf(stderr, " ·Stream1 configuration: 1 bps, 8000Hz, 1 channel, mulaw\n");
     ap_config(stream2->audio, 1, 8000, 1, AC_MULAW);
     ap_worker_start(stream2->audio);
@@ -159,7 +160,8 @@ int main() {
         stop_receiver(receiver);
         destroy_receiver(receiver);
         fprintf(stderr, " ·Receiver stopped\n");
-        destroy_stream_list(stream_list);
+        destroy_stream_list(video_stream_list);
+        destroy_stream_list(audio_stream_list);
     }
 
     if (fclose(F_audio1) != 0) {

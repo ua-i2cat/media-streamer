@@ -45,9 +45,11 @@ static void *bag_init(void *arg);
 static void bag_destroy(void *arg);
 static int normalize_get_size();
 static void normalize_extract(audio_frame2 *src, audio_frame2 *dst, int size);
+static void audio_frame_format(audio_frame2 *src, struct audio_desc *desc);
+static void audio_frame_append(audio_frame2 *src, audio_frame2 *dst);
 
-static void *decoder_thread(void* arg) {
-
+static void *decoder_thread(void* arg)
+{
     audio_processor_t *ap = (audio_processor_t *) arg;
 
     audio_frame2 *frame, *output_frame, *normal;
@@ -68,8 +70,8 @@ static void *decoder_thread(void* arg) {
 
                     // TODO: always get the same size, not only when the frame is too big.
                     normalized = false;
-                    if (frame->data_len[0] > ap->normalized_frame_size) {
-                        normalize_extract(frame, normal, ap->normalized_frame_size);
+                    if (frame->data_len[0] > ap->internal_frame_size) {
+                        normalize_extract(frame, normal, ap->internal_frame_size);
                         normalized = true;
                     }
 
@@ -96,25 +98,52 @@ static void *decoder_thread(void* arg) {
     pthread_exit((void *)NULL);    
 }
 
-static void *encoder_thread(void *arg) {
-
+static void *encoder_thread(void *arg)
+{
     audio_processor_t *ap = (audio_processor_t *)arg;
 
-    audio_frame2 *frame = NULL;
+    audio_frame2 *frame, *output_frame, *uncompressed, *tmp_frame;
+
+    tmp_frame = audio_frame2_init();
+    audio_frame2_allocate(tmp_frame, ap->external_config->ch_count, AUDIO_DEFAULT_SIZE);
+    // On hot reconfiguration it can't be done here
+    resampler_set_resampled(ap->resampler, tmp_frame);
 
     while (ap->run) {
-        if(ap->decoded_cq->level != CIRCULAR_QUEUE_FULL) {
-            //TODO: Encoder code
-            frame++;
-        }
+        if(ap->decoded_cq->level != CIRCULAR_QUEUE_EMPTY) {
+            // TODO: Channel muxing
 
+            // Get the frame to process
+            if ((frame = (audio_frame2 *)cq_get_front(ap->decoded_cq)) != NULL) {
+
+                // Get the place to save the resampled frame (last step).
+                if ((output_frame = (audio_frame2 *)cq_get_rear(ap->coded_cq)) != NULL) {
+
+                    // Resample audio_frame2
+                    uncompressed = resampler_resample(ap->resampler, frame);
+
+                    // Compress audio_frame2 and append it to ap->coded_cq
+                    audio_frame_format(output_frame, ap->external_config);
+                    while ((frame = audio_codec_compress(ap->compression_config, uncompressed)) != NULL) {
+                        audio_frame_append(frame, output_frame);
+                        uncompressed = NULL;
+                    }
+                }
+
+                // Commit the cq changes.
+                cq_remove_bag(ap->decoded_cq);
+                cq_add_bag(ap->coded_cq);
+            }
+        }
     }
+    audio_frame2_free(tmp_frame);
 
     pthread_exit((void *)NULL);
 }
 
-static void *bag_init(void *init) {
 
+static void *bag_init(void *init)
+{
     audio_frame2 *frame;
     struct bag_init_val *init_object = (struct bag_init_val *)init;
     int channels = init_object->chan;
@@ -126,15 +155,15 @@ static void *bag_init(void *init) {
     return (void *)frame;
 }
 
-static void bag_destroy(void *bag) {
-
+static void bag_destroy(void *bag)
+{
     rtp_audio_frame2_free((audio_frame2 *)bag);
 }
 
-static int normalize_get_size(audio_processor_t *ap) {
-
+static int normalize_get_size(audio_processor_t *ap)
+{
     int size, bps_factor, index;
-    
+
     switch(ap->external_config->sample_rate) {
         case 8000:
             index = 0;
@@ -155,8 +184,8 @@ static int normalize_get_size(audio_processor_t *ap) {
     return size;
 }
 
-static void normalize_extract(audio_frame2 *src, audio_frame2 *dst, int size) {
-
+static void normalize_extract(audio_frame2 *src, audio_frame2 *dst, int size)
+{
     char *buf;
     if ((buf = malloc(src->data_len[0])) == NULL) {
         error_msg("normalize_extract: malloc: out of memory!");
@@ -182,9 +211,28 @@ static void normalize_extract(audio_frame2 *src, audio_frame2 *dst, int size) {
     free(buf);
 }
 
-// Visible functions
-audio_processor_t *ap_init(role_t role) {
+static void audio_frame_format(audio_frame2 *src, struct audio_desc *desc)
+{
+    src->bps = desc->bps;
+    src->sample_rate = desc->sample_rate;
+    src->ch_count = desc->ch_count;
+    src->codec = desc->codec;
+    for (int i = 0; i < src->ch_count; i++) {
+        src->data_len[i] = 0;
+    }
+}
 
+static void audio_frame_append(audio_frame2 *src, audio_frame2 *dst)
+{
+    for (int i = 0; i < src->ch_count; i++) {
+        memcpy(dst->data[i] + dst->data_len[i], src->data[i], src->data_len[i]);
+        dst->data_len[i] += src->data_len[i];
+    }
+}
+
+// Visible functions
+audio_processor_t *ap_init(role_t role)
+{
     struct bag_init_val init_data;
     audio_processor_t *ap;
 
@@ -204,11 +252,11 @@ audio_processor_t *ap_init(role_t role) {
 
     ap->role = role;
     // Default values
+    ap->internal_config->bps = AUDIO_INTERNAL_BPS;
+    ap->internal_config->sample_rate = AUDIO_INTERNAL_SAMPLE_RATE;
+    ap->internal_config->ch_count = AUDIO_INTERNAL_CHANNELS;
+    ap->internal_config->codec = AUDIO_INTERNAL_CODEC;
     ap_config(ap, AUDIO_DEFAULT_BPS, AUDIO_DEFAULT_SAMPLE_RATE, AUDIO_DEFAULT_CHANNELS, AUDIO_DEFAULT_CODEC);
-    // Coded circular queue
-    init_data.chan = AUDIO_DEFAULT_CHANNELS;
-    init_data.size = (AUDIO_DEFAULT_SAMPLE_RATE * AUDIO_DEFAULT_BPS);
-    ap->coded_cq = cq_init(CIRCULAR_QUEUE_SIZE, bag_init, bag_destroy, &init_data);
     // Decoded circular queue
     init_data.chan = AUDIO_INTERNAL_CHANNELS;
     init_data.size = (AUDIO_INTERNAL_SAMPLE_RATE * AUDIO_INTERNAL_BPS);
@@ -217,21 +265,27 @@ audio_processor_t *ap_init(role_t role) {
     switch(ap->role) {
         case DECODER:
             ap->worker = decoder_thread;
+            // Coded circular queue
+            init_data.chan = AUDIO_DEFAULT_CHANNELS;
+            init_data.size = (AUDIO_DEFAULT_SAMPLE_RATE * AUDIO_DEFAULT_BPS);
+            ap->coded_cq = cq_init(CIRCULAR_QUEUE_SIZE, bag_init, bag_destroy, &init_data);
             break;
         case ENCODER:
             ap->worker = encoder_thread;
+            // Coded circular queue
+            init_data.chan = AUDIO_DEFAULT_CHANNELS;
+            init_data.size = AUDIO_DEFAULT_SIZE;
+            ap->coded_cq = cq_init(CIRCULAR_QUEUE_SIZE, bag_init, bag_destroy, &init_data);
             break;
         default:
             break;
     }
 
-    //ap_worker_start(ap);
-
     return ap;
 }
 
-void ap_destroy(audio_processor_t *ap) {
-
+void ap_destroy(audio_processor_t *ap)
+{
     ap->run = FALSE;
     pthread_join(ap->thread, NULL);
     cq_destroy(ap->decoded_cq);
@@ -241,30 +295,26 @@ void ap_destroy(audio_processor_t *ap) {
     free(ap);
 }
 
-void ap_config(audio_processor_t *ap, int bps, int sample_rate, int channels, audio_codec_t codec) {
-
+void ap_config(audio_processor_t *ap, int bps, int sample_rate, int channels, audio_codec_t codec)
+{
     // External and internal audio configuration
     ap->external_config->bps = bps;
     ap->external_config->sample_rate = sample_rate;
     ap->external_config->ch_count = channels;
     ap->external_config->codec = codec;
-    ap->internal_config->bps = AUDIO_INTERNAL_BPS;
-    ap->internal_config->sample_rate = AUDIO_INTERNAL_SAMPLE_RATE;
-    ap->internal_config->ch_count = AUDIO_INTERNAL_CHANNELS;
-    ap->internal_config->codec = AUDIO_INTERNAL_CODEC;
 
     switch(ap->role) {
         case DECODER:
             // Specific configurations and conversion bussines logic.
             ap->compression_config = audio_codec_init(ap->external_config->codec, AUDIO_DECODER);
             ap->resampler = resampler_prepare(ap->internal_config->sample_rate);
-            ap->normalized_frame_size = normalize_get_size(ap);
+            ap->internal_frame_size = normalize_get_size(ap);
             break;
 
         case ENCODER:
             // Specific configurations and conversion bussines logic.
             ap->compression_config = audio_codec_init(ap->external_config->codec, AUDIO_CODER);
-            //TODO
+            ap->resampler = resampler_prepare(ap->external_config->sample_rate);
             break;
 
         default:
@@ -272,15 +322,15 @@ void ap_config(audio_processor_t *ap, int bps, int sample_rate, int channels, au
     }
 }
 
-void ap_worker_start(audio_processor_t *ap) {
-
+void ap_worker_start(audio_processor_t *ap)
+{
     ap->run = TRUE;
     if (pthread_create(&ap->thread, NULL, ap->worker, (void *)ap) != 0)
         ap->run = FALSE;
 }
 
-struct audio_desc *ap_get_config(audio_processor_t *ap) {
-
+struct audio_desc *ap_get_config(audio_processor_t *ap)
+{
     return ap->external_config;
 }
 

@@ -7,16 +7,15 @@ char *OUTPUT_PATH0 = "./rx_frame1.yuv";
 char *OUTPUT_PATH1 = "./rx_frame2.yuv";
 
 int main(){
-    stream_list_t *stream_list;
+    stream_list_t *video_stream_list, audio_stream_list;
     stream_data_t *stream;
     receiver_t *receiver;
     video_data_frame_t *decoded_frame;
 
-    stream_list = init_stream_list();
+    video_stream_list = init_stream_list();
+    audio_stream_list = init_stream_list();
 
-    //  	add_participant(part_list, 2, INPUT, NULL, 0);
-
-    receiver = init_receiver(stream_list, 5004, 5006);
+    receiver = init_receiver(video_stream_list, audio_stream_list, 5004, 5006);
     participant_data_t *p1 = init_participant(1, INPUT, NULL, 0);
     participant_data_t *p2 = init_participant(2, INPUT, NULL, 0);
 

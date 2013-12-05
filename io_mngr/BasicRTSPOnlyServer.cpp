@@ -65,8 +65,8 @@ int BasicRTSPOnlyServer::init_server() {
 int BasicRTSPOnlyServer::update_server(){
     stream_data_t* stream = (stream_data_t*) malloc(sizeof(stream_data_t));
     
-    pthread_rwlock_rdlock(&fTransmitter->stream_list->lock);
-    stream = fTransmitter->stream_list->first;
+    pthread_rwlock_rdlock(&fTransmitter->video_stream_list->lock);
+    stream = fTransmitter->video_stream_list->first;
   
     ServerMediaSession* sms;
   
@@ -87,7 +87,7 @@ int BasicRTSPOnlyServer::update_server(){
         }
         stream = stream->next;
     }
-    pthread_rwlock_unlock(&fTransmitter->stream_list->lock);
+    pthread_rwlock_unlock(&fTransmitter->video_stream_list->lock);
 }
 
 void *BasicRTSPOnlyServer::start_server(void *args){

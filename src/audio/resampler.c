@@ -15,7 +15,7 @@ struct resampler
 };
 
 // resampler refactor due to privacity of the struct resample definition
-// Used by UG_modules project
+// Used by the UG_modules project
 struct resampler *resampler_prepare(int dst_sample_rate)
 {
     struct resampler *s = calloc(1, sizeof(struct resampler));
