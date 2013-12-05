@@ -57,7 +57,6 @@ static void *decoder_thread(void* arg) {
 
     while(ap->run) {
         if(ap->coded_cq->level != CIRCULAR_QUEUE_EMPTY) {
-            // TODO: Frame size normalization
             // TODO: Channel muxing
 
             // Get the frame to process
@@ -151,7 +150,7 @@ static int normalize_get_size(audio_processor_t *ap) {
             break;
     }
     bps_factor = ap->internal_config->bps / ap->external_config->bps;
-    size = resampler_size_values[(int)index] * bps_factor;
+    size = resampler_size_values[(int)index] / bps_factor;
 
     return size;
 }
