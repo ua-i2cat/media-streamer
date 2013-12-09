@@ -251,9 +251,9 @@ void destroy_participant_list(participant_list_t *list){
     participant = list->first;
 
     while(participant != NULL){
-        pthread_rwlock_wrlock(&list->lock);
+        //pthread_rwlock_wrlock(&list->lock);
         remove_participant(list, participant->id);
-        pthread_rwlock_unlock(&list->lock);
+        //pthread_rwlock_unlock(&list->lock);
         participant = participant->next;
     }
 

@@ -20,14 +20,14 @@ int main(){
     participant_data_t *p2 = init_participant(2, INPUT, NULL, 0);
 
     //Allocating place for unknown incoming stream
-    stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
+    stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, 25.0, NULL);
     set_video_frame_cq(stream->video->coded_frames, H264, 0, 0);
     //Adding 1st incoming stream and participant
     add_participant_stream(stream, p1);
     add_stream(receiver->stream_list, stream);
     
     //Allocating place for unknown incoming stream
-    stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
+    stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, 25.0, NULL);
     set_video_frame_cq(stream->video->coded_frames, H264, 0, 0);
     //Adding 1st incoming stream and participant
     add_participant_stream(stream, p2);

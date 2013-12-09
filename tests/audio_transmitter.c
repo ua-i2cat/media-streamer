@@ -15,6 +15,13 @@
 
 #define PLAY_TIME 20
 
+#define SLOW_SEND 35
+
+#define IP_FIRST "127.0.0.1"
+#define IP_SECOND "127.0.0.1"
+#define PORT_FIRST 5006
+#define PORT_SECOND 6006
+
 FILE *F_audio = NULL;
 char *name_audio = "atrans_test_internal_format.raw";
 
@@ -35,28 +42,31 @@ int main() {
     // Transmitter and stream configuration
     stream_list_t *video_stream_list = init_stream_list(); // Not used
     stream_list_t *audio_stream_list = init_stream_list();
-    stream_data_t *stream = init_stream(AUDIO, OUTPUT, 0, ACTIVE, "Stream");
+    stream_data_t *stream = init_stream(AUDIO, OUTPUT, 0, ACTIVE, 25.0, "Stream");
     add_stream(audio_stream_list, stream);
     transmitter_t *transmitter = init_transmitter(video_stream_list, audio_stream_list, 25.0);
     start_transmitter(transmitter);
     fprintf(stderr, " ·Transmitter started!\n");
 
     // Configure two participants
-    participant_data_t *p1 = init_participant(0, OUTPUT, "127.0.0.1", 5006);
-    participant_data_t *p2 = init_participant(0, OUTPUT, "127.0.0.1", 6006);
+    participant_data_t *p1 = init_participant(0, OUTPUT, IP_FIRST, PORT_FIRST);
     add_participant_stream(stream, p1);    
+    fprintf(stderr, " ·Output participant configuration: %s:%i\n", IP_FIRST, PORT_FIRST);
+    participant_data_t *p2 = init_participant(0, OUTPUT, IP_SECOND, PORT_SECOND);
     add_participant_stream(stream, p2);
+    fprintf(stderr, " ·Output participant configuration: %s:%i\n", IP_SECOND, PORT_SECOND);
 
     // configure output stream audio format
-    fprintf(stderr, " ·Stream configuration: 1 bps, 8000Hz, 1 channel, mulaw\n");
     ap_config(stream->audio, 1, 8000, 1, AC_MULAW);
     ap_worker_start(stream->audio);
+    fprintf(stderr, " ·Output stream configuration: 1 bps, 8000Hz, 1 channel, mulaw\n");
 
     fprintf(stderr, "  ·Reading file... ");
     start = time(NULL);
     stop = start + PLAY_TIME;
     bool consumed = false;
     while (time(NULL) < stop && !consumed) { // PLAY_TIME seconds loop
+        usleep(SLOW_SEND); //Try to not send all the audio suddently.
         audio_frame = cq_get_rear(stream->audio->decoded_cq);
         if (audio_frame != NULL) {
             audio_frame->data_len[0] = AUDIO_INTERNAL_SIZE;
@@ -66,7 +76,6 @@ int main() {
             audio_frame->codec = AUDIO_INTERNAL_CODEC;
             if (fread(audio_frame->data[0], audio_frame->data_len[0], 1, F_audio) < 1) {
                 consumed = true;
-                perror(name_audio);
             }
             cq_add_bag(stream->audio->decoded_cq);
         }

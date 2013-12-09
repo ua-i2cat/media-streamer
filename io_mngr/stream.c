@@ -80,9 +80,9 @@ stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, s
 
     if (type == VIDEO) {
         if (io_type == INPUT){
-            stream->video = init_video_data(DECODER);
+            stream->video = init_video_data(DECODER, fps);
         } else if (io_type == OUTPUT){
-            stream->video = init_video_data(ENCODER);
+            stream->video = init_video_data(ENCODER, fps);
         }
     }
     else if (type == AUDIO) {

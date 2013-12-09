@@ -143,7 +143,7 @@ static void *audio_transmitter_thread(void *arg)
 //        usleep(100);
         pthread_rwlock_rdlock(&transmitter->audio_stream_list->lock);
 
-        stream = transmitter->video_stream_list->first;
+        stream = transmitter->audio_stream_list->first;
         while(stream != NULL && transmitter->audio_run) {
             if ((frame = cq_get_front(stream->audio->coded_cq)) != NULL) {
                 send_audio_frame(stream, frame, start_time);
