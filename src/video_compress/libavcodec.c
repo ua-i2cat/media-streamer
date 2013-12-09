@@ -586,11 +586,11 @@ struct tile * libavcodec_compress_tile(struct module *mod, struct tile *tx, stru
         platform_spin_lock(&s->spin);
 
         if(!video_desc_eq(*desc, s->saved_desc)) {
-                cleanup(s);
-                int ret = configure_with(s, *desc);
-                if(!ret) {
-                        goto error;
-                }
+            cleanup(s);
+            int ret = configure_with(s, *desc);
+            if(!ret) {
+                goto error;
+            }
         }
 
         s->in_frame->pts = frame_seq++;
@@ -691,14 +691,16 @@ static void cleanup(struct state_video_compress_libav *s)
 {
         for(int i = 0; i < 2; ++i) {
 #ifdef HAVE_AVCODEC_ENCODE_VIDEO2
-                tile_free(s->out[i]);
-                s->out[i] = 0;
-                av_free_packet(&s->pkt[i]);
-#else
-                tile_free_data(s->out[i]);
-                s->out[i] = 0;
-#endif // HAVE_AVCODEC_ENCODE_VIDEO2
+            tile_free(s->out[i]);
+            s->out[i] = 0;
+            av_free_packet(&s->pkt[i]); 
         }
+#else
+            tile_free_data(s->out[i]);
+            s->out[i] = 0;
+        }
+#endif //HAVE_AVCODEC_ENCODE_VIDEO2
+        
 
         if(s->codec_ctx) {
                 pthread_mutex_lock(s->lavcd_global_lock);

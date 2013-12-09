@@ -116,6 +116,7 @@ static void *video_transmitter_thread(void *arg)
         while(stream != NULL && transmitter->video_run){
             coded_frame = curr_out_frame(stream->video->coded_frames);
             if (coded_frame == NULL){
+                stream = stream->next;
                 continue;
             }
             send_video_frame(stream, coded_frame, start_time);

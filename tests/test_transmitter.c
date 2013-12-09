@@ -4,6 +4,7 @@
 #include "debug.h"
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include "commons.h"
 
 int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pCodecCtx, int *videostream);
 int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCodecCtx, uint8_t *buff);
@@ -110,7 +111,7 @@ int main(int argc, char **argv)
     stream_list_t *streams = init_stream_list();
     stream_list_t *dummy_audio_stream = init_stream_list(); //Not used.
     printf("[test] init_stream\n");
-    stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE, "i2CATRocks");
+    stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE, 25.0, "i2CATRocks");
     printf("[test] set_stream_video_data\n");
     set_video_frame_cq(stream->video->decoded_frames, RAW, 1280, 534);
     set_video_frame_cq(stream->video->coded_frames, H264, 1280, 534);
@@ -169,7 +170,10 @@ int main(int argc, char **argv)
             }
             
             decoded_frame->buffer_len = vc_get_linesize(width, RGB)*height;
-            memcpy(decoded_frame->buffer, b1, decoded_frame->buffer_len); 
+            memcpy(decoded_frame->buffer, b1, decoded_frame->buffer_len);
+            decoded_frame->seqno = stream->video->seqno;
+            decoded_frame->media_time = get_local_mediatime();
+            stream->video->seqno++;
             
             put_frame(stream->video->decoded_frames);
         } else {

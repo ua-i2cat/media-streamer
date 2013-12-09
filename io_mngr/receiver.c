@@ -94,9 +94,9 @@ void *receiver_thread(receiver_t *receiver)
                     if (participant->stream->state == I_AWAIT && 
                             coded_frame->frame_type == INTRA && 
                             coded_frame->width != 0 && 
-                            coded_frame->height != 0){
+                            coded_frame->height != 0) {
 
-                        if(participant->stream->video->decoder == NULL){
+                        if(participant->stream->video->decoder == NULL) {
                             set_video_frame_cq(participant->stream->video->decoded_frames, 
                                     RGB, 
                                     coded_frame->width, 
@@ -281,4 +281,3 @@ int destroy_receiver(receiver_t *receiver)
 
     return TRUE;
 }
-

@@ -1,3 +1,28 @@
+/*
+ *  stream.c
+ *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
+ *
+ *  This file is part of io_mngr.
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  Authors:  Jordi "Txor" Casas Ríos <jordi.casas@i2cat.net>,
+ *            David Cassany <david.cassany@i2cat.net>,
+ *            Ignacio Contreras <ignacio.contreras@i2cat.net>,
+ *            Marc Palau <marc.palau@i2cat.net>
+ */
+
 #include "stream.h"
 #include "debug.h"
 
@@ -32,7 +57,7 @@ void destroy_stream_list(stream_list_t *list)
     free(list);
 }
 
-stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, stream_state_t state, char *stream_name)
+stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, stream_state_t state, float fps, char *stream_name)
 {
     stream_data_t *stream = malloc(sizeof(stream_data_t));
     if (stream == NULL) {
@@ -77,7 +102,7 @@ stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, s
     return stream;
 }
 
-int destroy_stream(stream_data_t *stream)
+void destroy_stream(stream_data_t *stream)
 {
     if (stream->type == VIDEO){
         destroy_video_data(stream->video);
@@ -89,7 +114,6 @@ int destroy_stream(stream_data_t *stream)
 
     free(stream->stream_name);
     free(stream);
-    return TRUE;
 }
 
 int add_stream(stream_list_t *list, stream_data_t *stream) 
@@ -111,26 +135,12 @@ int add_stream(stream_list_t *list, stream_data_t *stream)
         list->count++;
     } else {
         error_msg("add_stream list->count < 0");
+        pthread_rwlock_unlock(&list->lock);
         ret = FALSE;
     }
 
     pthread_rwlock_unlock(&list->lock);
     return ret;
-}
-
-stream_data_t *get_stream_id(stream_list_t *list, uint32_t id)
-{
-    pthread_rwlock_rdlock(&list->lock);
-
-    stream_data_t *stream = list->first;
-    while (stream != NULL) {
-        if (stream->id == id) {
-            break;
-        }
-        stream = stream->next;
-    }
-    pthread_rwlock_unlock(&list->lock);
-    return stream;
 }
 
 int remove_stream(stream_list_t *list, uint32_t id)
@@ -173,8 +183,23 @@ int remove_stream(stream_list_t *list, uint32_t id)
     return TRUE;
 }
 
-void set_stream_state(stream_data_t *stream, stream_state_t state) {
+stream_data_t *get_stream_id(stream_list_t *list, uint32_t id)
+{
+    pthread_rwlock_rdlock(&list->lock);
 
+    stream_data_t *stream = list->first;
+    while (stream != NULL) {
+        if (stream->id == id) {
+            break;
+        }
+        stream = stream->next;
+    }
+    pthread_rwlock_unlock(&list->lock);
+    return stream;
+}
+
+void set_stream_state(stream_data_t *stream, stream_state_t state)
+{
     if (state == NON_ACTIVE) {
         stream->state = state;
     } else if (stream->state == NON_ACTIVE) {
@@ -182,14 +207,19 @@ void set_stream_state(stream_data_t *stream, stream_state_t state) {
     }
 }
 
-void add_participant_stream(stream_data_t *stream, participant_data_t *participant) {
-
+void add_participant_stream(stream_data_t *stream, participant_data_t *participant)
+{
     add_participant(stream->plist, participant);
     participant->stream = stream;
 }
 
-participant_data_t *get_participant_stream_id(stream_list_t *list, uint32_t id) {
-    
+int remove_participant_from_stream(stream_data_t *stream, uint32_t id)
+{
+    return remove_participant(stream->plist, id);
+}
+
+participant_data_t *get_participant_stream_id(stream_list_t *list, uint32_t id)
+{
     stream_data_t *stream;
     participant_data_t *part = NULL;
 
@@ -236,3 +266,4 @@ participant_data_t *get_participant_stream_non_init(stream_list_t *list){
     pthread_rwlock_unlock(&list->lock);
     return part;
 }
+

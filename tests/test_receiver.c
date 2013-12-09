@@ -25,7 +25,7 @@ int main(){
     //Adding 1st incoming stream and participant
     add_participant_stream(stream, p1);
     add_stream(receiver->stream_list, stream);
-
+    
     //Allocating place for unknown incoming stream
     stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
     set_video_frame_cq(stream->video->coded_frames, H264, 0, 0);
@@ -90,7 +90,7 @@ int main(){
             remove_frame(stream->video->decoded_frames);
             pthread_rwlock_unlock(&video_stream_list->lock);
         }
-
+    
         stop_receiver(receiver);
         destroy_receiver(receiver);
         printf("Stopped receiver\n");

@@ -19,8 +19,6 @@ typedef struct encoder_thread {
 
     struct video_frame *frame;  // TODO: should be gone!
                                 // redundant with stream->coded_frame
-    //pthread_mutex_t output_lock;
-    //pthread_cond_t output_cond;
     struct compress_state *cs;
 } encoder_thread_t;
 
@@ -46,5 +44,5 @@ void destroy_encoder(video_data_t *data);
 void stop_decoder(video_data_t *data);
 void stop_encoder(video_data_t *data);
 
-video_data_t *init_video_data(role_t type);
+video_data_t *init_video_data(role_t type, float fps);
 int destroy_video_data(video_data_t *data);

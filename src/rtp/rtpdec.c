@@ -52,7 +52,6 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 			nri = nal & 0x60;
 
             if (type == 7){
-
                 fill_coded_frame_from_sps(frame, (unsigned char*) pckt->data, &pckt->data_len);
             }
 			

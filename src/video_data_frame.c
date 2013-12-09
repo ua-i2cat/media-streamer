@@ -31,14 +31,8 @@ int set_video_data_frame(video_data_frame_t *frame, codec_t codec, uint32_t widt
         height = MAX_HEIGHT;
     }
     
-    frame->buffer_len = width*height*3*sizeof(uint8_t); 
-
-    if (frame->buffer == NULL){
-        frame->buffer = malloc(frame->buffer_len);
-    } else {
-        free(frame->buffer);
-        frame->buffer = malloc(frame->buffer_len);
-    }
+    frame->buffer_len = width*height*3; 
+    frame->buffer = realloc(frame->buffer, frame->buffer_len);
 
     if (frame->buffer == NULL) {
         error_msg("set_stream_video_data: malloc error");
@@ -157,14 +151,18 @@ int remove_frame(video_frame_cq_t *frame_cq){
 
 int flush_frames(video_frame_cq_t *frame_cq){
     uint8_t r;
-    
+
     if (frame_cq->state == CQ_FULL){
-        r = (frame_cq->rear + 1) % frame_cq->max;
-        if (r != frame_cq->rear){
-            frame_cq->state = CQ_OK;
-            frame_cq->rear = r;
-        }
+        frame_cq->state = CQ_OK;
     }
+    
+    // if (frame_cq->state == CQ_FULL){
+    //     r = (frame_cq->rear + 1) % frame_cq->max;
+    //     if (r != frame_cq->rear){
+    //         frame_cq->state = CQ_OK;
+    //         frame_cq->rear = r;
+    //     }
+    // }
     
     return TRUE;
 }
