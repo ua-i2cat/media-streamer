@@ -82,7 +82,7 @@ int destroy_stream(stream_data_t *stream)
     if (stream->type == VIDEO){
         destroy_video_data(stream->video);
     } else if (stream->type == AUDIO){
-        //Free audio structures
+        ap_destroy(stream->audio);
     }
 
     destroy_participant_list(stream->plist);

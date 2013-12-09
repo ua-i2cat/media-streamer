@@ -25,11 +25,13 @@ int main(){
     
     //Receiver structures
     stream_list_t *in_str_list;
+    stream_list_t *dummy_audio_str_list2;
     stream_data_t *in_str;
     receiver_t *receiver;
     
     //Transmitter structures
     stream_list_t *out_str_list;
+    stream_list_t *dummy_audio_str_list1;
     stream_data_t *out_str;
     transmitter_t *transmitter;
     
@@ -50,12 +52,14 @@ int main(){
     //Initialization of all data
     in_str_list     = init_stream_list();
     out_str_list    = init_stream_list();
+    dummy_audio_str_list1    = init_stream_list();
+    dummy_audio_str_list2    = init_stream_list();
     out_str1        = init_stream(VIDEO, OUTPUT, 1, ACTIVE, "i2cat_rocks");
     out_str2        = init_stream(VIDEO, OUTPUT, 2, ACTIVE, "i2cat_rocks_2nd");
     in_str          = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
-    transmitter     = init_transmitter(out_str_list, 20.0);
+    transmitter     = init_transmitter(out_str_list, dummy_audio_str_list1, 20.0);
     server          = init_rtsp_server(8554, transmitter);
-    receiver        = init_receiver(in_str_list, 5004, 5006);
+    receiver        = init_receiver(in_str_list, dummy_audio_str_list2, 5004, 5006);
     in_p1           = init_participant(1, INPUT, NULL, 0);
     //in_p2           = init_participant(2, INPUT, NULL, 0);
     

@@ -108,6 +108,7 @@ int main(int argc, char **argv)
     printf("[test] initializing streams list\n");
     printf("[test] init_stream_list\n");
     stream_list_t *streams = init_stream_list();
+    stream_list_t *dummy_audio_stream = init_stream_list(); //Not used.
     printf("[test] init_stream\n");
     stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE, "i2CATRocks");
     printf("[test] set_stream_video_data\n");
@@ -117,7 +118,7 @@ int main(int argc, char **argv)
     add_stream(streams, stream);
 
     printf("[test] initializing transmitter\n");
-    transmitter_t *transmitter = init_transmitter(streams, 25.0);
+    transmitter_t *transmitter = init_transmitter(streams, dummy_audio_stream, 25.0);
     start_transmitter(transmitter);
 
     participant_data_t *p1 = init_participant(0, OUTPUT, "127.0.0.1", 8000);
