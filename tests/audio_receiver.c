@@ -100,7 +100,7 @@ int main() {
     stream_data_t *stream2 = init_stream(AUDIO, INPUT, rand(), I_AWAIT, 25.0, "Stream2");
     add_participant_stream(stream2, p2);
     add_stream(receiver->audio_stream_list, stream2);
-    fprintf(stderr, " ·Stream1 configuration: 1 bps, 8000Hz, 1 channel, mulaw\n");
+    fprintf(stderr, " ·Stream2 configuration: 1 bps, 8000Hz, 1 channel, mulaw\n");
     ap_config(stream2->audio, 1, 8000, 1, AC_MULAW);
     ap_worker_start(stream2->audio);
 

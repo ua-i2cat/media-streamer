@@ -2,6 +2,7 @@
 #include "transmitter.h"
 #include "video_compress.h"
 #include "debug.h"
+#include "tv.h"
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include "commons.h"
