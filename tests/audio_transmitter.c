@@ -57,9 +57,11 @@ int main() {
     fprintf(stderr, " ·Output participant configuration: %s:%i\n", IP_SECOND, PORT_SECOND);
 
     // configure output stream audio format
-    ap_config(stream->audio, 1, 8000, 1, AC_MULAW);
+    //ap_config(stream->audio, 1, 8000, 1, AC_MULAW);
+    ap_config(stream->audio, 1, 32000, 1, AC_MULAW);
     ap_worker_start(stream->audio);
-    fprintf(stderr, " ·Output stream configuration: 1 bps, 8000Hz, 1 channel, mulaw\n");
+    //fprintf(stderr, " ·Output stream configuration: 1 bps, 8000Hz, 1 channel, mulaw\n");
+    fprintf(stderr, " ·Output stream configuration: 1 bps, 32000Hz, 1 channel, mulaw\n");
 
     fprintf(stderr, "  ·Reading file... ");
     start = time(NULL);
