@@ -69,6 +69,24 @@ uint32_t get_local_mediatime(void)
         return (tv_diff(curr_time, start_time) * 90000) + random_offset;
 }
 
+uint32_t get_local_mediatime_us(void)
+{
+        static struct timeval start_time;
+        static uint32_t random_offset;
+        static int first = 0;
+
+        struct timeval curr_time;
+
+        if (first == 0) {
+                gettimeofday(&start_time, NULL);
+                random_offset = lbl_random();
+                first = 1;
+        }
+
+        gettimeofday(&curr_time, NULL);
+        return (tv_diff_usec(curr_time, start_time) * 90000) + random_offset;
+}
+
 double tv_diff(struct timeval curr_time, struct timeval prev_time)
 {
         /* Return (curr_time - prev_time) in seconds */

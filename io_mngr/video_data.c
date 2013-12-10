@@ -72,8 +72,12 @@ void *encoder_routine(void *arg)
         coded_frame = curr_in_frame(video->coded_frames);
         while (coded_frame == NULL){
             flush_frames(video->coded_frames);
+            error_msg("Warning! Discarting coded frame in transmission\n");
+            video->lost_coded_frames++;
             coded_frame = curr_in_frame(video->coded_frames);
         }
+
+        decoded_frame->media_time = get_local_mediatime_us();
         
         reconf_video_frame(decoded_frame, enc_frame, video->fps);
 
@@ -82,14 +86,14 @@ void *encoder_routine(void *arg)
         
         struct video_frame *tx_frame;
         
-        decoded_frame->media_time = get_local_mediatime();
         tx_frame = compress_frame(encoder->cs, enc_frame, encoder->index);
-        coded_frame->media_time = get_local_mediatime();
         
-
         encoder->frame = tx_frame;
         coded_frame->buffer = (uint8_t *)vf_get_tile(tx_frame, 0)->data;
         coded_frame->buffer_len = vf_get_tile(tx_frame, 0)->data_len;
+
+        coded_frame->seqno = decoded_frame->seqno;
+        coded_frame->media_time = decoded_frame->media_time;
 
         remove_frame(video->decoded_frames);
         put_frame(video->coded_frames);
@@ -158,7 +162,6 @@ decoder_thread_t *init_decoder(video_data_t *data){
     }
 
 	decoder->run = FALSE;
-    decoder->last_seqno = 0;
     
 	if (decompress_is_available(LIBAVCODEC_MAGIC)) {
         //TODO: add some magic to determine codec
@@ -204,6 +207,11 @@ void *decoder_th(void* data){
     
     video_data_frame_t* coded_frame;
     video_data_frame_t* decoded_frame;
+    uint8_t frame_counter = 0;
+    uint32_t delay = 0;
+    uint32_t last_media_time = 0;
+    uint32_t mediatime = 0;
+    uint32_t frame_time = 0;
 
     while(v_data->decoder->run){
         usleep(100);
@@ -216,20 +224,31 @@ void *decoder_th(void* data){
         if (coded_frame == NULL){
             continue;
         }
+
+        mediatime = get_local_mediatime_us();
+        frame_time += (mediatime - last_media_time)/90000; 
+        last_media_time = mediatime;
         
         decoded_frame = curr_in_frame(v_data->decoded_frames);
         while (decoded_frame == NULL){
-            error_msg("Warning! Discarting decoded frames\n");
             flush_frames(v_data->decoded_frames);
             decoded_frame = curr_in_frame(v_data->decoded_frames);
         }
-                 
-        coded_frame->media_time = get_local_mediatime();
-        
+
         decompress_frame(v_data->decoder->sd, decoded_frame->buffer, 
             (unsigned char *)coded_frame->buffer, coded_frame->buffer_len, 0);
         
-        decoded_frame->media_time = get_local_mediatime();
+        decoded_frame->media_time = get_local_mediatime_us();
+        decoded_frame->seqno = coded_frame->seqno; 
+
+        delay += (decoded_frame->media_time - coded_frame->media_time)/90000;
+        frame_counter++;
+        if (frame_counter == 255){ //NOTE: 255 because counter is a uint8_t 
+            v_data->delay = delay/frame_counter;
+            v_data->fps = (frame_counter*1000000)/frame_time;
+            delay = 0;
+            frame_time = 0;
+        }
         
         remove_frame(v_data->coded_frames);
         put_frame(v_data->decoded_frames);
@@ -276,7 +295,11 @@ video_data_t *init_video_data(video_type_t type, float fps){
     data->coded_frames = init_video_frame_cq(2,1000);
     data->type = type;
     data->fps = fps;
+    data->bitrate = 0;
     data->decoder = NULL; //As decoder and encoder are union, this is valid for both
+    data->seqno = 0; 
+    data->lost_coded_frames = 0;
+
 
     return data;
 }
