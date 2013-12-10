@@ -29,7 +29,7 @@
 
 // Configuration constants
 #define SWITCH_TIME 5
-#define LIVE_TIME 12
+#define LIVE_TIME 620
 #define SEND_TIME 125
 
 #define RECEIVER_VIDEO_PORT 5004
@@ -128,7 +128,6 @@ static void audio_frame_forward(stream_data_t *src, stream_data_t *dst)
             out_frame->sample_rate = in_frame->sample_rate;
             out_frame->ch_count = in_frame->ch_count;
             out_frame->codec = in_frame->codec;
-            out_frame->max_size = in_frame->codec;
             for (int i = 0; i < out_frame->ch_count; i++) {
                 memcpy(in_frame->data[i],
                         out_frame->data[i],
@@ -189,7 +188,9 @@ int main()
     alarm(LIVE_TIME);
 
     // Receiver startup
-    fprintf(stderr, " ·Configuring receiver\n");
+    fprintf(stderr,
+            " ·Configuring receiver (listen at %i)\n",
+            RECEIVER_AUDIO_PORT);
     receiver = init_receiver(init_stream_list(),
             init_stream_list(),
             RECEIVER_VIDEO_PORT,
@@ -226,7 +227,7 @@ int main()
             cross = !cross;
             verbose = true;
             fprintf(stderr, "Done!\n");
-            sigprocmask(SIG_UNBLOCK, &signal_set, NULL); // Unblock the SIGUSR1
+            pthread_sigmask(SIG_UNBLOCK, &signal_set, NULL); // Unblock the SIGUSR1
         }
 
         // Cross sending control
@@ -251,7 +252,7 @@ int main()
                         in_stream_couple1->stream_name,
                         out_stream_couple1->stream_name);
             }
-            audio_frame_forward(in_stream_couple1, out_stream_couple1);
+//            audio_frame_forward(in_stream_couple1, out_stream_couple1);
         }
         else {
             // Two couples case (first to first, next to next).
@@ -262,15 +263,15 @@ int main()
                         in_stream_couple2->stream_name,
                         out_stream_couple2->stream_name);
             }
-            audio_frame_forward(in_stream_couple1, out_stream_couple1);
-            audio_frame_forward(in_stream_couple2, out_stream_couple2);
+//            audio_frame_forward(in_stream_couple1, out_stream_couple1);
+//            audio_frame_forward(in_stream_couple2, out_stream_couple2);
         }
 
         // Print information message
         if (verbose) {
             fprintf(stderr, "%s", msg);
             verbose = false;
-            sigprocmask(SIG_BLOCK, &signal_set, NULL); // Block the SIGUSR1
+            pthread_sigmask(SIG_BLOCK, &signal_set, NULL); // Block the SIGUSR1
         }
 
         //Try to not send all the audio suddently.
