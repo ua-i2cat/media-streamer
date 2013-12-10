@@ -3,6 +3,7 @@
 
 #define MAX_WIDTH 1920
 #define MAX_HEIGHT 1080
+#define MAX_COUNTER 255
 
 //TODO: maybe should be an enum
 #define CQ_OK 0
@@ -32,6 +33,9 @@ typedef struct video_frame_cq {
     uint8_t front;
     uint8_t max;
     uint32_t timeout; //in usec
+    uint32_t delay_sum;
+    uint8_t remove_counter;
+    float delay;
     int state;
     int in_process; //True false
     int out_process;
