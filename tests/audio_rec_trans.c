@@ -29,7 +29,7 @@
 
 // Configuration constants
 #define SWITCH_TIME 5
-#define LIVE_TIME 620
+#define LIVE_TIME 120
 #define SEND_TIME 125
 
 #define RECEIVER_VIDEO_PORT 5004
@@ -62,6 +62,7 @@ transmitter_t *transmitter;
 // Function prototypes
 static void add_receiver_entity();
 static void add_transmitter_entity(char *ip, int port);
+static void audio_frame_forward(stream_data_t *src, stream_data_t *dst);
 static void finish_handler(int signal);
 static void action_handler(int signal);
 
@@ -180,9 +181,6 @@ int main()
     signal(SIGINT, finish_handler);
     signal(SIGALRM, finish_handler);
     signal(SIGUSR1, action_handler);
-    //    sigset_t signal_set;
-    //    sigemptyset(&signal_set);
-    //    sigaddset(&signal_set, SIGUSR1);
 
     // Start live time alarm
     alarm(LIVE_TIME);
@@ -217,19 +215,16 @@ int main()
 
     // Main loop
     fprintf(stderr,
-            " ·Sending each input stream to the output every %i seconds...\n",
+            " ·Forwarding audio and switching the streams every %i seconds...\n",
             SWITCH_TIME);
     while(!stop) {
 
         // Lap time control
         if (time(NULL) > lap_time) {
             lap_time = time(NULL) + SWITCH_TIME;
-//            cross = !cross;
+            cross = !cross;
             verbose = true;
             fprintf(stderr, "Done!\n");
-            //            pthread_sigmask(SIG_UNBLOCK, &signal_set, NULL); // Unblock the SIGUSR1
-//            add_receiver_entity();
-//            add_transmitter_entity(TRANSMITTER_IP_2, TRANSMITTER_PORT_2);
         }
 
         // Cross sending control
@@ -273,7 +268,6 @@ int main()
         if (verbose) {
             fprintf(stderr, "%s", msg);
             verbose = false;
-            //            pthread_sigmask(SIG_BLOCK, &signal_set, NULL); // Block the SIGUSR1
         }
 
         //Try to not send all the audio suddently.
