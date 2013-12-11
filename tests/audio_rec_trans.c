@@ -128,11 +128,11 @@ static void audio_frame_forward(stream_data_t *src, stream_data_t *dst)
             out_frame->sample_rate = in_frame->sample_rate;
             out_frame->ch_count = in_frame->ch_count;
             out_frame->codec = in_frame->codec;
-            for (int i = 0; i < out_frame->ch_count; i++) {
-                memcpy(in_frame->data[i],
-                        out_frame->data[i],
-                        out_frame->data_len[i]);
-                in_frame->data_len[i] = out_frame->data_len[i];
+            for (int i = 0; i < in_frame->ch_count; i++) {
+                memcpy(out_frame->data[i],
+                        in_frame->data[i],
+                        in_frame->data_len[i]);
+                out_frame->data_len[i] = in_frame->data_len[i];
             }
             cq_add_bag(dst->audio->decoded_cq);
             cq_remove_bag(src->audio->decoded_cq);
@@ -180,9 +180,9 @@ int main()
     signal(SIGINT, finish_handler);
     signal(SIGALRM, finish_handler);
     signal(SIGUSR1, action_handler);
-    sigset_t signal_set;
-    sigemptyset(&signal_set);
-    sigaddset(&signal_set, SIGUSR1);
+    //    sigset_t signal_set;
+    //    sigemptyset(&signal_set);
+    //    sigaddset(&signal_set, SIGUSR1);
 
     // Start live time alarm
     alarm(LIVE_TIME);
@@ -224,10 +224,12 @@ int main()
         // Lap time control
         if (time(NULL) > lap_time) {
             lap_time = time(NULL) + SWITCH_TIME;
-            cross = !cross;
+//            cross = !cross;
             verbose = true;
             fprintf(stderr, "Done!\n");
-            pthread_sigmask(SIG_UNBLOCK, &signal_set, NULL); // Unblock the SIGUSR1
+            //            pthread_sigmask(SIG_UNBLOCK, &signal_set, NULL); // Unblock the SIGUSR1
+//            add_receiver_entity();
+//            add_transmitter_entity(TRANSMITTER_IP_2, TRANSMITTER_PORT_2);
         }
 
         // Cross sending control
@@ -252,7 +254,7 @@ int main()
                         in_stream_couple1->stream_name,
                         out_stream_couple1->stream_name);
             }
-//            audio_frame_forward(in_stream_couple1, out_stream_couple1);
+            audio_frame_forward(in_stream_couple1, out_stream_couple1);
         }
         else {
             // Two couples case (first to first, next to next).
@@ -263,15 +265,15 @@ int main()
                         in_stream_couple2->stream_name,
                         out_stream_couple2->stream_name);
             }
-//            audio_frame_forward(in_stream_couple1, out_stream_couple1);
-//            audio_frame_forward(in_stream_couple2, out_stream_couple2);
+            audio_frame_forward(in_stream_couple1, out_stream_couple1);
+            audio_frame_forward(in_stream_couple2, out_stream_couple2);
         }
 
         // Print information message
         if (verbose) {
             fprintf(stderr, "%s", msg);
             verbose = false;
-            pthread_sigmask(SIG_BLOCK, &signal_set, NULL); // Block the SIGUSR1
+            //            pthread_sigmask(SIG_BLOCK, &signal_set, NULL); // Block the SIGUSR1
         }
 
         //Try to not send all the audio suddently.
