@@ -291,8 +291,8 @@ video_data_t *init_video_data(video_type_t type, float fps){
     video_data_t *data = malloc(sizeof(video_data_t));
 
     //TODO: get rid of magic numbers
-    data->decoded_frames = init_video_frame_cq(2,1000);
-    data->coded_frames = init_video_frame_cq(2,1000);
+    data->decoded_frames = init_video_frame_cq(2);
+    data->coded_frames = init_video_frame_cq(2);
     data->type = type;
     data->fps = fps;
     data->bitrate = 0;

@@ -32,7 +32,6 @@ typedef struct video_frame_cq {
     uint8_t rear;
     uint8_t front;
     uint8_t max;
-    uint32_t timeout; //in usec
     uint32_t delay_sum;
     uint8_t remove_counter;
     float delay;

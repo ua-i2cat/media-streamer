@@ -42,7 +42,7 @@ int set_video_data_frame(video_data_frame_t *frame, codec_t codec, uint32_t widt
     return TRUE;
 }
 
-video_frame_cq_t *init_video_frame_cq(uint8_t max, uint32_t timeout){
+video_frame_cq_t *init_video_frame_cq(uint8_t max){
     video_frame_cq_t* frame_cq = malloc(sizeof(video_frame_cq_t));
     
     if (max <= 1){
@@ -53,7 +53,6 @@ video_frame_cq_t *init_video_frame_cq(uint8_t max, uint32_t timeout){
     frame_cq->rear = 0;
     frame_cq->front = 0;
     frame_cq->max = max;
-    frame_cq->timeout = timeout;
     frame_cq->state = CQ_EMPTY;
     frame_cq->in_process = FALSE;
     frame_cq->out_process = FALSE;
@@ -95,10 +94,7 @@ int set_video_frame_cq(video_frame_cq_t *frame_cq, codec_t codec, uint32_t width
 video_data_frame_t* curr_in_frame(video_frame_cq_t *frame_cq){
     
     while (frame_cq->state == CQ_FULL){
-        usleep(frame_cq->timeout);
-        if (frame_cq->state == CQ_FULL) {
-            return NULL;
-        }
+        return NULL;
     }
     frame_cq->in_process = TRUE;
 
@@ -124,7 +120,7 @@ int put_frame(video_frame_cq_t *frame_cq){
     frame_cq->rear = r;
     
     frame_cq->fps_counter++;
-    local_time = get_local_media_time_us();
+    local_time = get_local_mediatime_us();
     frame_cq->fps_sum += local_time - frame_cq->last_frame_time;
     frame_cq->last_frame_time = local_time;
     
@@ -139,10 +135,7 @@ int put_frame(video_frame_cq_t *frame_cq){
 video_data_frame_t* curr_out_frame(video_frame_cq_t *frame_cq){
     
     while (frame_cq->state == CQ_EMPTY){
-        usleep(frame_cq->timeout);
-        if (frame_cq->state == CQ_EMPTY) {
-            return NULL;
-        }
+        return NULL;
     }
     frame_cq->out_process = TRUE;
     return frame_cq->frames[frame_cq->front];
@@ -156,15 +149,6 @@ int remove_frame(video_frame_cq_t *frame_cq){
         return FALSE;
     }
     
-    frame = frame_cq->frames[frame_cq->front];
-    delay_sum += get_local_mediatime_us() - frame->media_time;
-    remove_counter++;
-    if (remove_counter == MAX_COUNTER){
-        delay = delay_sum/remove_counter;
-        delay_sum = 0;
-        remove_counter = 0;
-    }
-    
     frame_cq->out_process = FALSE;
     
     f =  (frame_cq->front + 1) % frame_cq->max;
@@ -174,6 +158,15 @@ int remove_frame(video_frame_cq_t *frame_cq){
         frame_cq->state = CQ_OK;
     }
     frame_cq->front = f;
+    
+    frame = frame_cq->frames[frame_cq->front];
+    delay_sum += get_local_mediatime_us() - frame->media_time;
+    remove_counter++;
+    if (remove_counter == MAX_COUNTER){
+        delay = delay_sum/remove_counter;
+        delay_sum = 0;
+        remove_counter = 0;
+    }
     
     return TRUE;
 }
