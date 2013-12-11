@@ -85,14 +85,13 @@ void *transmitter_thread(void *arg){
                 continue;
             }
             send_coded_frame(stream, coded_frame, start_time);
-            coded_frame->media_time = get_local_mediatime_us() - coded_frame->media_time;
-            delay += coded_frame->media_time/90000;
+            delay += (get_local_mediatime_us() - coded_frame->media_time)/90000;
             frame_counter++;
 
             if (frame_counter == 255){ //NOTE: 255 because counter is a uint8_t 
-                stream->video->delay = delay/frame_counter;
-                stream->video->delay = (frame_counter*1000000)/delay;
-                delay = 0;
+                 stream->video->delay = delay/frame_counter;
+                 stream->video->delay = (frame_counter*1000000)/delay;
+                 delay = 0;
             }
 
             remove_frame(stream->video->coded_frames);

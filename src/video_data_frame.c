@@ -57,6 +57,9 @@ video_frame_cq_t *init_video_frame_cq(uint8_t max, uint32_t timeout){
     frame_cq->state = CQ_EMPTY;
     frame_cq->in_process = FALSE;
     frame_cq->out_process = FALSE;
+    frame_cq->delay_sum = 0;
+    frame_cq->delay = 0;
+    frame_cq->remove_counter = 0;
     frame_cq->frames = malloc(sizeof(video_data_frame_t*)*max);
     
     frame_cq->fps = 0.0;
@@ -98,6 +101,7 @@ video_data_frame_t* curr_in_frame(video_frame_cq_t *frame_cq){
         }
     }
     frame_cq->in_process = TRUE;
+
     return frame_cq->frames[frame_cq->rear];
 }
 
@@ -146,9 +150,19 @@ video_data_frame_t* curr_out_frame(video_frame_cq_t *frame_cq){
 
 int remove_frame(video_frame_cq_t *frame_cq){
     uint8_t f;
+    video_data_frame_t* frame;
     
     if (! frame_cq->out_process){
         return FALSE;
+    }
+    
+    frame = frame_cq->frames[frame_cq->front];
+    delay_sum += get_local_mediatime_us() - frame->media_time;
+    remove_counter++;
+    if (remove_counter == MAX_COUNTER){
+        delay = delay_sum/remove_counter;
+        delay_sum = 0;
+        remove_counter = 0;
     }
     
     frame_cq->out_process = FALSE;
