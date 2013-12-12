@@ -4,7 +4,7 @@
 #include "config_unix.h"
 #endif
 
-#include "audio/audio.h"
+#include "audio.h"
 
 struct resampler;
 
