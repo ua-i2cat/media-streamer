@@ -108,7 +108,7 @@ static void *video_transmitter_thread(void *arg)
     gettimeofday(&start_time, NULL);
 
     while(transmitter->video_run){
-        usleep(100);
+        usleep(500);
 
         pthread_rwlock_rdlock(&transmitter->video_stream_list->lock);
 
@@ -140,7 +140,7 @@ static void *audio_transmitter_thread(void *arg)
     gettimeofday(&start_time, NULL);
 
     while(transmitter->audio_run) {
-//        usleep(100);
+        usleep(500);
         pthread_rwlock_rdlock(&transmitter->audio_stream_list->lock);
 
         stream = transmitter->audio_stream_list->first;
