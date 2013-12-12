@@ -32,6 +32,7 @@
 #include "video_compress.h"
 #include "debug.h"
 #include "tv.h"
+#include <stdlib.h>
 
 static int send_video_frame(stream_data_t *stream, video_data_frame_t *coded_frame, struct timeval start_time);
 static int send_audio_frame(stream_data_t *stream, audio_frame2 *frame, struct timeval start_time);
@@ -50,14 +51,14 @@ static int send_video_frame(stream_data_t *stream, video_data_frame_t *coded_fra
 
     participant = stream->plist->first;
     while (participant != NULL && participant->rtp != NULL){
-
+        
         gettimeofday(&curr_time, NULL);
         rtp_update(participant->rtp->rtp, curr_time);
         timestamp = tv_diff(curr_time, start_time)*90000;
         rtp_send_ctrl(participant->rtp->rtp, timestamp, 0, curr_time);            
 
         tx_send_h264(participant->rtp->tx_session, stream->video->encoder->frame, 
-                participant->rtp->rtp, coded_frame->media_time);
+                     participant->rtp->rtp, get_local_mediatime());
         ret = TRUE;
 
         participant = participant->next;
@@ -102,7 +103,6 @@ static void *video_transmitter_thread(void *arg)
     transmitter_t *transmitter = (transmitter_t *)arg;
     stream_data_t *stream;
     video_data_frame_t *coded_frame;
-
 
     struct timeval start_time;
     gettimeofday(&start_time, NULL);

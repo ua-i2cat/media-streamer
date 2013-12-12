@@ -74,9 +74,11 @@ void *encoder_routine(void *arg)
         coded_frame = curr_in_frame(video->coded_frames);
         while (coded_frame == NULL){
             flush_frames(video->coded_frames);
+            error_msg("Warning! Discarting coded frame in transmission\n");
+            video->lost_coded_frames++;
             coded_frame = curr_in_frame(video->coded_frames);
         }
-        
+
         reconf_video_frame(decoded_frame, enc_frame, video->fps);
 
         enc_frame->tiles[0].data = (char *)decoded_frame->buffer;
@@ -84,16 +86,16 @@ void *encoder_routine(void *arg)
         
         struct video_frame *tx_frame;
         
-        decoded_frame->media_time = get_local_mediatime();
         tx_frame = compress_frame(encoder->cs, enc_frame, encoder->index);
-        coded_frame->media_time = get_local_mediatime();
         
-
         encoder->frame = tx_frame;
         coded_frame->buffer = (uint8_t *)vf_get_tile(tx_frame, 0)->data;
         coded_frame->buffer_len = vf_get_tile(tx_frame, 0)->data_len;
 
+        coded_frame->seqno = decoded_frame->seqno;
+
         remove_frame(video->decoded_frames);
+        coded_frame->media_time = get_local_mediatime_us();
         put_frame(video->coded_frames);
         
         encoder->index = (encoder->index + 1) % 2;
@@ -160,7 +162,6 @@ decoder_thread_t *init_decoder(video_data_t *data){
     }
 
 	decoder->run = FALSE;
-    decoder->last_seqno = 0;
     
 	if (decompress_is_available(LIBAVCODEC_MAGIC)) {
         //TODO: add some magic to determine codec
@@ -218,21 +219,20 @@ void *decoder_th(void* data){
         if (coded_frame == NULL){
             continue;
         }
-        
+
         decoded_frame = curr_in_frame(v_data->decoded_frames);
         while (decoded_frame == NULL){
             flush_frames(v_data->decoded_frames);
             decoded_frame = curr_in_frame(v_data->decoded_frames);
         }
-                 
-        coded_frame->media_time = get_local_mediatime();
-        
+
         decompress_frame(v_data->decoder->sd, decoded_frame->buffer, 
             (unsigned char *)coded_frame->buffer, coded_frame->buffer_len, 0);
         
-        decoded_frame->media_time = get_local_mediatime();
-        
+        decoded_frame->seqno = coded_frame->seqno; 
+
         remove_frame(v_data->coded_frames);
+        decoded_frame->media_time = get_local_mediatime_us();
         put_frame(v_data->decoded_frames);
     }
 
@@ -273,11 +273,15 @@ video_data_t *init_video_data(role_t type, float fps){
     video_data_t *data = malloc(sizeof(video_data_t));
 
     //TODO: get rid of magic numbers
-    data->decoded_frames = init_video_frame_cq(2,1000);
-    data->coded_frames = init_video_frame_cq(2,1000);
+    data->decoded_frames = init_video_frame_cq(2);
+    data->coded_frames = init_video_frame_cq(2);
     data->type = type;
     data->fps = fps;
+    data->bitrate = 0;
     data->decoder = NULL; //As decoder and encoder are union, this is valid for both
+    data->seqno = 0; 
+    data->lost_coded_frames = 0;
+
 
     return data;
 }

@@ -38,90 +38,93 @@ static void *receiver_thread(receiver_t *receiver);
 static void *audio_receiver_thread(receiver_t *receiver);
 
 //TODO: refactor de la funció per evitar tants IF anidats
-void *receiver_thread(receiver_t *receiver)
-{
-    struct pdb_e *cp;
-    participant_data_t *participant;
+void *receiver_thread(receiver_t *receiver) {
+	  struct pdb_e *cp;
+	  participant_data_t *participant;
     video_data_frame_t* coded_frame;
 
-    struct timeval curr_time;
-    struct timeval timeout;
-    struct timeval start_time;
-    gettimeofday(&start_time, NULL);
-
-    timeout.tv_sec = 0;
+	  struct timeval curr_time;
+	  struct timeval timeout;
+	  struct timeval start_time;
+	  gettimeofday(&start_time, NULL);
+    
+	  timeout.tv_sec = 0;
     timeout.tv_usec = 10000;
     uint32_t timestamp; //TODO: why is this used
 
     while(receiver->run){
         gettimeofday(&curr_time, NULL);
-        timestamp = tv_diff(curr_time, start_time) * 90000;
-        rtp_update(receiver->session, curr_time);
+		    timestamp = tv_diff(curr_time, start_time) * 90000;
+		    rtp_update(receiver->session, curr_time);
         //rtp_send_ctrl(receiver->session, timestamp, 0, curr_time); //TODO: why is this used?
 
-        timeout.tv_sec = 0;
-        timeout.tv_usec = 10000;
+		    timeout.tv_sec = 0;
+		    timeout.tv_usec = 10000;
 
-        //TODO: repàs dels locks en accedir a src
-        if (!rtp_recv_r(receiver->session, &timeout, timestamp)){
-            pdb_iter_t it;
-            cp = pdb_iter_init(receiver->part_db, &it);
+		    if (!rtp_recv_r(receiver->session, &timeout, timestamp)){
+			      pdb_iter_t it;
+			      cp = pdb_iter_init(receiver->part_db, &it);
 
-            while (cp != NULL) {
+			      while (cp != NULL) {
 
-                participant = get_participant_stream_ssrc(receiver->stream_list, cp->ssrc);
-                if (participant == NULL){
-                    participant = get_participant_stream_non_init(receiver->stream_list);
-                    if (participant != NULL){
-                        set_participant_ssrc(participant, cp->ssrc);
-                    }
-                }
+				        participant = get_participant_stream_ssrc(receiver->stream_list, cp->ssrc);
+				        if (participant == NULL){
+					          participant = get_participant_stream_non_init(receiver->stream_list);
+
+					          if (participant != NULL){
+						            set_participant_ssrc(participant, cp->ssrc);
+					          }
+				        }
 
                 if (participant == NULL){
                     cp = pdb_iter_next(&it);
                     continue;
                 }
-
+                
                 coded_frame = curr_in_frame(participant->stream->video->coded_frames);
                 if (coded_frame == NULL){
-                    error_msg("Missing packets\n");
+                    if(pbuf_check_if_complete_frame(cp->playout_buffer, curr_time)){
+                        pbuf_remove_first(cp->playout_buffer);
+                        error_msg("Warning! Coded frame discarded in reception\n");
+                        participant->stream->video->lost_coded_frames++;
+                    }
                     cp = pdb_iter_next(&it);
                     continue;
                 }
 
-                if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, coded_frame)) {
+				        if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, coded_frame)) {
+					          if (participant->stream->state == I_AWAIT && 
+                        coded_frame->frame_type == INTRA && 
+                        coded_frame->width != 0 && 
+                        coded_frame->height != 0){
+                            
+						            if(participant->stream->video->decoder == NULL){
+							              set_video_frame_cq(participant->stream->video->decoded_frames, 
+                                               RGB, 
+                                               coded_frame->width, 
+                                               coded_frame->height);
+							              start_decoder(participant->stream->video); 
+						            }
+						            participant->stream->state = ACTIVE;
+					          }
 
-                    if (participant->stream->state == I_AWAIT && 
-                            coded_frame->frame_type == INTRA && 
-                            coded_frame->width != 0 && 
-                            coded_frame->height != 0) {
-
-                        if(participant->stream->video->decoder == NULL) {
-                            set_video_frame_cq(participant->stream->video->decoded_frames, 
-                                    RGB, 
-                                    coded_frame->width, 
-                                    coded_frame->height);
-                            printf("starting decoder\n");
-                            start_decoder(participant->stream->video); 
-                        }
-                        participant->stream->state = ACTIVE;
-                    }
-
-                    if (participant->stream->state == ACTIVE && coded_frame->frame_type != BFRAME) {
+					          if (participant->stream->state == ACTIVE && coded_frame->frame_type != BFRAME) {
+                        participant->stream->video->seqno++;
+                        coded_frame->seqno = participant->stream->video->seqno;
+                        coded_frame->media_time = get_local_mediatime_us();
                         put_frame(participant->stream->video->coded_frames);
-                    } else {
+					          } else {
                         debug_msg("No support for Bframes\n");
-                    }
+					          }
                     //TODO: should be at the beginning of the loop
-                    pbuf_remove_first(cp->playout_buffer);
-
-                }
-                cp = pdb_iter_next(&it);
-            } 
-            pdb_iter_done(&it);
-        }
-    }
-
+					          pbuf_remove_first(cp->playout_buffer);
+				        }
+				        cp = pdb_iter_next(&it);
+			      } 
+			      pdb_iter_done(&it);
+		    }
+	  }
+    
     pthread_exit((void *)NULL);   
 }
 

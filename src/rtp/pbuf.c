@@ -334,146 +334,161 @@ static void free_cdata(struct coded_data *head)
 
 void pbuf_remove(struct pbuf *playout_buf, struct timeval curr_time)
 {
-        /* Remove previously decoded frames that have passed their playout  */
-        /* time from the playout buffer. Incomplete frames that have passed */
-        /* their playout time are also discarded.                           */
+    /* Remove previously decoded frames that have passed their playout  */
+    /* time from the playout buffer. Incomplete frames that have passed */
+    /* their playout time are also discarded.                           */
 
-        struct pbuf_node *curr, *temp;
-        
-        pbuf_validate(playout_buf);
-        
-        curr = playout_buf->frst;
-        while (curr != NULL) {
-                temp = curr->nxt;
-                if (tv_gt(curr_time, curr->deletion_time)) {
-                        if (curr == playout_buf->frst) {
-                                playout_buf->frst = curr->nxt;
-                        }
-                        if (curr == playout_buf->last) {
-                                playout_buf->last = curr->prv;
-                        }
-                        if (curr->nxt != NULL) {
-                                curr->nxt->prv = curr->prv;
-                        }
-                        if (curr->prv != NULL) {
-                                curr->prv->nxt = curr->nxt;
-                        }
-                        free_cdata(curr->cdata);
-                        free(curr);
-                } else {
-                        /* The playout buffer is stored in order, so once  */
-                        /* we see one packet that has not yet reached it's */
-                        /* playout time, we can be sure none of the others */
-                        /* will have done so...                            */
-                        break;
-                }
-                curr = temp;
+    struct pbuf_node *curr, *temp;
+    
+    pbuf_validate(playout_buf);
+    
+    curr = playout_buf->frst;
+    while (curr != NULL) {
+        temp = curr->nxt;
+        if (tv_gt(curr_time, curr->deletion_time)) {
+            if (curr == playout_buf->frst) {
+                playout_buf->frst = curr->nxt;
+            }
+            if (curr == playout_buf->last) {
+                playout_buf->last = curr->prv;
+            }
+            if (curr->nxt != NULL) {
+                curr->nxt->prv = curr->prv;
+            }
+            if (curr->prv != NULL) {
+                curr->prv->nxt = curr->nxt;
+            }
+            free_cdata(curr->cdata);
+            free(curr);
+        } else {
+            /* The playout buffer is stored in order, so once  */
+            /* we see one packet that has not yet reached it's */
+            /* playout time, we can be sure none of the others */
+            /* will have done so...                            */
+            break;
         }
+        curr = temp;
+    }
 
-        pbuf_validate(playout_buf);
-        return;
+    pbuf_validate(playout_buf);
+    return;
 }
 
 void pbuf_remove_first(struct pbuf *playout_buf)
 {
-        /* Remove first previously decoded frame  */
-        
-        struct pbuf_node *curr;
+    /* Remove first previously decoded frame  */
+    
+    struct pbuf_node *curr;
 
-		if (playout_buf->frst->decoded) {
-			pbuf_validate(playout_buf);
+	if (playout_buf->frst->decoded) {
+		pbuf_validate(playout_buf);
 
-			curr = playout_buf->frst;
-			if (curr->nxt == NULL){
-				playout_buf->frst = playout_buf->last = NULL;
-			} else {
-				playout_buf->frst = curr->nxt;
-			}
-			free_cdata(curr->cdata);
-			free(curr);
-		
-			pbuf_validate(playout_buf);
+		curr = playout_buf->frst;
+		if (curr->nxt == NULL){
+			playout_buf->frst = playout_buf->last = NULL;
+		} else {
+			playout_buf->frst = curr->nxt;
 		}
-        return;
+		free_cdata(curr->cdata);
+		free(curr);
+	
+		pbuf_validate(playout_buf);
+	}
+    return;
 }
 
 static int frame_complete(struct pbuf_node *frame)
 {
-        /* Return non-zero if the list of coded_data represents a    */
-        /* complete frame of video. This might have to be passed the */
-        /* seqnum of the last packet in the previous frame, too?     */
-        /* i dont think that would reflect correctly of weather this */
-        /* frame is complete or not - however we should check for all */
-        /* the packtes of a frame being present - perhaps we should  */
-        /* keep a bit vector in pbuf_node? LG.  */
+    /* Return non-zero if the list of coded_data represents a    */
+    /* complete frame of video. This might have to be passed the */
+    /* seqnum of the last packet in the previous frame, too?     */
+    /* i dont think that would reflect correctly of weather this */
+    /* frame is complete or not - however we should check for all */
+    /* the packtes of a frame being present - perhaps we should  */
+    /* keep a bit vector in pbuf_node? LG.  */
 
-        return (frame->mbit == 1);
+    return (frame->mbit == 1);
 }
 
-int
-pbuf_decode(struct pbuf *playout_buf, struct timeval curr_time,
+int pbuf_decode(struct pbuf *playout_buf, struct timeval curr_time,
                              decode_frame_t decode_func, void *data)
 {
-        /* Find the first complete frame that has reached it's playout */
-        /* time, and decode it into the framebuffer. Mark the frame as */
-        /* decoded, but otherwise leave it in the playout buffer.      */
-        struct pbuf_node *curr;
+    /* Find the first complete frame that has reached it's playout */
+    /* time, and decode it into the framebuffer. Mark the frame as */
+    /* decoded, but otherwise leave it in the playout buffer.      */
+    struct pbuf_node *curr;
 
-        pbuf_validate(playout_buf);
+    pbuf_validate(playout_buf);
 
-        curr = playout_buf->frst;
-        while (curr != NULL) {
-                if (!curr->decoded 
-                                && tv_gt(curr_time, curr->playout_time)
-                   ) {
-                        if (frame_complete(curr)) {
-                                int ret = decode_func(curr->cdata, data);
-                                curr->decoded = 1;
-                                return ret;
-                        } else {
-                                debug_msg
-                                    ("Unable to decode frame due to missing data (RTP TS=%u)\n",
-                                     curr->rtp_timestamp);
-                        }
-                }
-                curr = curr->nxt;
+    curr = playout_buf->frst;
+    while (curr != NULL) {
+        if (!curr->decoded && tv_gt(curr_time, curr->playout_time)) {
+            if (frame_complete(curr)) {
+                int ret = decode_func(curr->cdata, data);
+                curr->decoded = 1;
+                return ret;
+            } else {
+                debug_msg("Unable to decode frame due to missing data (RTP TS=%u)\n",
+                                 curr->rtp_timestamp);
+            }
         }
-        return 0;
+        curr = curr->nxt;
+    }
+
+    return 0;
 }
 
-int
-audio_pbuf_decode(struct pbuf *playout_buf, struct timeval curr_time,
+int pbuf_check_if_complete_frame(struct pbuf *playout_buf, struct timeval curr_time)
+{
+    /* Check if we have a complete frame.      */
+    struct pbuf_node *curr;
+
+    pbuf_validate(playout_buf);
+
+    curr = playout_buf->frst;
+    if (tv_gt(curr_time, curr->playout_time)) {
+        if (frame_complete(curr)) {
+            curr->decoded = 1;
+            return TRUE;
+        }
+    }
+    curr = curr->nxt;
+
+    return FALSE;
+
+}
+
+int audio_pbuf_decode(struct pbuf *playout_buf, struct timeval curr_time,
                              decode_frame_t decode_func, void *data)
 {
-        /* Find the first complete frame that has reached it's playout */
-        /* time, and decode it into the framebuffer. Mark the frame as */
-        /* decoded, but otherwise leave it in the playout buffer.      */
-        struct pbuf_node *curr;
+    /* Find the first complete frame that has reached it's playout */
+    /* time, and decode it into the framebuffer. Mark the frame as */
+    /* decoded, but otherwise leave it in the playout buffer.      */
+    struct pbuf_node *curr;
 
-        pbuf_validate(playout_buf);
+    pbuf_validate(playout_buf);
 
-        curr = playout_buf->frst;
-        while (curr != NULL) {
-                /* WARNING: this one differs from video - we need to push audio immediately, because we do
-                 * _not_ know the granularity of audio (typically 256 B for ALSA) which is only small fractal
-                 * of frame time. The current RTP library isn't currently able to keep concurrently more frames.
-                 */
-                UNUSED(curr_time);
-                if (!curr->decoded // && tv_gt(curr_time, curr->playout_time)
-                                ) {
-                        if (frame_complete(curr)) {
-                                int ret = decode_func(curr->cdata, data);
-                                curr->decoded = 1;
-                                return ret;
-                        }
-                }
-                curr = curr->nxt;
+    curr = playout_buf->frst;
+    while (curr != NULL) {
+        /* WARNING: this one differs from video - we need to push audio immediately, because we do
+        * _not_ know the granularity of audio (typically 256 B for ALSA) which is only small fractal
+        * of frame time. The current RTP library isn't currently able to keep concurrently more frames.
+        */
+        UNUSED(curr_time);
+        if (!curr->decoded // && tv_gt(curr_time, curr->playout_time)
+                    ) {
+            if (frame_complete(curr)) {
+                int ret = decode_func(curr->cdata, data);
+                curr->decoded = 1;
+                return ret;
+            }
         }
-        return 0;
+        curr = curr->nxt;
+    }
+    return 0;
 }
 
-int
-rtp_audio_pbuf_decode(struct pbuf *playout_buf, struct timeval curr_time,
+int rtp_audio_pbuf_decode(struct pbuf *playout_buf, struct timeval curr_time,
                              decode_frame_t decode_func, void *data)
 {
         /* Find the first complete frame that has reached it's playout */
@@ -502,7 +517,7 @@ rtp_audio_pbuf_decode(struct pbuf *playout_buf, struct timeval curr_time,
 
 void pbuf_set_playout_delay(struct pbuf *playout_buf, double playout_delay, double deletion_delay)
 {
-        playout_buf->playout_delay = playout_delay;
-        playout_buf->deletion_delay = deletion_delay;
+    playout_buf->playout_delay = playout_delay;
+    playout_buf->deletion_delay = deletion_delay;
 }
 
