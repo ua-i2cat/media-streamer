@@ -148,8 +148,8 @@ static void *audio_transmitter_thread(void *arg)
             if ((frame = cq_get_front(stream->audio->coded_cq)) != NULL) {
                 send_audio_frame(stream, frame, start_time);
                 cq_remove_bag(stream->audio->coded_cq);
-                stream = stream->next;
             }            
+            stream = stream->next;
         }
 
         pthread_rwlock_unlock(&transmitter->audio_stream_list->lock);
