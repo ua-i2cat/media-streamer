@@ -177,9 +177,9 @@ transmitter_t *init_transmitter(stream_list_t *video_stream_list, stream_list_t 
     }
     transmitter->wait_time = (1000000.0/transmitter->fps);
 
-    transmitter->ttl = DEFAULT_TTL;
-    transmitter->send_buffer_size = DEFAULT_SEND_BUFFER_SIZE;
-    transmitter->mtu = MTU;
+    transmitter->video_ttl = DEFAULT_TTL;
+    transmitter->video_send_buffer_size = DEFAULT_SEND_BUFFER_SIZE;
+    transmitter->video_mtu = MTU;
     transmitter->video_stream_list = video_stream_list;
 
     transmitter->audio_ttl = DEFAULT_TTL;

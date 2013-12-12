@@ -24,14 +24,14 @@ int main(){
     set_video_frame_cq(stream->video->coded_frames, H264, 0, 0);
     //Adding 1st incoming stream and participant
     add_participant_stream(stream, p1);
-    add_stream(receiver->stream_list, stream);
+    add_stream(receiver->video_stream_list, stream);
     
     //Allocating place for unknown incoming stream
     stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, 25.0, NULL);
     set_video_frame_cq(stream->video->coded_frames, H264, 0, 0);
     //Adding 1st incoming stream and participant
     add_participant_stream(stream, p2);
-    add_stream(receiver->stream_list, stream);
+    add_stream(receiver->video_stream_list, stream);
 
     if (start_receiver(receiver)) {
 

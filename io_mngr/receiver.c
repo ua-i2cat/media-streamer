@@ -34,11 +34,11 @@
 
 #define INITIAL_VIDEO_RECV_BUFFER_SIZE  ((4*1920*1080)*110/100) //command line net.core setup: sysctl -w net.core.rmem_max=9123840
 
-static void *receiver_thread(receiver_t *receiver);
+static void *video_receiver_thread(receiver_t *receiver);
 static void *audio_receiver_thread(receiver_t *receiver);
 
 //TODO: refactor de la funció per evitar tants IF anidats
-void *receiver_thread(receiver_t *receiver)
+void *video_receiver_thread(receiver_t *receiver)
 {
     struct pdb_e *cp;
     participant_data_t *participant;
@@ -53,25 +53,25 @@ void *receiver_thread(receiver_t *receiver)
     timeout.tv_usec = 10000;
     uint32_t timestamp; //TODO: why is this used
 
-    while(receiver->run){
+    while(receiver->video_run){
         gettimeofday(&curr_time, NULL);
         timestamp = tv_diff(curr_time, start_time) * 90000;
-        rtp_update(receiver->session, curr_time);
+        rtp_update(receiver->video_session, curr_time);
         //rtp_send_ctrl(receiver->session, timestamp, 0, curr_time); //TODO: why is this used?
 
         timeout.tv_sec = 0;
         timeout.tv_usec = 10000;
 
         //TODO: repàs dels locks en accedir a src
-        if (!rtp_recv_r(receiver->session, &timeout, timestamp)){
+        if (!rtp_recv_r(receiver->video_session, &timeout, timestamp)){
             pdb_iter_t it;
-            cp = pdb_iter_init(receiver->part_db, &it);
+            cp = pdb_iter_init(receiver->video_part_db, &it);
 
             while (cp != NULL) {
 
-                participant = get_participant_stream_ssrc(receiver->stream_list, cp->ssrc);
+                participant = get_participant_stream_ssrc(receiver->video_stream_list, cp->ssrc);
                 if (participant == NULL){
-                    participant = get_participant_stream_non_init(receiver->stream_list);
+                    participant = get_participant_stream_non_init(receiver->video_stream_list);
                     if (participant != NULL){
                         set_participant_ssrc(participant, cp->ssrc);
                     }
@@ -142,7 +142,7 @@ static void *audio_receiver_thread(receiver_t *receiver)
 
     decode_object.resampler = NULL;
 
-    while(receiver->run) {
+    while(receiver->video_run) {
         gettimeofday(&curr_time, NULL);
         timestamp = tv_diff(curr_time, start_time) * 90000;
         rtp_update(receiver->audio_session, curr_time);
@@ -198,23 +198,23 @@ receiver_t *init_receiver(stream_list_t *video_stream_list, stream_list_t *audio
     receiver = malloc(sizeof(receiver_t));
 
     // Video initialization
-    receiver->session = (struct rtp *) malloc(sizeof(struct rtp *));
-    receiver->part_db = pdb_init();
-    receiver->run = FALSE;
-    receiver->port = video_port;
-    receiver->stream_list = video_stream_list;
-    receiver->session = rtp_init_if(NULL, NULL, receiver->port, 0, ttl,
-            rtcp_bw, 0, rtp_recv_callback, (void *)receiver->part_db, 0);
+    receiver->video_session = (struct rtp *) malloc(sizeof(struct rtp *));
+    receiver->video_part_db = pdb_init();
+    receiver->video_run = FALSE;
+    receiver->video_port = video_port;
+    receiver->video_stream_list = video_stream_list;
+    receiver->video_session = rtp_init_if(NULL, NULL, receiver->video_port, 0, ttl,
+            rtcp_bw, 0, rtp_recv_callback, (void *)receiver->video_part_db, 0);
 
-    if (receiver->session != NULL) {
-        if (!rtp_set_option(receiver->session, RTP_OPT_WEAK_VALIDATION, 1)) {
+    if (receiver->video_session != NULL) {
+        if (!rtp_set_option(receiver->video_session, RTP_OPT_WEAK_VALIDATION, 1)) {
             return NULL;
         }
-        if (!rtp_set_sdes(receiver->session, rtp_my_ssrc(receiver->session),
+        if (!rtp_set_sdes(receiver->video_session, rtp_my_ssrc(receiver->video_session),
                     RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING))) { //TODO: is this needed?			
             return NULL;
         }
-        if (!rtp_set_recv_buf(receiver->session, INITIAL_VIDEO_RECV_BUFFER_SIZE)) {
+        if (!rtp_set_recv_buf(receiver->video_session, INITIAL_VIDEO_RECV_BUFFER_SIZE)) {
             return NULL;
         }
     }
@@ -246,22 +246,22 @@ receiver_t *init_receiver(stream_list_t *video_stream_list, stream_list_t *audio
 
 int start_receiver(receiver_t *receiver)
 {
-    receiver->run = TRUE;
+    receiver->video_run = TRUE;
     receiver->audio_run = TRUE;
 
-    if (pthread_create(&receiver->th_id, NULL, (void *)receiver_thread, receiver) != 0)
-        receiver->run = FALSE;
+    if (pthread_create(&receiver->video_th_id, NULL, (void *)video_receiver_thread, receiver) != 0)
+        receiver->video_run = FALSE;
 
     if (pthread_create(&receiver->audio_th_id, NULL, (void *)audio_receiver_thread, receiver) != 0)
         receiver->audio_run = FALSE;
 
-    return receiver->run && receiver->audio_run;
+    return receiver->video_run && receiver->audio_run;
 }
 
 void stop_receiver(receiver_t *receiver)
 {
-    receiver->run = FALSE;
-    pthread_join(receiver->th_id, NULL); 
+    receiver->video_run = FALSE;
+    pthread_join(receiver->video_th_id, NULL); 
 
     receiver->audio_run = FALSE;
     pthread_join(receiver->audio_th_id, NULL);
@@ -269,13 +269,13 @@ void stop_receiver(receiver_t *receiver)
 
 int destroy_receiver(receiver_t *receiver)
 {
-    if (receiver->run || receiver->audio_run) {
+    if (receiver->video_run || receiver->audio_run) {
         return FALSE;
     }
 
-    rtp_done(receiver->session);
+    rtp_done(receiver->video_session);
     rtp_done(receiver->audio_session);
-    pdb_destroy(&receiver->part_db);
+    pdb_destroy(&receiver->video_part_db);
     pdb_destroy(&receiver->audio_part_db);
     free(receiver);
 

@@ -54,10 +54,10 @@ typedef struct transmitter {
     stream_list_t *video_stream_list;
     float fps;
     float wait_time;
-    uint32_t recv_port;
-    uint32_t ttl;
-    uint64_t send_buffer_size;
-    uint32_t mtu;
+    uint32_t video_recv_port;
+    uint32_t video_ttl;
+    uint64_t video_send_buffer_size;
+    uint32_t video_mtu;
 
     // Audio data
     uint32_t audio_run;

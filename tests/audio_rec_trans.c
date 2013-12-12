@@ -277,7 +277,7 @@ int main()
 
     // Finish and destroy receiver objects
     stop_receiver(receiver);
-    destroy_stream_list(receiver->stream_list);
+    destroy_stream_list(receiver->video_stream_list);
     destroy_stream_list(receiver->audio_stream_list);
     destroy_receiver(receiver);
     fprintf(stderr, " ·Receiver stopped\n");

@@ -36,12 +36,12 @@
 
 typedef struct receiver {
     // Video data
-    stream_list_t *stream_list;
-    int port;
-    pthread_t th_id;
-    uint8_t run;
-    struct rtp *session;
-    struct pdb *part_db;
+    stream_list_t *video_stream_list;
+    int video_port;
+    pthread_t video_th_id;
+    uint8_t video_run;
+    struct rtp *video_session;
+    struct pdb *video_part_db;
 
     // Audio data
     stream_list_t *audio_stream_list;

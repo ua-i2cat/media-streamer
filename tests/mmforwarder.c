@@ -50,26 +50,24 @@ static void audio_frame_forward(stream_data_t *src, stream_data_t *dst);
 static void finish_handler(int signal);
 
 // Copy one video_data_frame_t between the decoded queues of two streams.
-static void audio_frame_forward(stream_data_t *src, stream_data_t *dst)
+static void video_frame_forward(stream_data_t *src, stream_data_t *dst)
 {
     video_data_frame_t *in_frame, *out_frame;
     in_frame = curr_out_frame(src->video->decoded_frames);
     if (in_frame != NULL) {
         out_frame = curr_in_frame(dst->video->decoded_frames);
-        //TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
         if (out_frame != NULL) {
-            out_frame->bps = in_frame->bps;
-            out_frame->sample_rate = in_frame->sample_rate;
-            out_frame->ch_count = in_frame->ch_count;
+            out_frame->curr_seqno = in_frame->curr_seqno;
+            out_frame->width = in_frame->width;
+            out_frame->height = in_frame->height;
+            out_frame->media_time = in_frame->media_time;
+            out_frame->seqno = in_frame->seqno;
+            out_frame->frame_type = in_frame->frame_type;
             out_frame->codec = in_frame->codec;
-            for (int i = 0; i < in_frame->ch_count; i++) {
-                memcpy(out_frame->data[i],
-                        in_frame->data[i],
-                        in_frame->data_len[i]);
-                out_frame->data_len[i] = in_frame->data_len[i];
-            }
-            cq_add_bag(dst->audio->decoded_cq);
-            cq_remove_bag(src->audio->decoded_cq);
+            out_frame->buffer_len = in_frame->buffer_len;
+            memcpy(out_frame->buffer, in_frame->buffer, in_frame->buffer_len);
+            put_frame(dst->video->decoded_frames);
+            remove_frame(src->video->decoded_frames);
         }
     }
 }
@@ -133,7 +131,7 @@ int main()
     add_participant_stream(stream,
             init_participant(1, INPUT, NULL, 0));
     set_video_frame_cq(stream->video->coded_frames, H264, 0, 0);
-    add_stream(receiver->stream_list, stream);
+    add_stream(receiver->video_stream_list, stream);
     // Audio stream with a participant
     stream = init_stream(AUDIO, INPUT, rand(), I_AWAIT, 0, 
             "Input audio stream");
@@ -159,7 +157,7 @@ int main()
             init_participant(0, OUTPUT, OUTPUT_IP, OUTPUT_VIDEO_PORT));
     set_video_frame_cq(stream->video->decoded_frames, RAW, 1280, 534);
     set_video_frame_cq(stream->video->coded_frames, H264, 1280, 534);
-    add_stream(transmitter->stream_list, stream);
+    add_stream(transmitter->video_stream_list, stream);
     init_encoder(stream->video);
     // Audio stream with a participant
     stream = init_stream(AUDIO, OUTPUT, 0, ACTIVE, 0, "Output audio stream");
@@ -187,6 +185,11 @@ int main()
         audio_out_stream = transmitter->audio_stream_list->first;
         audio_frame_forward(audio_in_stream, audio_out_stream);
 
+        // Video forward
+        video_in_stream = receiver->video_stream_list->first;
+        video_out_stream = transmitter->video_stream_list->first;
+        video_frame_forward(video_in_stream, video_out_stream);
+
         //Try to not send all the data suddently.
         usleep(SEND_TIME);
     }
@@ -194,7 +197,7 @@ int main()
 
     // Finish and destroy receiver objects
     stop_receiver(receiver);
-    destroy_stream_list(receiver->stream_list);
+    destroy_stream_list(receiver->video_stream_list);
     destroy_stream_list(receiver->audio_stream_list);
     destroy_receiver(receiver);
     fprintf(stderr, " ·Receiver stopped\n");

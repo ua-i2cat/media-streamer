@@ -75,7 +75,7 @@ int main(){
     set_video_frame_cq(in_str->video->coded_frames, H264, 0, 0);
     //Adding 1st incoming stream and participant
     add_participant_stream(in_str, in_p1);
-    add_stream(receiver->stream_list, in_str);
+    add_stream(receiver->video_stream_list, in_str);
     
     //Start receiving
     if (start_receiver(receiver) && start_transmitter(transmitter)) {
@@ -139,7 +139,7 @@ int main(){
                 in_str = init_stream(VIDEO, INPUT, rand(), I_AWAIT, 24.0, NULL);
                 set_video_frame_cq(in_str->video->coded_frames, H264, 0, 0);
                 add_participant_stream(in_str, in_p2);
-                add_stream(receiver->stream_list, in_str);
+                add_stream(receiver->video_stream_list, in_str);
                 //Adding 2nd outgoing stream
                 add_stream(out_str_list, out_str2);               
             }  else {
