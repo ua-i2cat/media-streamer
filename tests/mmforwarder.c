@@ -37,6 +37,10 @@
 #define OUTPUT_AUDIO_FORMAT_CHANNELS 1
 #define OUTPUT_AUDIO_FORMAT_CODEC AC_MULAW
 
+// For debug pourpouses
+#define ENABLE_RECEIVER 1
+//#define ENABLE_TRANSMITTER 1
+
 // Global variables
 static volatile bool stop = false;
 
@@ -118,6 +122,7 @@ int main()
 
     stream_data_t *stream;
 
+#ifdef ENABLE_RECEIVER
     // Receiver startup
     fprintf(stderr, " ·Configuring receiver\n");
     receiver = init_receiver(init_stream_list(),
@@ -143,7 +148,9 @@ int main()
             INPUT_AUDIO_FORMAT_CODEC);
     add_stream(receiver->audio_stream_list, stream);
     ap_worker_start(stream->audio);
+#endif //ENABLE_RECEIVER
 
+#ifdef ENABLE_TRANSMITTER
     // Transmitter startup
     fprintf(stderr, " ·Configuring transmitter\n");
     transmitter = init_transmitter(init_stream_list(),
@@ -169,41 +176,50 @@ int main()
             OUTPUT_AUDIO_FORMAT_CODEC);
     add_stream(transmitter->audio_stream_list, stream);
     ap_worker_start(stream->audio);
+#endif //ENABLE_TRANSMITTER
 
+#if ENABLE_RECEIVER && ENABLE_TRANSMITTER
     // Get static stream pointers
-    stream_data_t *audio_in_stream = receiver->audio_stream_list->first;
-    stream_data_t *audio_out_stream = transmitter->audio_stream_list->first;
     stream_data_t *video_in_stream = receiver->video_stream_list->first;
+    stream_data_t *audio_in_stream = receiver->audio_stream_list->first;
     stream_data_t *video_out_stream = transmitter->video_stream_list->first;
+    stream_data_t *audio_out_stream = transmitter->audio_stream_list->first;
+#endif
 
     // Main loop
     fprintf(stderr, "  ·Forwarding multimedia! ");
     while(!stop) {
 
+#if ENABLE_RECEIVER && ENABLE_TRANSMITTER
         // Audio forward
         audio_frame_forward(audio_in_stream, audio_out_stream);
 
         // Video forward
         video_frame_forward(video_in_stream, video_out_stream);
+#endif
 
         //Try to not send all the data suddently.
         usleep(SEND_TIME);
     }
     fprintf(stderr, "Done!\n");
 
+#ifdef ENABLE_RECEIVER
     // Finish and destroy receiver objects
     stop_receiver(receiver);
     destroy_stream_list(receiver->video_stream_list);
     destroy_stream_list(receiver->audio_stream_list);
     destroy_receiver(receiver);
     fprintf(stderr, " ·Receiver stopped\n");
+#endif //ENABLE_RECEIVER
 
+#ifdef ENABLE_TRANSMITTER
     // Finish and destroy transmitter objects
     stop_transmitter(transmitter);
     destroy_stream_list(transmitter->video_stream_list);
     destroy_stream_list(transmitter->audio_stream_list);
     destroy_transmitter(transmitter);
     fprintf(stderr, " ·Transmitter stopped\n");
+#endif //ENABLE_TRANSMITTER
 
     fprintf(stderr, "Finished\n");
 }
