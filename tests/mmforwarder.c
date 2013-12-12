@@ -5,10 +5,7 @@
  */
 
 #include <stdio.h>
-//#include <errno.h>
-//#include <time.h>
 #include <signal.h>
-//#include <unistd.h>
 #include "io_mngr/participants.h"
 #include "io_mngr/receiver.h"
 #include "io_mngr/transmitter.h"
@@ -16,24 +13,24 @@
 
 #define SEND_TIME 125
 
-#define INPUT_VIDEO_PORT 6004
-#define INPUT_AUDIO_PORT 6006
+#define INPUT_VIDEO_PORT 5004
+#define INPUT_AUDIO_PORT 5006
 
 #define INPUT_VIDEO_FORMAT_FPS 25.0
 
 #define INPUT_AUDIO_FORMAT_BPS 1
-#define INPUT_AUDIO_FORMAT_SAMPLE_RATE 8000
+#define INPUT_AUDIO_FORMAT_SAMPLE_RATE 16000
 #define INPUT_AUDIO_FORMAT_CHANNELS 1
 #define INPUT_AUDIO_FORMAT_CODEC AC_MULAW
 
 #define OUTPUT_IP "127.0.0.1"
-#define OUTPUT_VIDEO_PORT 5004
-#define OUTPUT_AUDIO_PORT 5006
+#define OUTPUT_VIDEO_PORT 6004
+#define OUTPUT_AUDIO_PORT 6006
 
 #define OUTPUT_VIDEO_FORMAT_FPS 25.0
 
 #define OUTPUT_AUDIO_FORMAT_BPS 1
-#define OUTPUT_AUDIO_FORMAT_SAMPLE_RATE 8000
+#define OUTPUT_AUDIO_FORMAT_SAMPLE_RATE 32000
 #define OUTPUT_AUDIO_FORMAT_CHANNELS 1
 #define OUTPUT_AUDIO_FORMAT_CODEC AC_MULAW
 
