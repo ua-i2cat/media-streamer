@@ -130,5 +130,6 @@ void		 pbuf_remove(struct pbuf *playout_buf, struct timeval curr_time);
 void		 pbuf_remove_first(struct pbuf *playout_buf);
 void		 pbuf_set_playout_delay(struct pbuf *playout_buf, double playout_delay,
                 double deletion_delay);
+int          pbuf_check_if_complete_frame(struct pbuf *playout_buf, struct timeval curr_time);
 
 

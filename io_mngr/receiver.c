@@ -90,24 +90,25 @@ void *video_receiver_thread(receiver_t *receiver)
                 }
 
                 if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, coded_frame)) {
-
                     if (participant->stream->state == I_AWAIT && 
                             coded_frame->frame_type == INTRA && 
                             coded_frame->width != 0 && 
-                            coded_frame->height != 0) {
+                            coded_frame->height != 0){
 
-                        if(participant->stream->video->decoder == NULL) {
+                        if(participant->stream->video->decoder == NULL){
                             set_video_frame_cq(participant->stream->video->decoded_frames, 
                                     RGB, 
                                     coded_frame->width, 
                                     coded_frame->height);
-                            printf("starting decoder\n");
                             start_decoder(participant->stream->video); 
                         }
                         participant->stream->state = ACTIVE;
                     }
 
                     if (participant->stream->state == ACTIVE && coded_frame->frame_type != BFRAME) {
+                        participant->stream->video->seqno++;
+                        coded_frame->seqno = participant->stream->video->seqno;
+                        coded_frame->media_time = get_local_mediatime_us();
                         put_frame(participant->stream->video->coded_frames);
                     } else {
                         debug_msg("No support for Bframes\n");

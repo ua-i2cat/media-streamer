@@ -32,13 +32,14 @@
 #include "video_compress.h"
 #include "debug.h"
 #include "tv.h"
+#include <stdlib.h>
 
 static int send_video_frame(stream_data_t *stream, video_data_frame_t *coded_frame, struct timeval start_time);
 static int send_audio_frame(stream_data_t *stream, audio_frame2 *frame, struct timeval start_time);
 static void *video_transmitter_thread(void *arg);
 static void *audio_transmitter_thread(void *arg);
 
-// TODO: Rename to send_video_frame
+// TODO: coded_frame parameter and timestamp revision.
 static int send_video_frame(stream_data_t *stream, video_data_frame_t *coded_frame, struct timeval start_time)
 {
     participant_data_t *participant;
@@ -49,15 +50,15 @@ static int send_video_frame(stream_data_t *stream, video_data_frame_t *coded_fra
     pthread_rwlock_rdlock(&stream->plist->lock);
 
     participant = stream->plist->first;
-    while (participant != NULL && participant->rtp != NULL){
-
+    while (participant != NULL && participant->rtp != NULL) {
+        
         gettimeofday(&curr_time, NULL);
         rtp_update(participant->rtp->rtp, curr_time);
         timestamp = tv_diff(curr_time, start_time)*90000;
         rtp_send_ctrl(participant->rtp->rtp, timestamp, 0, curr_time);            
 
         tx_send_h264(participant->rtp->tx_session, stream->video->encoder->frame, 
-                participant->rtp->rtp, coded_frame->media_time);
+                     participant->rtp->rtp, get_local_mediatime());
         ret = TRUE;
 
         participant = participant->next;
@@ -103,12 +104,11 @@ static void *video_transmitter_thread(void *arg)
     stream_data_t *stream;
     video_data_frame_t *coded_frame;
 
-
     struct timeval start_time;
     gettimeofday(&start_time, NULL);
 
     while(transmitter->video_run){
-        usleep(100);
+        usleep(500);
 
         pthread_rwlock_rdlock(&transmitter->video_stream_list->lock);
 
@@ -140,7 +140,7 @@ static void *audio_transmitter_thread(void *arg)
     gettimeofday(&start_time, NULL);
 
     while(transmitter->audio_run) {
-//        usleep(100);
+        usleep(500);
         pthread_rwlock_rdlock(&transmitter->audio_stream_list->lock);
 
         stream = transmitter->audio_stream_list->first;

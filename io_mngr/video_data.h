@@ -8,7 +8,6 @@ typedef struct decoder_thread {
     pthread_t thread;
     uint8_t run;
     struct state_decompress *sd;
-    uint32_t last_seqno;
 } decoder_thread_t;
 
 typedef struct encoder_thread {
@@ -29,6 +28,8 @@ typedef struct video_data {
     uint32_t interlacing;  //TODO: fix this. It has to be UG enum
     uint32_t fps;       //TODO: fix this. It has to be UG enum
     uint32_t seqno;
+    uint32_t bitrate;
+    uint32_t lost_coded_frames;
     union {
         struct encoder_thread *encoder;
         struct decoder_thread *decoder;

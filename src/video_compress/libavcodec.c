@@ -267,7 +267,7 @@ struct module * libavcodec_compress_init(struct module *parent, char * fmt)
 
         platform_spin_init(&s->spin);
 
-        printf("[Lavc] Using codec: %s\n", codec_info[s->selected_codec_id].name);
+        //printf("[Lavc] Using codec: %s\n", codec_info[s->selected_codec_id].name);
 
         s->cpu_count = sysconf(_SC_NPROCESSORS_ONLN) / 4; // take conservatively only one fourth of cores
         if(s->cpu_count < 1) {
