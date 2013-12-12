@@ -51,7 +51,7 @@ int send_coded_frame(stream_data_t *stream, video_data_frame_t *coded_frame, str
         rtp_send_ctrl(participant->rtp->rtp, timestamp, 0, curr_time);            
 
         tx_send_h264(participant->rtp->tx_session, stream->video->encoder->frame, 
-                     participant->rtp->rtp, coded_frame->media_time);
+                     participant->rtp->rtp, get_local_mediatime());
         ret = TRUE;
         
         participant = participant->next;
@@ -67,8 +67,6 @@ void *transmitter_thread(void *arg){
     stream_data_t *stream;
     video_data_frame_t *coded_frame;
 
-    uint8_t frame_counter = 0;
-    uint32_t delay = 0;
     struct timeval start_time;
     gettimeofday(&start_time, NULL);
     
@@ -85,15 +83,6 @@ void *transmitter_thread(void *arg){
                 continue;
             }
             send_coded_frame(stream, coded_frame, start_time);
-            delay += (get_local_mediatime_us() - coded_frame->media_time)/90000;
-            frame_counter++;
-
-            if (frame_counter == 255){ //NOTE: 255 because counter is a uint8_t 
-                 stream->video->delay = delay/frame_counter;
-                 stream->video->delay = (frame_counter*1000000)/delay;
-                 delay = 0;
-            }
-
             remove_frame(stream->video->coded_frames);
             stream = stream->next;
         }

@@ -36,7 +36,6 @@ typedef struct video_data {
     uint32_t seqno;
     uint32_t bitrate;
     uint32_t lost_coded_frames;
-    uint32_t delay;
     union {
         struct encoder_thread *encoder;
         struct decoder_thread *decoder;

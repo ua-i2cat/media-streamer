@@ -118,16 +118,19 @@ int put_frame(video_frame_cq_t *frame_cq){
         frame_cq->state = CQ_OK;
     }
     frame_cq->rear = r;
-    
-    frame_cq->fps_counter++;
+
+#ifdef STATS
+    frame_cq->put_counter++;
     local_time = get_local_mediatime_us();
     frame_cq->fps_sum += local_time - frame_cq->last_frame_time;
     frame_cq->last_frame_time = local_time;
     
-    if (fps_counter == MAX_COUNTER){
-        frame_cq->fps = (frame_cq->fps_counter / frame_cq->fps_sum) * 1000000;
-        frame_cq->fps_counter = 0;
+    if (frame_cq->put_counter == MAX_COUNTER){
+        frame_cq->fps = (frame_cq->put_counter * 1000000) / frame_cq->fps_sum;
+        frame_cq->put_counter = 0;
+        frame_cq->fps_sum = 0;
     }
+#endif
     
     return TRUE;
 }
@@ -143,13 +146,16 @@ video_data_frame_t* curr_out_frame(video_frame_cq_t *frame_cq){
 
 int remove_frame(video_frame_cq_t *frame_cq){
     uint8_t f;
-    video_data_frame_t* frame;
     
     if (! frame_cq->out_process){
         return FALSE;
     }
     
     frame_cq->out_process = FALSE;
+
+#ifdef STATS
+    video_data_frame_t* frame = frame_cq->frames[frame_cq->front];
+#endif
     
     f =  (frame_cq->front + 1) % frame_cq->max;
     if (f == frame_cq->rear) {
@@ -158,15 +164,16 @@ int remove_frame(video_frame_cq_t *frame_cq){
         frame_cq->state = CQ_OK;
     }
     frame_cq->front = f;
-    
-    frame = frame_cq->frames[frame_cq->front];
-    delay_sum += get_local_mediatime_us() - frame->media_time;
-    remove_counter++;
-    if (remove_counter == MAX_COUNTER){
-        delay = delay_sum/remove_counter;
-        delay_sum = 0;
-        remove_counter = 0;
+
+#ifdef STATS
+    frame_cq->delay_sum += get_local_mediatime_us() - frame->media_time;
+    frame_cq->remove_counter++;
+    if (frame_cq->remove_counter == MAX_COUNTER){
+        frame_cq->delay = frame_cq->delay_sum/frame_cq->remove_counter;
+        frame_cq->delay_sum = 0;
+        frame_cq->remove_counter = 0;
     }
+#endif
     
     return TRUE;
 }
@@ -176,6 +183,7 @@ int flush_frames(video_frame_cq_t *frame_cq){
     uint8_t r;
 
     if (frame_cq->state == CQ_FULL){
+        frame_cq->front = (frame_cq->front + (frame_cq->max - 1)) % frame_cq->max;
         frame_cq->state = CQ_OK;
     }
     

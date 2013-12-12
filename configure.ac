@@ -58,6 +58,13 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([gethostbyname gethostname gettimeofday inet_ntoa memset select socket sqrt strcasecmp strchr strcspn strdup strncasecmp strrchr strspn strstr strtoul uname])
 
+AC_MSG_CHECKING([Statistics mode])
+AC_ARG_ENABLE(stats,
+              AC_HELP_STRING([--enable-stats], [Enable statistics]),
+              AC_DEFINE(STATS, [], [Enable statistics]) AC_MSG_RESULT([Enabled]),
+              AC_MSG_RESULT([Disabled]))
+
+
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  io_mngr/Makefile])

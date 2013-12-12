@@ -77,8 +77,6 @@ void *encoder_routine(void *arg)
             coded_frame = curr_in_frame(video->coded_frames);
         }
 
-        decoded_frame->media_time = get_local_mediatime_us();
-        
         reconf_video_frame(decoded_frame, enc_frame, video->fps);
 
         enc_frame->tiles[0].data = (char *)decoded_frame->buffer;
@@ -93,9 +91,9 @@ void *encoder_routine(void *arg)
         coded_frame->buffer_len = vf_get_tile(tx_frame, 0)->data_len;
 
         coded_frame->seqno = decoded_frame->seqno;
-        coded_frame->media_time = decoded_frame->media_time;
 
         remove_frame(video->decoded_frames);
+        coded_frame->media_time = get_local_mediatime_us();
         put_frame(video->coded_frames);
         
         encoder->index = (encoder->index + 1) % 2;
@@ -207,11 +205,6 @@ void *decoder_th(void* data){
     
     video_data_frame_t* coded_frame;
     video_data_frame_t* decoded_frame;
-    uint8_t frame_counter = 0;
-    uint32_t delay = 0;
-    uint32_t last_media_time = 0;
-    uint32_t mediatime = 0;
-    uint32_t frame_time = 0;
 
     while(v_data->decoder->run){
         usleep(100);
@@ -225,10 +218,6 @@ void *decoder_th(void* data){
             continue;
         }
 
-        mediatime = get_local_mediatime_us();
-        frame_time += (mediatime - last_media_time)/90000; 
-        last_media_time = mediatime;
-        
         decoded_frame = curr_in_frame(v_data->decoded_frames);
         while (decoded_frame == NULL){
             flush_frames(v_data->decoded_frames);
@@ -238,19 +227,10 @@ void *decoder_th(void* data){
         decompress_frame(v_data->decoder->sd, decoded_frame->buffer, 
             (unsigned char *)coded_frame->buffer, coded_frame->buffer_len, 0);
         
-        decoded_frame->media_time = get_local_mediatime_us();
         decoded_frame->seqno = coded_frame->seqno; 
 
-        delay += (decoded_frame->media_time - coded_frame->media_time)/90000;
-        frame_counter++;
-        if (frame_counter == 255){ //NOTE: 255 because counter is a uint8_t 
-            v_data->delay = delay/frame_counter;
-            v_data->fps = (frame_counter*1000000)/frame_time;
-            delay = 0;
-            frame_time = 0;
-        }
-        
         remove_frame(v_data->coded_frames);
+        decoded_frame->media_time = get_local_mediatime_us();
         put_frame(v_data->decoded_frames);
     }
 

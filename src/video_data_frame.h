@@ -32,12 +32,12 @@ typedef struct video_frame_cq {
     uint8_t rear;
     uint8_t front;
     uint8_t max;
-    uint32_t delay_sum;
-    uint8_t remove_counter;
-    float delay;
     int state;
     int in_process; //True false
     int out_process;
+    uint32_t delay_sum;
+    uint8_t remove_counter;
+    float delay;
     float fps;
     uint8_t put_counter;
     uint32_t fps_sum;
@@ -45,7 +45,7 @@ typedef struct video_frame_cq {
 	video_data_frame_t **frames;
 } video_frame_cq_t;
 
-video_frame_cq_t *init_video_frame_cq(uint8_t max, uint32_t timeout);
+video_frame_cq_t *init_video_frame_cq(uint8_t max);
 int destroy_video_frame_cq(video_frame_cq_t *frame_cq);
 int set_video_frame_cq(video_frame_cq_t *frame_cq, codec_t codec, uint32_t width, uint32_t height);
 video_data_frame_t* curr_in_frame(video_frame_cq_t *frame_cq);
@@ -53,3 +53,4 @@ video_data_frame_t* curr_out_frame(video_frame_cq_t *frame_cq);
 int remove_frame(video_frame_cq_t *frame_cq);
 int put_frame(video_frame_cq_t *frame_cq);
 int increase_rear_frame(video_frame_cq_t *frame_cq);
+int flush_frames(video_frame_cq_t *frame_cq);

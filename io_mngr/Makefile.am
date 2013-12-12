@@ -29,6 +29,7 @@ uginclude_HEADERS =	receiver.h \
 					video_data.h \
 					commons.h \
 					../src/video_data_frame.h \
+					../src/tv.h \
 					../src/video.h \
 					../src/video_codec.h \
 					../src/types.h \
@@ -43,6 +44,7 @@ uginclude_HEADERS =	receiver.h \
 					../src/rtp/rtp.h \
 					../src/audio/audio.h \
 					../src/config.h \
+					../src/config_win32.h \
 					BasicRTSPOnlyServer.hh \
 					BasicRTSPOnlySubsession.hh \
 					c_basicRTSPOnlyServer.h
