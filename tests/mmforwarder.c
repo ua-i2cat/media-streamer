@@ -170,24 +170,20 @@ int main()
     add_stream(transmitter->audio_stream_list, stream);
     ap_worker_start(stream->audio);
 
-    // Temporal variables and initializations
-    stream_data_t *audio_in_stream,
-                  *audio_out_stream,
-                  *video_in_stream,
-                  *video_out_stream;
+    // Get static stream pointers
+    stream_data_t *audio_in_stream = receiver->audio_stream_list->first;
+    stream_data_t *audio_out_stream = transmitter->audio_stream_list->first;
+    stream_data_t *video_in_stream = receiver->video_stream_list->first;
+    stream_data_t *video_out_stream = transmitter->video_stream_list->first;
 
     // Main loop
-    fprintf(stderr, "  ·Forwarding multimedia!\n");
+    fprintf(stderr, "  ·Forwarding multimedia! ");
     while(!stop) {
 
         // Audio forward
-        audio_in_stream = receiver->audio_stream_list->first;
-        audio_out_stream = transmitter->audio_stream_list->first;
         audio_frame_forward(audio_in_stream, audio_out_stream);
 
         // Video forward
-        video_in_stream = receiver->video_stream_list->first;
-        video_out_stream = transmitter->video_stream_list->first;
         video_frame_forward(video_in_stream, video_out_stream);
 
         //Try to not send all the data suddently.
