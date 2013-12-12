@@ -1,4 +1,5 @@
 #include "debug.h"
+#include <errno.h>
 #include "video_data_frame.h"
 
 video_data_frame_t *init_video_data_frame();
@@ -66,7 +67,7 @@ video_frame_cq_t *init_video_frame_cq(uint8_t max){
     frame_cq->fps_sum = 0;
     frame_cq->last_frame_time = 0;
     
-    for(uint8_t i; i < max; i++){
+    for(int i = 0; i < max; i++){
         frame_cq->frames[i] = init_video_data_frame();
     }
     
