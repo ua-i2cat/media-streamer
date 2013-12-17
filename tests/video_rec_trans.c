@@ -1,54 +1,62 @@
 #include <signal.h>
-#include "config.h"
+//#include "config.h"
 #include "io_mngr/participants.h"
 #include "io_mngr/receiver.h"
 #include "io_mngr/transmitter.h"
 #include "io_mngr/c_basicRTSPOnlyServer.h"
 
+#define LIVE_TIME 120
+
 static volatile bool stop = false;
 
-static void signal_handler(int signal)
+// Triggers the stops condition of the program.
+static void finish_handler(int sig)
 {
-    if (signal) { // Avoid annoying warnings.
-        stop = true;
+    switch (sig) {
+        case SIGINT:
+        case SIGALRM:
+            stop = true;
+            break;
+        default:
+            break;
     }
-    return;
 }
 
 int main(){
-    
+
     struct timeval a, b;
-    
+
     //video_frames structures
     video_data_frame_t *in_frame;
     video_data_frame_t *out_frame;
-    
+
     //Receiver structures
     stream_list_t *in_str_list;
     stream_list_t *dummy_audio_str_list2;
     stream_data_t *in_str;
     receiver_t *receiver;
-    
+
     //Transmitter structures
     stream_list_t *out_str_list;
     stream_list_t *dummy_audio_str_list1;
     stream_data_t *out_str;
     transmitter_t *transmitter;
-    
+
     //Outgoing streams and incomping streams
     stream_data_t *out_str1;
     stream_data_t *out_str2;
-    
+
     //RTSP server
     rtsp_serv_t *server = (rtsp_serv_t*) malloc(sizeof(rtsp_serv_t));
-    
+
     //Incoming participants
     participant_data_t *in_p1;
     participant_data_t *in_p2;
-    
-    //Attach signal handler
-    signal(SIGINT, signal_handler);
-    
+
+    //Attach signal handler and start alarm
+    signal(SIGINT, finish_handler);
+    alarm(LIVE_TIME);
+
     //Initialization of all data
     in_str_list     = init_stream_list();
     out_str_list    = init_stream_list();
@@ -62,11 +70,11 @@ int main(){
     receiver        = init_receiver(in_str_list, dummy_audio_str_list2, 5004, 5006);
     in_p1           = init_participant(1, INPUT, NULL, 0);
     in_p2           = init_participant(2, INPUT, NULL, 0);
-    
+
     //Timestamp of start time
     gettimeofday(&a, NULL);
     gettimeofday(&b, NULL);
-    
+
     //Adding 1st outgoing stream
     add_stream(out_str_list, out_str1);
     //Starting RTSP server
@@ -76,65 +84,63 @@ int main(){
     //Adding 1st incoming stream and participant
     add_participant_stream(in_str, in_p1);
     add_stream(receiver->video_stream_list, in_str);
-    
+
     //Start receiving
     if (start_receiver(receiver) && start_transmitter(transmitter)) {
 
-        printf("This test stops normally after 120 seconds\n");
-        
+        printf("Forwarding video for %i seconds\n", LIVE_TIME);
+
         while(!stop){
-                       
+
             pthread_rwlock_rdlock(&in_str_list->lock);
             pthread_rwlock_rdlock(&out_str_list->lock);
-            
+
             out_str = out_str_list->first;
             in_str = in_str_list->first;
-            
+
             pthread_rwlock_unlock(&out_str_list->lock);
             pthread_rwlock_unlock(&in_str_list->lock);
-            
-            while(in_str != NULL && out_str != NULL){     
+
+            while(in_str != NULL && out_str != NULL && !stop) {
                 if (out_str->video->encoder == NULL && in_str->video->decoder != NULL) {
                     in_frame = curr_out_frame(in_str->video->decoded_frames);
                     if (in_frame == NULL){
                         continue;
                     }
-                    
+
                     set_video_frame_cq(out_str->video->decoded_frames, RAW, 
-                                         in_frame->width, 
-                                         in_frame->height);
+                            in_frame->width, 
+                            in_frame->height);
                     set_video_frame_cq(out_str->video->coded_frames, H264,
-                                         in_frame->width, 
-                                         in_frame->height);
+                            in_frame->width, 
+                            in_frame->height);
                     init_encoder(out_str->video);
                     c_update_server(server);
                     continue;
                 }
-                
+
                 in_frame = curr_out_frame(in_str->video->decoded_frames);
                 out_frame = curr_in_frame(out_str->video->decoded_frames);
-                              
+
                 if (in_frame == NULL || out_frame == NULL){
                     continue;
                 }
-                
+
                 memcpy(out_frame->buffer, 
-                       in_frame->buffer, 
-                       in_frame->buffer_len);
+                        in_frame->buffer, 
+                        in_frame->buffer_len);
                 out_frame->buffer_len 
                     = out_frame->buffer_len;
-                    
+
                 remove_frame(in_str->video->decoded_frames);
                 put_frame(out_str->video->decoded_frames);
-                
+
                 in_str = in_str->next;
                 out_str = out_str->next;
             }
-            
+
             gettimeofday(&b, NULL);
-            if (b.tv_sec - a.tv_sec >= 120){
-                stop = TRUE;
-            }  if (out_str_list->count < 2 && b.tv_sec - a.tv_sec >= 50){
+            if (out_str_list->count < 2 && b.tv_sec - a.tv_sec >= 50){
                 //Adding 2nd incoming participant
                 in_str = init_stream(VIDEO, INPUT, rand(), I_AWAIT, 24.0, NULL);
                 set_video_frame_cq(in_str->video->coded_frames, H264, 0, 0);
@@ -146,11 +152,11 @@ int main(){
                 usleep(5000);
             }
         }       
-        
+
     }
-    
+
     printf("Stopping all managers\n");
-    
+
     c_stop_server(server);
     stop_transmitter(transmitter);
     destroy_transmitter(transmitter);

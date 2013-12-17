@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include <errno.h>
 #include <time.h>
-//#include "config.h"
 #include "transmitter.h"
 #include "audio_config.h"
 
@@ -23,7 +22,7 @@
 #define PORT_SECOND 6006
 
 FILE *F_audio = NULL;
-char *name_audio = "atrans_test_internal_format.raw";
+char *name_audio = "audio_transmitter.raw";
 
 int main() {
 
@@ -51,10 +50,10 @@ int main() {
     // Configure two participants
     participant_data_t *p1 = init_participant(0, OUTPUT, IP_FIRST, PORT_FIRST);
     add_participant_stream(stream, p1);    
-    fprintf(stderr, " ·Output participant configuration: %s:%i\n", IP_FIRST, PORT_FIRST);
+    fprintf(stderr, " ·Output participant to rtp://%s:%i\n", IP_FIRST, PORT_FIRST);
     participant_data_t *p2 = init_participant(0, OUTPUT, IP_SECOND, PORT_SECOND);
     add_participant_stream(stream, p2);
-    fprintf(stderr, " ·Output participant configuration: %s:%i\n", IP_SECOND, PORT_SECOND);
+    fprintf(stderr, " ·Output participant to rtp://%s:%i\n", IP_SECOND, PORT_SECOND);
 
     // configure output stream audio format
     //ap_config(stream->audio, 1, 8000, 1, AC_MULAW);

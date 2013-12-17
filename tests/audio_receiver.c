@@ -9,59 +9,16 @@
 #include <stdio.h>
 #include <errno.h>
 #include <time.h>
-#include "config.h"
+//#include "config.h"
 #include "io_mngr/participants.h"
 #include "io_mngr/receiver.h"
 
 #define RECORD_TIME 5
 
-// Debug control
-//#define QUEUE_PRINT
-#define STREAM1
-#define STREAM2
-
 FILE *F_audio1 = NULL;
 FILE *F_audio2 = NULL;
 char *name_audio1 = "atest_audio_receiver_stream1.pcm";
 char *name_audio2 = "atest_audio_receiver_stream2.pcm";
-
-#ifdef QUEUE_PRINT
-// Private circular_queue debug function
-static void print_cq_status(circular_queue_t *cq, char *msg);
-
-static void print_cq_status(circular_queue_t *cq, char *msg) {
-    static char level;
-    static int front;
-    static int rear;
-    static int count = 0;
-    static char *m = NULL;
-    if (m != msg) {
-        level = '0';
-        front = -1;
-        rear = -1;
-        m = msg;
-    }
-    char l;
-    switch(cq->level) {
-        case CIRCULAR_QUEUE_MID:
-            l = 'M';
-            break;
-        case CIRCULAR_QUEUE_EMPTY:
-            l = 'E';
-            break;
-        case CIRCULAR_QUEUE_FULL:
-            l = 'F';
-            break;
-    }
-    if (level != l || front != cq->front || rear != cq->rear) {
-        level = l;
-        front = cq->front;
-        rear = cq->rear;
-        fprintf(stderr, "[circular_queue %i %s] Level(%c), Front(%i), Rear(%i).\n", count, m, level, front, rear);
-    }
-    count++;
-}
-#endif //QUEUE_PRINT
 
 int main() {
 
@@ -107,17 +64,10 @@ int main() {
     if (start_receiver(receiver)) {
         fprintf(stderr, " ·Receiver started!\n");
 
-#ifdef STREAM1
         // STREAM1 recording block
         fprintf(stderr, "  ·Waiting for audio_frame2 data\n");
         while (stream1->audio->decoded_cq->level == CIRCULAR_QUEUE_EMPTY) {
-#ifdef QUEUE_PRINT
-            print_cq_status(stream1->audio->decoded_cq, "wait stream1");
-#endif
         }
-#ifdef QUEUE_PRINT
-        print_cq_status(stream1->audio->decoded_cq, "continue stream1");
-#endif
 
         fprintf(stderr, "   ·Copying to file... ");
         start = time(NULL);
@@ -130,19 +80,11 @@ int main() {
             }
         }
         fprintf(stderr, "Done!\n");
-#endif //STREAM1
 
-#ifdef STREAM2
         // STREAM2 recording block
         fprintf(stderr, "  ·Waiting for audio_frame2 data\n");
-        while (stream2->audio->decoded_cq->level == CIRCULAR_QUEUE_EMPTY) {
-#ifdef QUEUE_PRINT
-            print_cq_status(stream2->audio->decoded_cq, "wait stream2");
-#endif
-        }
-#ifdef QUEUE_PRINT
-        print_cq_status(stream2->audio->decoded_cq, "continue stream2");
-#endif
+        while (stream2->audio->decoded_cq->level == CIRCULAR_QUEUE_EMPTY) { }
+
         fprintf(stderr, "   ·Copying to file... ");
         start = time(NULL);
         stop = start + RECORD_TIME;
@@ -154,7 +96,6 @@ int main() {
             }
         }
         fprintf(stderr, "Done!\n");
-#endif //STREAM2
 
         // Finish and destroy objects
         stop_receiver(receiver);

@@ -7,6 +7,12 @@
 #include <libavformat/avformat.h>
 #include "commons.h"
 
+#define VIDEO_WIDTH 1280
+#define VIDEO_HEIGHT 544
+
+#define VIDEO_PORT_1 5004
+#define VIDEO_PORT_2 6004
+
 int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pCodecCtx, int *videostream);
 int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCodecCtx, uint8_t *buff);
 
@@ -21,7 +27,9 @@ int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pC
     pFormatCtx->iformat = av_find_input_format("rawvideo");
     unsigned int i;
 
-    av_dict_set(&rawdict, "video_size", "1280x534", 0);
+    char res[16];
+    sprintf(res, "%ix%i", VIDEO_WIDTH, VIDEO_HEIGHT);
+    av_dict_set(&rawdict, "video_size", res, 0);
     av_dict_set(&rawdict, "pixel_format", "rgb24", 0);
 
     // Open video file
@@ -123,8 +131,10 @@ int main(int argc, char **argv)
     transmitter_t *transmitter = init_transmitter(streams, dummy_audio_stream, 25.0);
     start_transmitter(transmitter);
 
-    participant_data_t *p1 = init_participant(0, OUTPUT, "127.0.0.1", 8000);
-    participant_data_t *p2 = init_participant(0, OUTPUT, "127.0.0.1", 9000);
+int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pCodecCtx, int *videostream);
+int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCodecCtx, uint8_t *buff);
+    participant_data_t *p1 = init_participant(0, OUTPUT, "127.0.0.1", VIDEO_PORT_1);
+    participant_data_t *p2 = init_participant(0, OUTPUT, "127.0.0.1", VIDEO_PORT_2);
 
     add_participant_stream(stream, p1);    
 
