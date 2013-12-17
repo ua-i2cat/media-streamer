@@ -84,7 +84,11 @@ void *video_receiver_thread(receiver_t *receiver)
 
                 coded_frame = curr_in_frame(participant->stream->video->coded_frames);
                 if (coded_frame == NULL){
-                    error_msg("Missing packets\n");
+                    if(pbuf_check_if_complete_frame(cp->playout_buffer, curr_time)){
+                        pbuf_remove_first(cp->playout_buffer);
+                        error_msg("Warning! Coded frame discarded in reception\n");
+                        participant->stream->video->lost_coded_frames++;
+                    }
                     cp = pdb_iter_next(&it);
                     continue;
                 }

@@ -1,0 +1,35 @@
+HOWTO run tests
+---------------
+
+By Txor.
+
+
+* mmforwarder - Forwards one video and one audio streams.
+
+    1- Generate a suitable video file coded with h264 and pcm_mulaw:
+        ffmpeg -i your_media_file.any -map 0:0 -map 0:1 -vcodec libx264 -c:a pcm_mulaw your_media_file.avi       
+
+    2- Generate an SDP file with this command and save it (say audio_param.sdp), remember to change the ports to 6004 and 6006):
+        ffmpeg -i your_media_file.avi 
+
+    3- Start the media receiver with our SDP file:
+        ffplay audio_param.sdp
+
+    4- Start the test (listening on 5004 nad 5006, sending to 6004 and 6006):
+        bin/mmforwarder
+
+    5- Start the media transmitter with our media file:
+        ffmpeg -i your_media_file.avi .... -f rtp rtp://127.0.0.1:5004 -f rtp rtp://127.0.0.1:5006
+
+* video_receiver
+
+* video_transmitter
+
+* video_rec_trans
+
+* audio_receiver
+
+* audio_transmitter
+
+* audio_rec_trans
+
