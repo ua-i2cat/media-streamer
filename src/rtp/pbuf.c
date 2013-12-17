@@ -446,13 +446,12 @@ int pbuf_check_if_complete_frame(struct pbuf *playout_buf, struct timeval curr_t
     pbuf_validate(playout_buf);
 
     curr = playout_buf->frst;
-    if (tv_gt(curr_time, curr->playout_time)) {
+    if (curr != NULL && tv_gt(curr_time, curr->playout_time)) {
         if (frame_complete(curr)) {
             curr->decoded = 1;
             return TRUE;
         }
     }
-    curr = curr->nxt;
 
     return FALSE;
 
