@@ -16,10 +16,10 @@
 #define INPUT_VIDEO_PORT 5004
 #define INPUT_AUDIO_PORT 5006
 
-#define INPUT_VIDEO_FORMAT_FPS 25.0
+#define INPUT_VIDEO_FORMAT_FPS 5.0
 
 #define INPUT_AUDIO_FORMAT_BPS 1
-#define INPUT_AUDIO_FORMAT_SAMPLE_RATE 16000
+#define INPUT_AUDIO_FORMAT_SAMPLE_RATE 48000
 #define INPUT_AUDIO_FORMAT_CHANNELS 1
 #define INPUT_AUDIO_FORMAT_CODEC AC_MULAW
 
@@ -27,10 +27,10 @@
 #define OUTPUT_VIDEO_PORT 6004
 #define OUTPUT_AUDIO_PORT 6006
 
-#define OUTPUT_VIDEO_FORMAT_FPS 25.0
+#define OUTPUT_VIDEO_FORMAT_FPS 5.0
 
 #define OUTPUT_AUDIO_FORMAT_BPS 1
-#define OUTPUT_AUDIO_FORMAT_SAMPLE_RATE 32000
+#define OUTPUT_AUDIO_FORMAT_SAMPLE_RATE 48000
 #define OUTPUT_AUDIO_FORMAT_CHANNELS 1
 #define OUTPUT_AUDIO_FORMAT_CODEC AC_MULAW
 
@@ -73,10 +73,8 @@ static void video_frame_forward(stream_data_t *src, stream_data_t *dst)
 static void audio_frame_forward(stream_data_t *src, stream_data_t *dst)
 {
     audio_frame2 *in_frame, *out_frame;
-    in_frame = cq_get_front(src->audio->decoded_cq);
-    if (in_frame != NULL) {
-        out_frame = cq_get_rear(dst->audio->decoded_cq);
-        if (out_frame != NULL) {
+    if ((in_frame = cq_get_front(src->audio->decoded_cq)) != NULL) {
+        if ((out_frame = cq_get_rear(dst->audio->decoded_cq)) != NULL) {
             out_frame->bps = in_frame->bps;
             out_frame->sample_rate = in_frame->sample_rate;
             out_frame->ch_count = in_frame->ch_count;
@@ -152,8 +150,8 @@ int main()
             OUTPUT_VIDEO_FORMAT_FPS, "Output video stream");
     add_participant_stream(stream,
             init_participant(0, OUTPUT, OUTPUT_IP, OUTPUT_VIDEO_PORT));
-    set_video_frame_cq(stream->video->decoded_frames, RAW, 1280, 534);
-    set_video_frame_cq(stream->video->coded_frames, H264, 1280, 534);
+    set_video_frame_cq(stream->video->decoded_frames, RAW, 1280, 544);
+    set_video_frame_cq(stream->video->coded_frames, H264, 1280, 544);
     add_stream(transmitter->video_stream_list, stream);
     init_encoder(stream->video);
     // Audio stream with a participant

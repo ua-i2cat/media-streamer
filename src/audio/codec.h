@@ -84,6 +84,8 @@ extern int audio_codec_info_len;
 
 struct audio_codec_state;
 
+void audio_codec_state_set_out(struct audio_codec_state *state, audio_frame2 *frame);
+
 struct audio_codec_state *audio_codec_init(audio_codec_t audio_codec, audio_codec_direction_t);
 struct audio_codec_state *audio_codec_reconfigure(struct audio_codec_state *old,
                 audio_codec_t audio_codec, audio_codec_direction_t);

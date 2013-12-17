@@ -113,6 +113,11 @@ struct audio_codec_state {
         audio_frame2 *out;
 };
 
+void audio_codec_state_set_out(struct audio_codec_state *state, audio_frame2 *frame)
+{
+    state->out = frame;
+}
+
 void list_audio_codecs(void) {
         printf("Supported audio codecs:\n");
         for(int i = 0; i < audio_codec_info_len; ++i) {

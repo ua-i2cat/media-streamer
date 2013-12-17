@@ -55,9 +55,10 @@ static void *decoder_thread(void* arg)
     audio_frame2 *frame, *output_frame, *normal;
 
     normal = audio_frame2_init();
-    bool normalized;
 
     while(ap->run) {
+        //TODO: set non magic values on usleep (calculated for performance depnding on actual resources)
+        usleep(100);
         if(ap->coded_cq->level != CIRCULAR_QUEUE_EMPTY) {
             // TODO: Channel muxing
 
@@ -66,28 +67,32 @@ static void *decoder_thread(void* arg)
 
                 // Get the place to save the resampled frame (last step).
                 if ((output_frame = (audio_frame2 *)cq_get_rear(ap->decoded_cq)) != NULL) {
-                    resampler_set_resampled(ap->resampler, output_frame);
 
                     // TODO: always get the same size, not only when the frame is too big.
-                    normalized = false;
                     if (frame->data_len[0] > ap->internal_frame_size) {
                         normalize_extract(frame, normal, ap->internal_frame_size);
-                        normalized = true;
-                    }
-
-                    // Decompress audio_frame2
-                    if (normalized) {
-                        frame = audio_codec_decompress(ap->compression_config, normal);
+                        if (resampler_compare_sample_rate(ap->resampler, frame->sample_rate)) {
+                            audio_codec_state_set_out(ap->compression_config, output_frame);
+                            frame = audio_codec_decompress(ap->compression_config, normal);
+                        }
+                        else {
+                            resampler_set_resampled(ap->resampler, output_frame);
+                            frame = audio_codec_decompress(ap->compression_config, normal);
+                            frame = resampler_resample(ap->resampler, frame);
+                        }
                     }
                     else {
-                        frame = audio_codec_decompress(ap->compression_config, frame);
+                        if (resampler_compare_sample_rate(ap->resampler, frame->sample_rate)) {
+                            audio_codec_state_set_out(ap->compression_config, output_frame);
+                            frame = audio_codec_decompress(ap->compression_config, frame);
+                        }
+                        else {
+                            resampler_set_resampled(ap->resampler, output_frame);
+                            frame = audio_codec_decompress(ap->compression_config, frame);
+                            frame = resampler_resample(ap->resampler, frame);
+                        }
                         cq_remove_bag(ap->coded_cq);
                     }
-
-                    // Resample audio_frame2
-                    frame = resampler_resample(ap->resampler, frame);
-
-                    // Commit the cq changes.
                     cq_add_bag(ap->decoded_cq);
                 }
             }
@@ -110,6 +115,8 @@ static void *encoder_thread(void *arg)
     resampler_set_resampled(ap->resampler, tmp_frame);
 
     while (ap->run) {
+        //TODO: set non magic values on usleep (calculated for performance depnding on actual resources)
+        usleep(100);
         if(ap->decoded_cq->level != CIRCULAR_QUEUE_EMPTY) {
             // TODO: Channel muxing
 

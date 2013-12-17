@@ -33,6 +33,9 @@ void resampler_set_resampled(struct resampler *s, audio_frame2 *frame)
     s->resampled = frame;
 }
 
+int resampler_compare_sample_rate(struct resampler *s, int rate) {
+    return (s->resample_to == rate);
+}
 
 struct resampler *resampler_init(int dst_sample_rate)
 {

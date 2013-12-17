@@ -12,6 +12,7 @@ struct resampler;
 // Used by UG_modules project
 struct resampler *resampler_prepare(int dst_sample_rate);
 void resampler_set_resampled(struct resampler *s, audio_frame2 *frame);
+int resampler_compare_sample_rate(struct resampler *s, int rate);
 
 struct resampler *resampler_init(int dst_sample_rate);
 void              resampler_done(struct resampler *);
