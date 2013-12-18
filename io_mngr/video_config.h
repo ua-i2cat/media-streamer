@@ -1,5 +1,5 @@
 /*
- *  audio_config.h - Compile time audio configurations.
+ *  video_config.h - Compile time video configurations.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -22,29 +22,20 @@
 
 /**
  * @file audio_config.h
- * @brief Compile time audio configurations like internal format and queue size.
+ * @brief Compile time video configurations like internal format and queue size.
  */
 
-#ifndef __AUDIO_CONFIG_H__ 
-#define __AUDIO_CONFIG_H__ 
+#ifndef __VIDEO_CONFIG_H__ 
+#define __VIDEO_CONFIG_H__ 
 
-#include "audio.h"
+#define VIDEO_CIRCULAR_QUEUE_SIZE 16
 
-#define AUDIO_CIRCULAR_QUEUE_SIZE 16
+#define PIXEL_FORMAT RGB
+#define DEFAULT_FPS 25
 
-#define AUDIO_INTERNAL_SIZE 300
+#define MAX_WIDTH 1920
+#define MAX_HEIGHT 1080
+#define MAX_COUNTER 255
 
-#define AUDIO_INTERNAL_BPS 2
-#define AUDIO_INTERNAL_SAMPLE_RATE 48000
-#define AUDIO_INTERNAL_CHANNELS 1
-#define AUDIO_INTERNAL_CODEC AC_PCM
-
-#define AUDIO_DEFAULT_SIZE 1200
-
-#define AUDIO_DEFAULT_BPS 1
-#define AUDIO_DEFAULT_SAMPLE_RATE 8000
-#define AUDIO_DEFAULT_CHANNELS 1
-#define AUDIO_DEFAULT_CODEC AC_MULAW
-
-#endif //__AUDIO_CONFIG_H__ 
+#endif //__VIDEO_CONFIG_H__ 
 

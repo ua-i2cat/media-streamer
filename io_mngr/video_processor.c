@@ -30,12 +30,10 @@
 #include "video_codec.h"
 #include "video_compress.h"
 #include "video_frame.h"
+#include "video_config.h"
 #include "tv.h"
 #include "module.h"
 #include "debug.h"
-
-#define PIXEL_FORMAT RGB
-#define DEFAULT_FPS 25
 
 // private functions
 void *decoder_th(void* data);
@@ -58,7 +56,7 @@ int reconf_video_frame(video_data_frame_t *frame, struct video_frame *enc_frame,
 
 void *encoder_routine(void *arg)
 {
-    video_data_t *video = (video_data_t *)arg;
+    video_processor_t *video = (video_processor_t *)arg;
     encoder_thread_t *encoder = video->encoder;
     video_data_frame_t* decoded_frame;
     video_data_frame_t* coded_frame;
@@ -131,7 +129,7 @@ void *encoder_routine(void *arg)
     pthread_exit((void *)NULL);
 }
 
-encoder_thread_t *init_encoder(video_data_t *data)
+encoder_thread_t *init_encoder(video_processor_t *data)
 {
     if (data->encoder != NULL) {
         debug_msg("init_encoder: encoder already initialized");
@@ -160,20 +158,20 @@ encoder_thread_t *init_encoder(video_data_t *data)
     return encoder;
 }
 
-void destroy_encoder(video_data_t *data)
+void destroy_encoder(video_processor_t *data)
 {
     pthread_join(data->encoder->thread, NULL);
     free(data->encoder);
 }
 
-void stop_encoder(video_data_t *data)
+void stop_encoder(video_processor_t *data)
 {
     data->encoder->run = FALSE;
     destroy_encoder(data);
 }
 
 
-decoder_thread_t *init_decoder(video_data_t *data){
+decoder_thread_t *init_decoder(video_processor_t *data){
 	decoder_thread_t *decoder;
 	struct video_desc des;
     video_data_frame_t *coded_frame;
@@ -228,7 +226,7 @@ decoder_thread_t *init_decoder(video_data_t *data){
 }
 
 void *decoder_th(void* data){
-    video_data_t *v_data = (video_data_t *) data;
+    video_processor_t *v_data = (video_processor_t *) data;
     
     video_data_frame_t* coded_frame;
     video_data_frame_t* decoded_frame;
@@ -264,7 +262,7 @@ void *decoder_th(void* data){
     pthread_exit((void *)NULL);    
 }
 
-void start_decoder(video_data_t *v_data){
+void start_decoder(video_processor_t *v_data){
     assert(v_data->decoder == NULL);
   
     v_data->decoder = init_decoder(v_data);
@@ -283,7 +281,7 @@ void destroy_decoder(decoder_thread_t *decoder){
     free(decoder);
 }
 
-void stop_decoder(video_data_t *data){
+void stop_decoder(video_processor_t *data){
     if (data->decoder == NULL)
         return;
 
@@ -294,8 +292,8 @@ void stop_decoder(video_data_t *data){
     destroy_decoder(data->decoder);
 }
 
-video_data_t *init_video_data(role_t type, float fps){
-    video_data_t *data = malloc(sizeof(video_data_t));
+video_processor_t *init_video_data(role_t type, float fps){
+    video_processor_t *data = malloc(sizeof(video_processor_t));
 
     //TODO: get rid of magic numbers
     data->decoded_frames = init_video_frame_cq(2);
@@ -311,7 +309,7 @@ video_data_t *init_video_data(role_t type, float fps){
     return data;
 }
 
-int destroy_video_data(video_data_t *data){
+int destroy_video_data(video_processor_t *data){
 
     if (data->type == DECODER && data->decoder != NULL){
         stop_decoder(data);
@@ -328,6 +326,27 @@ int destroy_video_data(video_data_t *data){
     }
 
     free(data);
+
+    return TRUE;
+}
+
+int set_video_data_frame(video_data_frame_t *frame, codec_t codec, uint32_t width, uint32_t height){
+    frame->codec = codec;
+    frame->width = width;
+    frame->height = height;
+    
+    if (width == 0 || height == 0){
+        width = MAX_WIDTH;
+        height = MAX_HEIGHT;
+    }
+    
+    frame->buffer_len = width*height*3; 
+    frame->buffer = realloc(frame->buffer, frame->buffer_len);
+
+    if (frame->buffer == NULL) {
+        error_msg("set_stream_video_data: malloc error");
+        return FALSE;
+    }
 
     return TRUE;
 }

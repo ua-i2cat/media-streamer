@@ -39,9 +39,9 @@ typedef struct video_frame_cq {
     uint8_t remove_counter;
     float delay;
     float fps;
-    uint8_t put_counter;
-    uint32_t fps_sum;
-    uint32_t last_frame_time;
+    uint8_t put_counter;        // stats
+    uint32_t fps_sum;           // stats
+    uint32_t last_frame_time;   // stats
 	video_data_frame_t **frames;
 } video_frame_cq_t;
 

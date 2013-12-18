@@ -267,7 +267,7 @@ audio_processor_t *ap_init(role_t role)
     // Decoded circular queue
     init_data.chan = AUDIO_INTERNAL_CHANNELS;
     init_data.size = (AUDIO_INTERNAL_SAMPLE_RATE * AUDIO_INTERNAL_BPS);
-    ap->decoded_cq = cq_init(CIRCULAR_QUEUE_SIZE, bag_init, bag_destroy, &init_data);
+    ap->decoded_cq = cq_init(AUDIO_CIRCULAR_QUEUE_SIZE, bag_init, bag_destroy, &init_data);
 
     switch(ap->role) {
         case DECODER:
@@ -275,14 +275,14 @@ audio_processor_t *ap_init(role_t role)
             // Coded circular queue
             init_data.chan = AUDIO_DEFAULT_CHANNELS;
             init_data.size = (AUDIO_DEFAULT_SAMPLE_RATE * AUDIO_DEFAULT_BPS);
-            ap->coded_cq = cq_init(CIRCULAR_QUEUE_SIZE, bag_init, bag_destroy, &init_data);
+            ap->coded_cq = cq_init(AUDIO_CIRCULAR_QUEUE_SIZE, bag_init, bag_destroy, &init_data);
             break;
         case ENCODER:
             ap->worker = encoder_thread;
             // Coded circular queue
             init_data.chan = AUDIO_DEFAULT_CHANNELS;
             init_data.size = AUDIO_DEFAULT_SIZE;
-            ap->coded_cq = cq_init(CIRCULAR_QUEUE_SIZE, bag_init, bag_destroy, &init_data);
+            ap->coded_cq = cq_init(AUDIO_CIRCULAR_QUEUE_SIZE, bag_init, bag_destroy, &init_data);
             break;
         default:
             break;

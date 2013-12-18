@@ -59,7 +59,7 @@ typedef struct stream_data {
     struct stream_data *next;
     union {
         audio_processor_t *audio;
-        video_data_t *video;
+        video_processor_t *video;
     };
 } stream_data_t;
 

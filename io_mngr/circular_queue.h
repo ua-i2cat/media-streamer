@@ -19,6 +19,7 @@
  *
  *  Authors:  Jordi "Txor" Casas Ríos <jordi.casas@i2cat.net>,
  *            David Cassany <david.cassany@i2cat.net>
+ *            Marc Palau <marc.palau@i2cat.net>
  */
 
 /**

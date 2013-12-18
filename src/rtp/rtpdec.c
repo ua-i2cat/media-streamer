@@ -8,181 +8,181 @@
 #include "rtp/rtp_callback.h"
 #include "rtp/rtpdec.h"
 #include "utils/h264_stream.h"
-#include "video_data_frame.h"
+//#include "video_data_frame.h"
 
 static const uint8_t start_sequence[] = { 0, 0, 0, 1 };
 
 int fill_coded_frame_from_sps(video_data_frame_t *rx_data, unsigned char *data, int *data_len);
 
 int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
-	rtp_packet *pckt = NULL;
-	struct coded_data *orig = cdata;
+    rtp_packet *pckt = NULL;
+    struct coded_data *orig = cdata;
 
-	uint8_t nal;
-	uint8_t type;
-	uint8_t nri;
+    uint8_t nal;
+    uint8_t type;
+    uint8_t nri;
 
-	int pass;
-	int total_length = 0;
+    int pass;
+    int total_length = 0;
 
-	unsigned char *dst = NULL;
-	int src_len;
+    unsigned char *dst = NULL;
+    int src_len;
 
-	video_data_frame_t *frame = (video_data_frame_t *) rx_data;
+    video_data_frame_t *frame = (video_data_frame_t *) rx_data;
 
-	for (pass = 0; pass < 2; pass++) {
+    for (pass = 0; pass < 2; pass++) {
 
-		if (pass > 0) {
-			cdata = orig;
-			frame->buffer_len = total_length;
-			dst = frame->buffer + total_length;
+        if (pass > 0) {
+            cdata = orig;
+            frame->buffer_len = total_length;
+            dst = frame->buffer + total_length;
             frame->frame_type = BFRAME;
-		}
+        }
 
-		while (cdata != NULL) {
-			pckt = cdata->data;
+        while (cdata != NULL) {
+            pckt = cdata->data;
 
-			if (pckt->pt != PT_H264) {
-				error_msg("Wrong Payload type: %u\n", pckt->pt);
-				return FALSE;
-			}
+            if (pckt->pt != PT_H264) {
+                error_msg("Wrong Payload type: %u\n", pckt->pt);
+                return FALSE;
+            }
 
-			nal = (uint8_t) pckt->data[0];
-			type = nal & 0x1f;
-			nri = nal & 0x60;
+            nal = (uint8_t) pckt->data[0];
+            type = nal & 0x1f;
+            nri = nal & 0x60;
 
             if (type == 7){
                 fill_coded_frame_from_sps(frame, (unsigned char*) pckt->data, &pckt->data_len);
             }
-			
-			if (type >= 1 && type <= 23) {
+
+            if (type >= 1 && type <= 23) {
                 if(frame->frame_type != INTRA && type == 5){
                     frame->frame_type = INTRA;
                 } else if (frame->frame_type == BFRAME && nri != 0){
                     frame->frame_type = OTHER;
                 }
 
-				type = 1;
-			}
+                type = 1;
+            }
 
-			const uint8_t *src = NULL;
+            const uint8_t *src = NULL;
 
-			switch (type) {
-			case 0:
-			case 1:
-				if (pass == 0) {
-					debug_msg("NAL type 1\n");
-					total_length += sizeof(start_sequence) + pckt->data_len;
-				} else {
-					dst -= pckt->data_len + sizeof(start_sequence);
-					memcpy(dst, start_sequence, sizeof(start_sequence));
-					memcpy(dst + sizeof(start_sequence), pckt->data, pckt->data_len);
-				}
-				break;
-			case 24:
-				src = (const uint8_t *) pckt->data;
-				src_len = pckt->data_len;
+            switch (type) {
+                case 0:
+                case 1:
+                    if (pass == 0) {
+                        debug_msg("NAL type 1\n");
+                        total_length += sizeof(start_sequence) + pckt->data_len;
+                    } else {
+                        dst -= pckt->data_len + sizeof(start_sequence);
+                        memcpy(dst, start_sequence, sizeof(start_sequence));
+                        memcpy(dst + sizeof(start_sequence), pckt->data, pckt->data_len);
+                    }
+                    break;
+                case 24:
+                    src = (const uint8_t *) pckt->data;
+                    src_len = pckt->data_len;
 
-				src++;
-				src_len--;
+                    src++;
+                    src_len--;
 
-				while (src_len > 2) {
-					//TODO: Not properly tested
-					//TODO: bframes and iframes detection
-					uint16_t nal_size;
-					memcpy(&nal_size, src, sizeof(uint16_t));
+                    while (src_len > 2) {
+                        //TODO: Not properly tested
+                        //TODO: bframes and iframes detection
+                        uint16_t nal_size;
+                        memcpy(&nal_size, src, sizeof(uint16_t));
 
-					src += 2;
-					src_len -= 2;
+                        src += 2;
+                        src_len -= 2;
 
-					if (nal_size <= src_len) {
-						if (pass == 0) {
-							total_length += sizeof(start_sequence) + nal_size;
-						} else {
-							dst -= nal_size + sizeof(start_sequence);
-							memcpy(dst, start_sequence, sizeof(start_sequence));
-							memcpy(dst + sizeof(start_sequence), src, nal_size);
-						}
-					} else {
-						error_msg("NAL size exceeds length: %u %d\n", nal_size, src_len);
-						return FALSE;
-					}
-					src += nal_size;
-					src_len -= nal_size;
+                        if (nal_size <= src_len) {
+                            if (pass == 0) {
+                                total_length += sizeof(start_sequence) + nal_size;
+                            } else {
+                                dst -= nal_size + sizeof(start_sequence);
+                                memcpy(dst, start_sequence, sizeof(start_sequence));
+                                memcpy(dst + sizeof(start_sequence), src, nal_size);
+                            }
+                        } else {
+                            error_msg("NAL size exceeds length: %u %d\n", nal_size, src_len);
+                            return FALSE;
+                        }
+                        src += nal_size;
+                        src_len -= nal_size;
 
-					if (src_len < 0) {
-						error_msg("Consumed more bytes than we got! (%d)\n", src_len);
-						return FALSE;
-					}
-				}
-				break;
+                        if (src_len < 0) {
+                            error_msg("Consumed more bytes than we got! (%d)\n", src_len);
+                            return FALSE;
+                        }
+                    }
+                    break;
 
-			case 25:
-			case 26:
-			case 27:
-			case 29:
-				error_msg("Unhandled NAL type\n");
-				return FALSE;
-			case 28:
-				src = (const uint8_t *) pckt->data;
-				src_len = pckt->data_len;
+                case 25:
+                case 26:
+                case 27:
+                case 29:
+                    error_msg("Unhandled NAL type\n");
+                    return FALSE;
+                case 28:
+                    src = (const uint8_t *) pckt->data;
+                    src_len = pckt->data_len;
 
-				src++;
-				src_len--;
+                    src++;
+                    src_len--;
 
-				if (src_len > 1) {
-					uint8_t fu_header = *src;
-					uint8_t start_bit = fu_header >> 7;
-					//uint8_t end_bit 		= (fu_header & 0x40) >> 6;
-					uint8_t nal_type = fu_header & 0x1f;
-					uint8_t reconstructed_nal;
+                    if (src_len > 1) {
+                        uint8_t fu_header = *src;
+                        uint8_t start_bit = fu_header >> 7;
+                        //uint8_t end_bit 		= (fu_header & 0x40) >> 6;
+                        uint8_t nal_type = fu_header & 0x1f;
+                        uint8_t reconstructed_nal;
 
-                    if(frame->frame_type != INTRA && nal_type == 5){
-                        frame->frame_type = INTRA;
-                    } else if (frame->frame_type == BFRAME && nri != 0){
-                        frame->frame_type = OTHER;
-                    } 
+                        if(frame->frame_type != INTRA && nal_type == 5){
+                            frame->frame_type = INTRA;
+                        } else if (frame->frame_type == BFRAME && nri != 0){
+                            frame->frame_type = OTHER;
+                        } 
 
-					// Reconstruct this packet's true nal; only the data follows.
-					/* The original nal forbidden bit and NRI are stored in this
-					 * packet's nal. */
-					reconstructed_nal = nal & 0xe0;
-					reconstructed_nal |= nal_type;
+                        // Reconstruct this packet's true nal; only the data follows.
+                        /* The original nal forbidden bit and NRI are stored in this
+                         * packet's nal. */
+                        reconstructed_nal = nal & 0xe0;
+                        reconstructed_nal |= nal_type;
 
-					// skip the fu_header
-					src++;
-					src_len--;
+                        // skip the fu_header
+                        src++;
+                        src_len--;
 
-					if (pass == 0) {
-						if (start_bit) {
-							total_length += sizeof(start_sequence) + sizeof(reconstructed_nal) + src_len;
-						} else {
-							total_length += src_len;
-						}
-					} else {
-						if (start_bit) {
-							dst -= sizeof(start_sequence) + sizeof(reconstructed_nal) + src_len;
-							memcpy(dst, start_sequence, sizeof(start_sequence));
-							memcpy(dst + sizeof(start_sequence), &reconstructed_nal, sizeof(reconstructed_nal));
-							memcpy(dst + sizeof(start_sequence) + sizeof(reconstructed_nal), src, src_len);
-						} else {
-							dst -= src_len;
-							memcpy(dst, src, src_len);
-						}
-					}
-				} else {
-					error_msg("Too short data for FU-A H264 RTP packet\n");
-					return FALSE;
-				}
-				break;
-			default:
-				error_msg("Unknown NAL type\n");
-				return FALSE;
-			}
-			cdata = cdata->nxt;
-		}
-	}
-	return TRUE;
+                        if (pass == 0) {
+                            if (start_bit) {
+                                total_length += sizeof(start_sequence) + sizeof(reconstructed_nal) + src_len;
+                            } else {
+                                total_length += src_len;
+                            }
+                        } else {
+                            if (start_bit) {
+                                dst -= sizeof(start_sequence) + sizeof(reconstructed_nal) + src_len;
+                                memcpy(dst, start_sequence, sizeof(start_sequence));
+                                memcpy(dst + sizeof(start_sequence), &reconstructed_nal, sizeof(reconstructed_nal));
+                                memcpy(dst + sizeof(start_sequence) + sizeof(reconstructed_nal), src, src_len);
+                            } else {
+                                dst -= src_len;
+                                memcpy(dst, src, src_len);
+                            }
+                        }
+                    } else {
+                        error_msg("Too short data for FU-A H264 RTP packet\n");
+                        return FALSE;
+                    }
+                    break;
+                default:
+                    error_msg("Unknown NAL type\n");
+                    return FALSE;
+            }
+            cdata = cdata->nxt;
+        }
+    }
+    return TRUE;
 }
 
 
@@ -190,224 +190,224 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
 
 int decode_frame(struct coded_data *cdata, void *rx_data)
 {
-        //struct vcodec_state *pbuf_data = (struct vcodec_state *) decode_data;
-        //struct state_decoder *decoder = pbuf_data->decoder;
-        //struct video_frame *frame = decoder->frame;
+    //struct vcodec_state *pbuf_data = (struct vcodec_state *) decode_data;
+    //struct state_decoder *decoder = pbuf_data->decoder;
+    //struct video_frame *frame = decoder->frame;
 
-        int ret = TRUE;
-        //uint32_t offset;
-        int len;
-        rtp_packet *pckt = NULL;
-        //unsigned char *source;
-        char *data;
-        uint32_t data_pos;
-        //int prints=0;
-        //struct tile *tile = NULL;
-        uint32_t tmp;
-        uint32_t substream;
+    int ret = TRUE;
+    //uint32_t offset;
+    int len;
+    rtp_packet *pckt = NULL;
+    //unsigned char *source;
+    char *data;
+    uint32_t data_pos;
+    //int prints=0;
+    //struct tile *tile = NULL;
+    uint32_t tmp;
+    uint32_t substream;
 
-        //int i;
-        //struct linked_list *pckt_list[MAX_SUBSTREAMS];
-        // the following is just LDGM related optimalization - normally we fill up
-        // allocated buffers when we have compressed data. But in case of LDGM, there
-        // is just the LDGM buffer present, so we point to it instead to copying
-        video_data_frame_t *frame = (video_data_frame_t *) rx_data; // for FEC or compressed data
-       // for (i = 0; i < (int) MAX_SUBSTREAMS; ++i) {
-       //         //pckt_list[i] = ll_create();
-       // 		buffers->buffer_len[i] = 0;
-       //         buffers->buffer_num[i] = 0;
-       //         buffers->frame_buffer[i] = NULL;
-       // }
+    //int i;
+    //struct linked_list *pckt_list[MAX_SUBSTREAMS];
+    // the following is just LDGM related optimalization - normally we fill up
+    // allocated buffers when we have compressed data. But in case of LDGM, there
+    // is just the LDGM buffer present, so we point to it instead to copying
+    video_data_frame_t *frame = (video_data_frame_t *) rx_data; // for FEC or compressed data
+    // for (i = 0; i < (int) MAX_SUBSTREAMS; ++i) {
+    //         //pckt_list[i] = ll_create();
+    // 		buffers->buffer_len[i] = 0;
+    //         buffers->buffer_num[i] = 0;
+    //         buffers->frame_buffer[i] = NULL;
+    // }
 
-        //perf_record(UVP_DECODEFRAME, frame);
+    //perf_record(UVP_DECODEFRAME, frame);
 
-        // We have no framebuffer assigned, exitting
-        //if(!decoder->display) {
-        //        return FALSE;
-        //}
-        
-        //int k = 0, m = 0, c = 0, seed = 0; // LDGM
-        int buffer_length;
+    // We have no framebuffer assigned, exitting
+    //if(!decoder->display) {
+    //        return FALSE;
+    //}
 
-        // first, dispatch "messages"
-        /*if(decoder->set_fps) {
-                struct vcodec_message *msg = malloc(sizeof(struct vcodec_message));
-                struct fps_changed_message *data = malloc(sizeof(struct fps_changed_message));
-                msg->type = FPS_CHANGED;
-                msg->data = data;
-                data->val = decoder->set_fps;
-                data->interframe_codec = is_codec_interframe(decoder->codec);
-                simple_linked_list_append(pbuf_data->messages, msg);
-                decoder->set_fps = 0;
-        }*/
+    //int k = 0, m = 0, c = 0, seed = 0; // LDGM
+    int buffer_length;
 
-        int pt;
-        //bool buffer_swapped = false;
+    // first, dispatch "messages"
+    /*if(decoder->set_fps) {
+      struct vcodec_message *msg = malloc(sizeof(struct vcodec_message));
+      struct fps_changed_message *data = malloc(sizeof(struct fps_changed_message));
+      msg->type = FPS_CHANGED;
+      msg->data = data;
+      data->val = decoder->set_fps;
+      data->interframe_codec = is_codec_interframe(decoder->codec);
+      simple_linked_list_append(pbuf_data->messages, msg);
+      decoder->set_fps = 0;
+      }*/
 
-        while (cdata != NULL) {
-                uint32_t *hdr;
-                pckt = cdata->data;
+    int pt;
+    //bool buffer_swapped = false;
 
-                pt = pckt->pt;
-                hdr = (uint32_t *)(void *) pckt->data;
-                data_pos = ntohl(hdr[1]);
-                tmp = ntohl(hdr[0]);
+    while (cdata != NULL) {
+        uint32_t *hdr;
+        pckt = cdata->data;
 
-                substream = tmp >> 22;
-                //buffer_number = tmp & 0x3ffff;
-                buffer_length = ntohl(hdr[2]);
+        pt = pckt->pt;
+        hdr = (uint32_t *)(void *) pckt->data;
+        data_pos = ntohl(hdr[1]);
+        tmp = ntohl(hdr[0]);
 
-                //printf("[DECODER] substream = %u\n", substream);
+        substream = tmp >> 22;
+        //buffer_number = tmp & 0x3ffff;
+        buffer_length = ntohl(hdr[2]);
 
-                if(pt == PT_VIDEO) {
-                        len = pckt->data_len - sizeof(video_payload_hdr_t);
-                        data = (char *) hdr + sizeof(video_payload_hdr_t);
+        //printf("[DECODER] substream = %u\n", substream);
 
-                        //printf("[DECODER]  packet data (first byte) = %x and total length = %d\n",data[0],len);
-//                } else if (pt == PT_VIDEO_LDGM) {
-//                        len = pckt->data_len - sizeof(ldgm_video_payload_hdr_t);
-//                        data = (char *) hdr + sizeof(ldgm_video_payload_hdr_t);
-//
-//                        tmp = ntohl(hdr[3]);
-//                        k = tmp >> 19;
-//                        m = 0x1fff & (tmp >> 6);
-//                        c = 0x3f & tmp;
-//                        seed = ntohl(hdr[4]);
-                } else {
-                        fprintf(stderr, "[decoder] Unknown packet type: %d.\n", pckt->pt);
-                        //exit_uv(1);i
-                        printf("unknown packet type\n");
-                        ret = FALSE;
-                        goto cleanup;
-                }
+        if(pt == PT_VIDEO) {
+            len = pckt->data_len - sizeof(video_payload_hdr_t);
+            data = (char *) hdr + sizeof(video_payload_hdr_t);
 
-                if(substream >= MAX_SUBSTREAMS) {
-                        fprintf(stderr, "[decoder] received substream ID %d. Expecting at most %d substreams. Did you set -M option?\n",
-                                        substream, MAX_SUBSTREAMS);
-                        // the guess is valid - we start with highest substream number (anytime - since it holds a m-bit)
-                        // in next iterations, index is valid
-                        /*if(substream == 1 || substream == 3) {
-                                fprintf(stderr, "[decoder] Guessing mode: ");
-                                if(substream == 1) {
-                                        decoder_set_video_mode(decoder, VIDEO_STEREO);
-                                } else {
-                                        decoder_set_video_mode(decoder, VIDEO_4K);
-                                }
-                                decoder->received_vid_desc.width = 0; // just for sure, that we reconfigure in next iteration
-                                fprintf(stderr, "%s\n", get_video_mode_description(decoder->video_mode));
-                        } else {
-                                exit_uv(1);
-                        }*/
-                        // we need skip this frame (variables are illegal in this iteration
-                        // and in case that we got unrecognized number of substreams - exit
-                        printf("wrong maxsubstreams\n");
-                        ret = FALSE;
-                        goto cleanup;
-                }
+            //printf("[DECODER]  packet data (first byte) = %x and total length = %d\n",data[0],len);
+            //                } else if (pt == PT_VIDEO_LDGM) {
+            //                        len = pckt->data_len - sizeof(ldgm_video_payload_hdr_t);
+            //                        data = (char *) hdr + sizeof(ldgm_video_payload_hdr_t);
+            //
+            //                        tmp = ntohl(hdr[3]);
+            //                        k = tmp >> 19;
+            //                        m = 0x1fff & (tmp >> 6);
+            //                        c = 0x3f & tmp;
+            //                        seed = ntohl(hdr[4]);
+    } else {
+        fprintf(stderr, "[decoder] Unknown packet type: %d.\n", pckt->pt);
+        //exit_uv(1);i
+        printf("unknown packet type\n");
+        ret = FALSE;
+        goto cleanup;
+    }
 
-                //if(!buffers->frame_buffer[substream]) {
+    if(substream >= MAX_SUBSTREAMS) {
+        fprintf(stderr, "[decoder] received substream ID %d. Expecting at most %d substreams. Did you set -M option?\n",
+                substream, MAX_SUBSTREAMS);
+        // the guess is valid - we start with highest substream number (anytime - since it holds a m-bit)
+        // in next iterations, index is valid
+        /*if(substream == 1 || substream == 3) {
+          fprintf(stderr, "[decoder] Guessing mode: ");
+          if(substream == 1) {
+          decoder_set_video_mode(decoder, VIDEO_STEREO);
+          } else {
+          decoder_set_video_mode(decoder, VIDEO_4K);
+          }
+          decoder->received_vid_desc.width = 0; // just for sure, that we reconfigure in next iteration
+          fprintf(stderr, "%s\n", get_video_mode_description(decoder->video_mode));
+          } else {
+          exit_uv(1);
+          }*/
+        // we need skip this frame (variables are illegal in this iteration
+        // and in case that we got unrecognized number of substreams - exit
+        printf("wrong maxsubstreams\n");
+        ret = FALSE;
+        goto cleanup;
+    }
 
-                	//TODO SHOULD BE MALLOCed OUTSIDE
-                	//buffers->frame_buffer[substream] = (char *) malloc(buffer_length);
-               // }
+    //if(!buffers->frame_buffer[substream]) {
 
-              //  buffers->buffer_num = buffer_number;
-                frame->buffer_len = buffer_length;
+    //TODO SHOULD BE MALLOCed OUTSIDE
+    //buffers->frame_buffer[substream] = (char *) malloc(buffer_length);
+    // }
 
-                //printf("[DECODER] buffer_length = %d /  data_pos = %d /  len = %d /  first byte data = %x\n",buffer_length, data_pos,len,data[0]);
+    //  buffers->buffer_num = buffer_number;
+    frame->buffer_len = buffer_length;
 
-                //ll_insert(pckt_list[substream], data_pos, len);
-                
-                //if (pt == PT_VIDEO && decoder->decoder_type == LINE_DECODER) {
+    //printf("[DECODER] buffer_length = %d /  data_pos = %d /  len = %d /  first byte data = %x\n",buffer_length, data_pos,len,data[0]);
 
-		//} else { /* PT_VIDEO_LDGM or external decoder */
-               // if (pt == PT_VIDEO) {
-                        memcpy(frame->buffer + data_pos, (unsigned char*) data,len);
+    //ll_insert(pckt_list[substream], data_pos, len);
 
-               // }
-        //}
+    //if (pt == PT_VIDEO && decoder->decoder_type == LINE_DECODER) {
 
-                cdata = cdata->nxt;
-        }
+    //} else { /* PT_VIDEO_LDGM or external decoder */
+    // if (pt == PT_VIDEO) {
+    memcpy(frame->buffer + data_pos, (unsigned char*) data,len);
 
-        if(!pckt) {
-        		printf("no packet, dude!\n");
-                ret = FALSE;
-                goto cleanup;
-        }
+    // }
+    //}
 
-        assert(ret == TRUE);
+    cdata = cdata->nxt;
+    }
 
-        // format message
-	/*
-        struct ldgm_data *ldgm_data = malloc(sizeof(struct ldgm_data));
-        ldgm_data->buffer_len = malloc(sizeof(buffer_len));
-        ldgm_data->buffer_num = malloc(sizeof(buffer_num));
-        ldgm_data->recv_buffers = malloc(sizeof(recv_buffers));
-        ldgm_data->pckt_list = malloc(sizeof(pckt_list));
-        ldgm_data->k = k;
-        ldgm_data->m = m;
-        ldgm_data->c = c;
-        ldgm_data->seed = seed;
-        ldgm_data->substream_count = decoder->max_substreams;
-        ldgm_data->pt = pt;
-        ldgm_data->poisoned = false;
-        memcpy(ldgm_data->buffer_len, buffer_len, sizeof(buffer_len));
-        memcpy(ldgm_data->buffer_num, buffer_num, sizeof(buffer_num));
-        memcpy(ldgm_data->recv_buffers, recv_buffers, sizeof(recv_buffers));
-        memcpy(ldgm_data->pckt_list, pckt_list, sizeof(pckt_list));
+    if(!pckt) {
+        printf("no packet, dude!\n");
+        ret = FALSE;
+        goto cleanup;
+    }
 
-        pthread_mutex_lock(&decoder->lock);
-        {
-                if(decoder->ldgm_data && !decoder->slow) {
-                        fprintf(stderr, "Your computer is too SLOW to play this !!!\n");
-                        decoder->slow = true;
-                } else {
-                        decoder->slow = false;
-                }
+    assert(ret == TRUE);
 
-                while (decoder->ldgm_data) {
-                        pthread_cond_wagettimeofday(&curr_time, NULL);it(&decoder->ldgm_boss_cv, &decoder->lock);
-                }
+    // format message
+    /*
+       struct ldgm_data *ldgm_data = malloc(sizeof(struct ldgm_data));
+       ldgm_data->buffer_len = malloc(sizeof(buffer_len));
+       ldgm_data->buffer_num = malloc(sizeof(buffer_num));
+       ldgm_data->recv_buffers = malloc(sizeof(recv_buffers));
+       ldgm_data->pckt_list = malloc(sizeof(pckt_list));
+       ldgm_data->k = k;
+       ldgm_data->m = m;
+       ldgm_data->c = c;
+       ldgm_data->seed = seed;
+       ldgm_data->substream_count = decoder->max_substreams;
+       ldgm_data->pt = pt;
+       ldgm_data->poisoned = false;
+       memcpy(ldgm_data->buffer_len, buffer_len, sizeof(buffer_len));
+       memcpy(ldgm_data->buffer_num, buffer_num, sizeof(buffer_num));
+       memcpy(ldgm_data->recv_buffers, recv_buffers, sizeof(recv_buffers));
+       memcpy(ldgm_data->pckt_list, pckt_list, sizeof(pckt_list));
 
-                decoder->ldgm_data = ldgm_data;
+       pthread_mutex_lock(&decoder->lock);
+       {
+       if(decoder->ldgm_data && !decoder->slow) {
+       fprintf(stderr, "Your computer is too SLOW to play this !!!\n");
+       decoder->slow = true;
+       } else {
+       decoder->slow = false;
+       }
 
-                
-                pthread_cond_signal(&decoder->ldgm_worker_cv);
-        }
-        pthread_mutex_unlock(&decoder->lock);
-        
-        */
+       while (decoder->ldgm_data) {
+       pthread_cond_wagettimeofday(&curr_time, NULL);it(&decoder->ldgm_boss_cv, &decoder->lock);
+       }
+
+       decoder->ldgm_data = ldgm_data;
+
+
+       pthread_cond_signal(&decoder->ldgm_worker_cv);
+       }
+       pthread_mutex_unlock(&decoder->lock);
+
+     */
 
 cleanup:
-        ;
-        //unsigned int frame_size = 0;
+    ;
+    //unsigned int frame_size = 0;
 
-        /*for(i = 0; i < (int) (sizeof(pckt_list) / sizeof(struct linked_list *)); ++i) {
+    /*for(i = 0; i < (int) (sizeof(pckt_list) / sizeof(struct linked_list *)); ++i) {
 
-                if(ret != TRUE) {
-                        free(recv_buffers[i]);
-                        ll_destroy(pckt_list[i]);
-                }
+      if(ret != TRUE) {
+      free(recv_buffers[i]);
+      ll_destroy(pckt_list[i]);
+      }
 
-                frame_size += buffer_len[i];
-        }
+      frame_size += buffer_len[i];
+      }
 
-        pbuf_data->max_frame_size = max(pbuf_data->max_frame_size, frame_size);
+      pbuf_data->max_frame_size = max(pbuf_data->max_frame_size, frame_size);
 
-        if(ret) {
-                decoder->displayed++;
-                pbuf_data->decoded++;
-        } else {
-                decoder->dropped++;
-        }
+      if(ret) {
+      decoder->displayed++;
+      pbuf_data->decoded++;
+      } else {
+      decoder->dropped++;
+      }
 
-        if(decoder->displayed % 600 == 599) {
-                fprintf(stderr, "Decoder statistics: %lu displayed frames / %lu frames dropped (%lu corrupted)\n",
-                                decoder->displayed, decoder->dropped, decoder->corrupted);
-        }*/
+      if(decoder->displayed % 600 == 599) {
+      fprintf(stderr, "Decoder statistics: %lu displayed frames / %lu frames dropped (%lu corrupted)\n",
+      decoder->displayed, decoder->dropped, decoder->corrupted);
+      }*/
 
-        return ret;
+    return ret;
 }
 
 int fill_coded_frame_from_sps(video_data_frame_t *rx_data, unsigned char *data, int *data_len){

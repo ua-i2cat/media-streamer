@@ -1,5 +1,5 @@
 /*
- *  video_processor.c - Video stream processor
+ *  video_processor.h
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -24,18 +24,40 @@
  */
 
 /**
- * @file circular_queue.h
- * @brief Thread resistant circular queue composed of 'bags', there you can store generic objects.
+ * @file video_processor.h
+ * @brief Video processor contains two circular queues, a video configuration and encoder/decoder threads. It is responsible for transforming video to/from internal format.
+ *
  */
 
 #ifndef __VIDEO_PROCESSOR_H__
 #define __VIDEO_PROCESSOR_H__
 
-#include <semaphore.h>
-#include "config_unix.h"
-#include "types.h"
-#include "video_data_frame.h"
+//#include <semaphore.h>
+//#include "config_unix.h"
+//#include "types.h"
+//#include "video_data_frame.h"
+#include "circular_queue.h"
 #include "commons.h"
+
+// Video frame related data goes to video specific .h ???
+typedef enum frame_type {
+    INTRA,
+    BFRAME,
+    OTHER
+} frame_type_t;
+
+// Video frame related data goes to video specific .h ???
+typedef struct video_frame_data {
+    uint8_t *buffer;
+    uint32_t buffer_len;
+    uint32_t curr_seqno;
+    uint32_t width;
+    uint32_t height;
+    uint32_t media_time;
+    uint32_t seqno;
+    frame_type_t frame_type;
+    codec_t codec;
+} video_data_frame_t;
 
 typedef struct decoder_thread {
     pthread_t thread;
@@ -54,7 +76,7 @@ typedef struct encoder_thread {
     struct compress_state *cs;
 } encoder_thread_t;
 
-typedef struct video_data {
+typedef struct video_processor {
     role_t type;
     video_frame_cq_t *decoded_frames;
     video_frame_cq_t *coded_frames;
@@ -67,19 +89,19 @@ typedef struct video_data {
         struct encoder_thread *encoder;
         struct decoder_thread *decoder;
     };
-} video_data_t;
+} video_processor_t;
 
-decoder_thread_t *init_decoder(video_data_t *data);
-encoder_thread_t *init_encoder(video_data_t *data);
+decoder_thread_t *init_decoder(video_processor_t *data);
+encoder_thread_t *init_encoder(video_processor_t *data);
 
-void start_decoder(video_data_t *v_data);
+void start_decoder(video_processor_t *v_data);
 void destroy_decoder(decoder_thread_t *decoder);
-void destroy_encoder(video_data_t *data);
-void stop_decoder(video_data_t *data);
-void stop_encoder(video_data_t *data);
+void destroy_encoder(video_processor_t *data);
+void stop_decoder(video_processor_t *data);
+void stop_encoder(video_processor_t *data);
 
-video_data_t *init_video_data(role_t type, float fps);
-int destroy_video_data(video_data_t *data);
+video_processor_t *init_video_data(role_t type, float fps);
+int destroy_video_data(video_processor_t *data);
 
 #endif //__VIDEO_PROCESSOR_H__
 
