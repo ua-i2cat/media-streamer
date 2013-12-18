@@ -59,49 +59,80 @@ typedef struct video_frame_data {
     codec_t codec;
 } video_data_frame_t;
 
-typedef struct decoder_thread {
-    pthread_t thread;
-    uint8_t run;
-    struct state_decompress *sd;
-} decoder_thread_t;
+//typedef struct decoder_thread {
+//    pthread_t thread;
+//    uint8_t run;
+//    struct state_decompress *sd;
+//} decoder_thread_t;
 
-typedef struct encoder_thread {
-    pthread_t thread;
-    uint8_t run;
-
-    int index;
-
-    struct video_frame *frame;  // TODO: should be gone!
-                                // redundant with stream->coded_frame
-    struct compress_state *cs;
-} encoder_thread_t;
+//typedef struct encoder_thread {
+//    pthread_t thread;
+//    uint8_t run;
+//
+//    int index;
+//
+//    struct video_frame *frame;  // TODO: should be gone!
+//                                // redundant with stream->coded_frame
+//    struct compress_state *cs;
+//} encoder_thread_t;
 
 typedef struct video_processor {
     role_t type;
     video_frame_cq_t *decoded_frames;
     video_frame_cq_t *coded_frames;
+
+    // Video configurations
     uint32_t interlacing;  //TODO: fix this. It has to be UG enum
     uint32_t fps;       //TODO: fix this. It has to be UG enum
     uint32_t seqno;
     uint32_t bitrate;
     uint32_t lost_coded_frames;
-    union {
-        struct encoder_thread *encoder;
-        struct decoder_thread *decoder;
-    };
+
+    // Thread data
+    int run;
+    void *worker;
+    pthread_t thread;
 } video_processor_t;
 
-decoder_thread_t *init_decoder(video_processor_t *data);
-encoder_thread_t *init_encoder(video_processor_t *data);
+/**
+ * Initializes the video processor
+ * @param role Defines the role of this video processor (encoder or decoder)
+ * @return video_processor_t * if succeeded, NULL otherwise
+ */
+video_processor_t *vp_init(role_t role);
 
-void start_decoder(video_processor_t *v_data);
-void destroy_decoder(decoder_thread_t *decoder);
-void destroy_encoder(video_processor_t *data);
-void stop_decoder(video_processor_t *data);
-void stop_encoder(video_processor_t *data);
+/**
+ * Destroys the video processor
+ * @param vp Target video_processor_t
+ */
+void vp_destroy(video_processor_t *vp);
 
-video_processor_t *init_video_data(role_t type, float fps);
-int destroy_video_data(video_processor_t *data);
+/**
+ * Configure the external and internal video format.
+ * @param vp Target video_processor_t.
+ * @param bps External bytes per second value.
+ * @param sample_rate External sample rate.
+ * @param channels External number of channels.
+ * @param codec External codification type.
+ */
+void vp_config(video_processor_t *vp, int bps, int sample_rate, int channels, video_codec_t codec);
+
+/**
+ * Starts the worker thread.
+ * @param vp The video_processor_t where the thread operates.
+ * @return decoder_thread_t * if succeeded, NULL otherwise.
+ */
+void vp_worker_start(video_processor_t *vp);
+
+/**
+ * Returns the so called external configuration.
+ * @param vp The target video_processor_t.
+ * @return struct audio_desc *
+ */
+struct audio_desc *vp_get_config(video_processor_t *vp);
+
+//decoder_thread_t *init_decoder(video_processor_t *data);
+//encoder_thread_t *init_encoder(video_processor_t *data);
 
 #endif //__VIDEO_PROCESSOR_H__
 
