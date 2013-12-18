@@ -36,25 +36,47 @@ typedef enum {
     CIRCULAR_QUEUE_FULL
 } cq_level_t;
 
+typedef struct bag {
+    int *media_time;
+    void *pocket;
+} bag_t;
+
+typedef struct circular_queue_stats {
+    uint32_t delay_sum;
+    uint8_t remove_counter;
+    float delay;
+    float fps;
+    uint8_t put_counter;
+    uint32_t fps_sum;
+    uint32_t last_frame_time;
+} circular_queue_stats_t;
+
 typedef struct circular_queue {
     int rear;
     int front;
     int max;
     cq_level_t level;
-    void *(*init_object)(void *);
+    circular_queue_stats_t stats;
+    //    void *(*init_object)(void *);
     void (*destroy_object)(void *);
-    void **bags;
+    bag_t **bags;
 } circular_queue_t;
 
 /**
  * Initializes a 'bag' circular queue.
  * @param max Maximum number of 'bags'.
  * @param init_object Callback to initialize 'bag' objects.
- * @param destroy_object Callback to destroy 'bag' objects.
  * @param init_data Initialization data to be passed to the init_object function.
+ * @param destroy_object Callback to destroy 'bag' objects.
+ * @param get_media_time_ptr Callback to get the media_time field address.
  * @return circular_queue_t * if succeeded, NULL otherwise.
  */
-circular_queue_t *cq_init(int max, void *(*init_object)(void *), void (*destroy_object)(void *), void *init_data);
+circular_queue_t *cq_init(
+        int max,
+        void *(*init_object)(void *),
+        void *init_data,
+        void (*destroy_object)(void *),
+        int *get_media_time_ptr(void *));
 
 /**
  * Destroys the circular queue.

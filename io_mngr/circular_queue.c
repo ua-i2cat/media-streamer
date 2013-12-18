@@ -21,12 +21,12 @@
  *            David Cassany <david.cassany@i2cat.net>
  */
 
-#include <stdlib.h>
-#include <unistd.h>
+//#include <stdlib.h>
+//#include <unistd.h>
 #include "debug.h"
 #include "circular_queue.h"
 
-circular_queue_t *cq_init(int max, void *(*init_object)(void *), void (*destroy_object)(void *), void *init_data) {
+circular_queue_t *cq_init(int max, void *(*init_object)(void *), void *init_data, void (*destroy_object)(void *), int *get_media_time_ptr(void *)) {
 
     if (max <= 1){
         error_msg("video frame queue must have at least 2 positions");
@@ -42,11 +42,12 @@ circular_queue_t *cq_init(int max, void *(*init_object)(void *), void (*destroy_
     cq->front = 0;
     cq->max = max;
     cq->level = CIRCULAR_QUEUE_EMPTY;
-    cq->init_object = init_object;
+//    cq->init_object = init_object;
     cq->destroy_object = destroy_object;
-    cq->bags = malloc(sizeof(void *) * max);
+    cq->bags = malloc(sizeof(bag_t *) * max);
     for (int i = 0; i < max; i++) {
-        cq->bags[i] = cq->init_object(init_data);
+        cq->bags[i]->pocket = cq->init_object(init_data);
+        cq->bags[i]->media_time = get_media_time_ptr(cq->bags[i]->pocket);
     }
 
     return cq;
@@ -78,6 +79,19 @@ void cq_add_bag(circular_queue_t *cq) {
         cq->level = CIRCULAR_QUEUE_MID;
     }
     cq->rear = r;
+
+#ifdef STATS
+    frame_cq->stats->put_counter++;
+    local_time = get_local_mediatime_us();
+    frame_cq->stats->fps_sum += local_time - frame_cq->stats->last_frame_time;
+    frame_cq->stats->last_frame_time = local_time;
+
+    if (frame_cq->stats->put_counter == MAX_COUNTER) {
+        frame_cq->stats->fps = (frame_cq->stats->put_counter * 1000000) / frame_cq->stats->fps_sum;
+        frame_cq->stats->put_counter = 0;
+        frame_cq->stats->fps_sum = 0;
+    }
+#endif
 }
 
 void* cq_get_front(circular_queue_t *cq) {
@@ -91,6 +105,16 @@ void* cq_get_front(circular_queue_t *cq) {
 
 void cq_remove_bag(circular_queue_t *cq) {
 
+#ifdef STATS
+    frame_cq->stats->delay_sum += get_local_mediatime_us() - cq->bags[cq->front]->media_time;
+    frame_cq->stats->remove_counter++;
+    if (frame_cq->stats->remove_counter == MAX_COUNTER) {
+        frame_cq->stats->delay = frame_cq->stats->delay_sum/frame_cq->stats->remove_counter;
+        frame_cq->stats->delay_sum = 0;
+        frame_cq->stats->remove_counter = 0;
+    }
+#endif
+
     int f = (cq->front + 1) % cq->max;
     if (f == cq->rear) {
         cq->level = CIRCULAR_QUEUE_EMPTY;
@@ -102,12 +126,10 @@ void cq_remove_bag(circular_queue_t *cq) {
 
 void cq_flush(circular_queue_t *cq) {
 
-    if (cq->level == CIRCULAR_QUEUE_FULL){
-        int r = (cq->rear + 1) % cq->max;
-        if (r != cq->rear){
-            cq->level = CIRCULAR_QUEUE_MID;
-            cq->rear = r;
-        }
+    if (cq->level == CIRCULAR_QUEUE_FULL) {
+        frame_cq->front = (frame_cq->front + (frame_cq->max - 1))
+            % frame_cq->max;
+        cq->level = CIRCULAR_QUEUE_MID;
     }
 }
 

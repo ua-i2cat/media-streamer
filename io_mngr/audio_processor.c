@@ -43,6 +43,7 @@ static void *decoder_thread(void *arg);
 static void *encoder_thread(void *arg);
 static void *bag_init(void *arg);
 static void bag_destroy(void *arg);
+static int *get_media_time_ptr(void *bag);
 static int normalize_get_size();
 static void normalize_extract(audio_frame2 *src, audio_frame2 *dst, int size);
 static void audio_frame_format(audio_frame2 *src, struct audio_desc *desc);
@@ -167,6 +168,11 @@ static void bag_destroy(void *bag)
     rtp_audio_frame2_free((audio_frame2 *)bag);
 }
 
+static int *get_media_time_ptr(void *bag)
+{
+    return &bag->media_time;
+}
+
 static int normalize_get_size(audio_processor_t *ap)
 {
     int size, bps_factor, index;
@@ -267,7 +273,12 @@ audio_processor_t *ap_init(role_t role)
     // Decoded circular queue
     init_data.chan = AUDIO_INTERNAL_CHANNELS;
     init_data.size = (AUDIO_INTERNAL_SAMPLE_RATE * AUDIO_INTERNAL_BPS);
-    ap->decoded_cq = cq_init(AUDIO_CIRCULAR_QUEUE_SIZE, bag_init, bag_destroy, &init_data);
+    ap->decoded_cq = cq_init(
+            AUDIO_CIRCULAR_QUEUE_SIZE,
+            bag_init,
+            &init_data,
+            bag_destroy,
+            get_media_time_ptr);
 
     switch(ap->role) {
         case DECODER:

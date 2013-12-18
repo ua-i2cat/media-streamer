@@ -33,16 +33,16 @@ typedef struct video_frame_cq {
     uint8_t front;
     uint8_t max;
     int state;
-    int in_process; //True false
-    int out_process;
-    uint32_t delay_sum;
-    uint8_t remove_counter;
-    float delay;
-    float fps;
-    uint8_t put_counter;        // stats
-    uint32_t fps_sum;           // stats
-    uint32_t last_frame_time;   // stats
-	video_data_frame_t **frames;
+    int in_process; //True false    // delete
+    int out_process;                // delete
+    uint32_t delay_sum;             // stats
+    uint8_t remove_counter;         // stats
+    float delay;                    // stats
+    float fps;                      // stats
+    uint8_t put_counter;            // stats
+    uint32_t fps_sum;               // stats
+    uint32_t last_frame_time;       // stats
+    video_data_frame_t **frames;
 } video_frame_cq_t;
 
 video_frame_cq_t *init_video_frame_cq(uint8_t max);
