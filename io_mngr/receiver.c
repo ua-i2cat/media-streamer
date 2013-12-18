@@ -82,7 +82,7 @@ void *video_receiver_thread(receiver_t *receiver)
                     continue;
                 }
 
-                coded_frame = curr_in_frame(participant->stream->video->coded_frames);
+                coded_frame = cq_get_rear(participant->stream->video->coded_frames);
                 if (coded_frame == NULL){
                     if(pbuf_check_if_complete_frame(cp->playout_buffer, curr_time)){
                         pbuf_remove_first(cp->playout_buffer);
@@ -113,7 +113,7 @@ void *video_receiver_thread(receiver_t *receiver)
                         participant->stream->video->seqno++;
                         coded_frame->seqno = participant->stream->video->seqno;
                         coded_frame->media_time = get_local_mediatime_us();
-                        put_frame(participant->stream->video->coded_frames);
+                        cq_add_bag(participant->stream->video->coded_frames);
                     } else {
                         debug_msg("No support for Bframes\n");
                     }

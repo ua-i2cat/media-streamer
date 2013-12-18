@@ -56,15 +56,15 @@ void *decoder_thread(void* data)
             break;
         }
 
-        coded_frame = curr_out_frame(v_data->coded_frames);        
+        coded_frame = cq_get_front(v_data->coded_cq);        
         if (coded_frame == NULL){
             continue;
         }
 
-        decoded_frame = curr_in_frame(v_data->decoded_frames);
+        decoded_frame = cq_get_rear(v_data->decoded_cq);
         while (decoded_frame == NULL){
-            flush_frames(v_data->decoded_frames);
-            decoded_frame = curr_in_frame(v_data->decoded_frames);
+            cq_flush(v_data->decoded_cq);
+            decoded_frame = cq_get_rear(v_data->decoded_cq);
         }
 
         decompress_frame(v_data->decoder->sd, decoded_frame->buffer, 
@@ -72,9 +72,9 @@ void *decoder_thread(void* data)
 
         decoded_frame->seqno = coded_frame->seqno; 
 
-        remove_frame(v_data->coded_frames);
+        cq_remove_bag(v_data->coded_cq);
         decoded_frame->media_time = get_local_mediatime_us();
-        put_frame(v_data->decoded_frames);
+        cq_add_bag(v_data->decoded_cq);
     }
 
     pthread_exit((void *)NULL);    
@@ -115,17 +115,17 @@ void *encoder_thread(void *arg)
         //TODO: set a non magic number in this usleep (maybe related to framerate)
         usleep(100);
 
-        decoded_frame = curr_out_frame(video->decoded_frames);
+        decoded_frame = cq_get_front(video->decoded_cq);
         if (decoded_frame == NULL){
             continue;
         }
 
-        coded_frame = curr_in_frame(video->coded_frames);
+        coded_frame = cq_get_rear(video->coded_cq);
         while (coded_frame == NULL){
-            flush_frames(video->coded_frames);
+            cq_flush(video->coded_cq);
             error_msg("Warning! Discarting coded frame in transmission\n");
             video->lost_coded_frames++;
-            coded_frame = curr_in_frame(video->coded_frames);
+            coded_frame = cq_get_rear(video->coded_cq);
         }
 
         reconf_video_frame(decoded_frame, enc_frame, video->fps);
@@ -143,9 +143,9 @@ void *encoder_thread(void *arg)
 
         coded_frame->seqno = decoded_frame->seqno;
 
-        remove_frame(video->decoded_frames);
+        cq_remove_bag(video->decoded_cq);
         coded_frame->media_time = get_local_mediatime_us();
-        put_frame(video->coded_frames);
+        cq_add_bag(video->coded_cq);
 
         encoder->index = (encoder->index + 1) % 2;
     }
@@ -246,7 +246,7 @@ decoder_thread_t *init_decoder(video_processor_t *data)
             return NULL;
         }
 
-        coded_frame = curr_in_frame(data->coded_frames);
+        coded_frame = cq_get_rear(data->coded_cq);
         if (coded_frame == NULL){
             return NULL;
         }
@@ -316,11 +316,11 @@ int vp_destroy(video_processor_t *vp)
         stop_encoder(vp);
     }
 
-    if (destroy_video_frame_cq(vp->decoded_frames) != TRUE){
+    if (destroy_video_frame_cq(vp->decoded_cq) != TRUE){
         return FALSE;
     }
 
-    if (destroy_video_frame_cq(vp->coded_frames) != TRUE){
+    if (destroy_video_frame_cq(vp->coded_cq) != TRUE){
         return FALSE;
     }
 

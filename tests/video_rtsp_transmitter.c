@@ -162,7 +162,7 @@ int main(int argc, char **argv)
         if (ret == 0) {
             counter++;
             
-            decoded_frame = curr_in_frame(stream->video->decoded_frames);
+            decoded_frame = cq_get_rear(stream->video->decoded_frames);
             if (decoded_frame == NULL){
                 continue;
             }
@@ -170,7 +170,7 @@ int main(int argc, char **argv)
             decoded_frame->buffer_len = vc_get_linesize(width, RGB)*height;
             memcpy(decoded_frame->buffer, b1, decoded_frame->buffer_len); 
             
-            put_frame(stream->video->decoded_frames);
+            cq_add_bag(stream->video->decoded_frames);
         } else {
             break;
         }

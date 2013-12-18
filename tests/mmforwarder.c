@@ -50,9 +50,9 @@ static void finish_handler(int signal);
 static void video_frame_forward(stream_data_t *src, stream_data_t *dst)
 {
     video_frame2 *in_frame, *out_frame;
-    in_frame = curr_out_frame(src->video->decoded_frames);
+    in_frame = cq_get_front(src->video->decoded_frames);
     if (in_frame != NULL) {
-        out_frame = curr_in_frame(dst->video->decoded_frames);
+        out_frame = cq_get_rear(dst->video->decoded_frames);
         if (out_frame != NULL) {
             out_frame->curr_seqno = in_frame->curr_seqno;
             out_frame->width = in_frame->width;
@@ -63,8 +63,8 @@ static void video_frame_forward(stream_data_t *src, stream_data_t *dst)
             out_frame->codec = in_frame->codec;
             out_frame->buffer_len = in_frame->buffer_len;
             memcpy(out_frame->buffer, in_frame->buffer, in_frame->buffer_len);
-            put_frame(dst->video->decoded_frames);
-            remove_frame(src->video->decoded_frames);
+            cq_add_bag(dst->video->decoded_frames);
+            cq_remove_bag(src->video->decoded_frames);
         }
     }
 }

@@ -114,13 +114,13 @@ static void *video_transmitter_thread(void *arg)
 
         stream = transmitter->video_stream_list->first;
         while(stream != NULL && transmitter->video_run){
-            coded_frame = curr_out_frame(stream->video->coded_frames);
+            coded_frame = cq_get_front(stream->video->coded_frames);
             if (coded_frame == NULL){
                 stream = stream->next;
                 continue;
             }
             send_video_frame(stream, coded_frame, start_time);
-            remove_frame(stream->video->coded_frames);
+            cq_remove_bag(stream->video->coded_frames);
             stream = stream->next;
         }
 

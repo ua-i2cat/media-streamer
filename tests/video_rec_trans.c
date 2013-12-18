@@ -103,7 +103,7 @@ int main(){
 
             while(in_str != NULL && out_str != NULL && !stop) {
                 if (out_str->video->encoder == NULL && in_str->video->decoder != NULL) {
-                    in_frame = curr_out_frame(in_str->video->decoded_frames);
+                    in_frame = cq_get_front(in_str->video->decoded_frames);
                     if (in_frame == NULL){
                         continue;
                     }
@@ -119,8 +119,8 @@ int main(){
                     continue;
                 }
 
-                in_frame = curr_out_frame(in_str->video->decoded_frames);
-                out_frame = curr_in_frame(out_str->video->decoded_frames);
+                in_frame = cq_get_front(in_str->video->decoded_frames);
+                out_frame = cq_get_rear(out_str->video->decoded_frames);
 
                 if (in_frame == NULL || out_frame == NULL){
                     continue;
@@ -132,8 +132,8 @@ int main(){
                 out_frame->buffer_len 
                     = out_frame->buffer_len;
 
-                remove_frame(in_str->video->decoded_frames);
-                put_frame(out_str->video->decoded_frames);
+                cq_remove_bag(in_str->video->decoded_frames);
+                cq_add_bag(out_str->video->decoded_frames);
 
                 in_str = in_str->next;
                 out_str = out_str->next;

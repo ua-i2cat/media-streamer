@@ -175,7 +175,7 @@ int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCo
         if (ret == 0) {
             counter++;
 
-            decoded_frame = curr_in_frame(stream->video->decoded_frames);
+            decoded_frame = cq_get_rear(stream->video->decoded_frames);
             if (decoded_frame == NULL){
                 continue;
             }
@@ -186,7 +186,7 @@ int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCo
             decoded_frame->media_time = get_local_mediatime();
             stream->video->seqno++;
             
-            put_frame(stream->video->decoded_frames);
+            cq_add_bag(stream->video->decoded_frames);
         } else {
             break;
         }

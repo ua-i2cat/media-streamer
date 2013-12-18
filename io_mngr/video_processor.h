@@ -58,8 +58,8 @@
 
 typedef struct video_processor {
     role_t type;
-    video_frame_cq_t *decoded_frames;
-    video_frame_cq_t *coded_frames;
+    video_frame_cq_t *decoded_cq;
+    video_frame_cq_t *coded_cq;
 
     // Video configurations
     uint32_t interlacing;  //TODO: fix this. It has to be UG enum

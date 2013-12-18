@@ -47,7 +47,7 @@ int main(){
                 continue;	
             }
 
-            decoded_frame = curr_out_frame(stream->video->decoded_frames);
+            decoded_frame = cq_get_front(stream->video->decoded_frames);
             if (decoded_frame == NULL){
                 pthread_rwlock_unlock(&video_stream_list->lock);
                 continue;
@@ -59,7 +59,7 @@ int main(){
             fwrite(decoded_frame->buffer, decoded_frame->buffer_len, 1, F_video_rx0);
             printf("Frame %d by stream 0\n", i);
             i++;
-            remove_frame(stream->video->decoded_frames);
+            cq_remove_bag(stream->video->decoded_frames);
             pthread_rwlock_unlock(&video_stream_list->lock);
         }
 
@@ -73,7 +73,7 @@ int main(){
                 pthread_rwlock_unlock(&video_stream_list->lock);
                 continue;	
             }	
-            decoded_frame = curr_out_frame(stream->video->decoded_frames);
+            decoded_frame = cq_get_front(stream->video->decoded_frames);
             if (decoded_frame == NULL){
                 pthread_rwlock_unlock(&video_stream_list->lock);
                 continue;
@@ -87,7 +87,7 @@ int main(){
 
             printf("Frame %d by stream 1\n", i);
             i++;
-            remove_frame(stream->video->decoded_frames);
+            cq_remove_bag(stream->video->decoded_frames);
             pthread_rwlock_unlock(&video_stream_list->lock);
         }
     
