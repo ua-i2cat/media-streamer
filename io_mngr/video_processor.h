@@ -34,7 +34,7 @@
 
 //#include <semaphore.h>
 //#include "config_unix.h"
-//#include "types.h"
+#include "types.h"
 #include "video_frame2.h"
 #include "circular_queue.h"
 #include "commons.h"
@@ -62,11 +62,12 @@ typedef struct video_processor {
     video_frame_cq_t *coded_cq;
 
     // Video configurations
-    uint32_t interlacing;  //TODO: fix this. It has to be UG enum
-    uint32_t fps;       //TODO: fix this. It has to be UG enum
-    uint32_t seqno;
+    struct video_desc *external_config;
+    struct video_desc *internal_config;
+
+    // stream related
     uint32_t bitrate;
-    uint32_t lost_coded_frames;
+    uint32_t lost_coded_frames; 
 
     // Thread data
     int run;

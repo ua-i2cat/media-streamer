@@ -149,7 +149,6 @@ static void *encoder_thread(void *arg)
     pthread_exit((void *)NULL);
 }
 
-
 static void *bag_init(void *init)
 {
     audio_frame2 *frame;

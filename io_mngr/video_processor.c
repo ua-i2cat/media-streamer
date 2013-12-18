@@ -23,17 +23,25 @@
  *            Marc Palau <marc.palau@i2cat.net>
  */
 
-#include <stdlib.h>
+//#include <stdlib.h>
 #include "video_processor.h"
 #include "video_decompress.h"
-#include "video_decompress/libavcodec.h"
-#include "video_codec.h"
-#include "video_compress.h"
-#include "video_frame.h"
+//#include "video_decompress/libavcodec.h"
+//#include "video_codec.h"
+//#include "video_compress.h"
+//#include "video_frame.h"
 #include "video_config.h"
 #include "tv.h"
-#include "module.h"
+//#include "module.h"
 #include "debug.h"
+
+// private data
+struct bag_init_val {
+    unsigned int width;
+    unsigned int height;
+    codec_t codec;
+    double fps;
+};
 
 // private functions
 void *decoder_thread(void* data);
@@ -155,35 +163,33 @@ void *encoder_thread(void *arg)
     pthread_exit((void *)NULL);
 }
 
-// int set_video_data_frame(video_data_frame_t *frame, codec_t codec, uint32_t width, uint32_t height)
 static void *bag_init(void *init)
 {
-    frame->codec = codec;
-    frame->width = width;
-    frame->height = height;
+    video_frame2 *frame;
+    struct bag_init_val *init_object = (struct bag_init_val *)init;
 
-    if (width == 0 || height == 0){
-        width = MAX_WIDTH;
-        height = MAX_HEIGHT;
-    }
+    frame->width = init_data.width;
+    frame->height = init_data.height;
+    frame->codec = init_data.codec;
+    frame->fps = init_data.fps;
 
     frame->buffer_len = width*height*3; 
-    frame->buffer = realloc(frame->buffer, frame->buffer_len);
-
-    if (frame->buffer == NULL) {
-        error_msg("set_stream_video_data: malloc error");
-        return FALSE;
+    if ((frame->buffer = realloc(frame->buffer, frame->buffer_len)) == NULL) {
+        error_msg("bag_init video: malloc: out of memory!");
+        return NULL;
     }
 
-    return TRUE;
+    frame->media_time = 0;
+    frame->seqno = 0;
+    frame->type = OTHER;
+
+    return frame;
 }
 
-//int destroy_video_data_frame(video_data_frame_t *frame)
 static void bag_destroy(void *bag)
 {
-    free(frame->buffer);
-    free(frame);
-    return TRUE;
+    free(bag->pocket->buffer);
+    free(bag->pocket);
 }
 
 static int *get_media_time_ptr(void *bag)
@@ -192,30 +198,78 @@ static int *get_media_time_ptr(void *bag)
 }
 
 //video_processor_t *init_video_data(role_t type, float fps)
-video_processor_t *vp_init(role_t type)
+video_processor_t *vp_init(role_t role)
 {
+    struct bag_init_val init_data;
     video_processor_t *vp = malloc(sizeof(video_processor_t));
 
-    //TODO: get rid of magic numbers
+    if ((vp = malloc(sizeof(audio_processor_t))) == NULL) {
+        error_msg("vp_init: malloc: out of memory!");
+        return NULL;
+    }
+
+    if ((vp->external_config = malloc(sizeof(struct video_desc))) == NULL) {
+        error_msg("vp_init: malloc: out of memory!");
+        return NULL;
+    }
+    if ((vp->internal_config = malloc(sizeof(struct video_desc))) == NULL) {
+        error_msg("vp_init: malloc: out of memory!");
+        return NULL;
+    }
+
+    vp->role = role;
+    vp->bitrate = 0;
+    vp->lost_coded_frames = 0;
+    // Default values
+    vp->internal_config->width = VIDEO_INTERNAL_WIDTH;
+    vp->internal_config->height = VIDEO_INTERNAL_HEIGHT;
+    vp->internal_config->codec = VIDEO_INTERNAL_CODEC;
+    vp->internal_config->fps = VIDEO_INTERNAL_FPS;
+    vp_config(vp, /*TODO*/);
+    // Decoded circular queue
+    init_data.width = VIDEO_INTERNAL_WIDTH;
+    init_data.height = VIDEO_INTERNAL_HEIGHT;
+    init_data.codec = VIDEO_INTERNAL_CODEC;
+    init_data.fps = VIDEO_INTERNAL_FPS;
     vp->decoded_cq = cq_init(
             VIDEO_CIRCULAR_QUEUE_SIZE,
             bag_init,
             &init_data,
             bag_destroy,
             get_media_time_ptr);
-    vp->coded_cq = cq_init(
-            VIDEO_CIRCULAR_QUEUE_SIZE,
-            bag_init,
-            &init_data,
-            bag_destroy,
-            get_media_time_ptr);
-    vp->type = type;
-    vp->fps = fps;
-    vp->bitrate = 0;
-    vp->decoder = NULL; //As decoder and encoder are union, this is valid for both
-    vp->seqno = 0; 
-    vp->lost_coded_frames = 0;
 
+    switch(ap->role) {
+        case DECODER:
+            ap->worker = decoder_thread;
+            // Coded circular queue
+            init_data.width = VIDEO_EXTERNAL_WIDTH;
+            init_data.height = VIDEO_EXTERNAL_HEIGHT;
+            init_data.codec = VIDEO_EXTERNAL_CODEC;
+            init_data.fps = VIDEO_EXTERNAL_FPS;
+            vp->decoded_cq = cq_init(
+                    VIDEO_CIRCULAR_QUEUE_SIZE,
+                    bag_init,
+                    &init_data,
+                    bag_destroy,
+                    get_media_time_ptr);
+            break;
+        case ENCODER:
+            ap->worker = encoder_thread;
+            // Coded circular queue
+            init_data.width = VIDEO_EXTERNAL_WIDTH;
+            init_data.height = VIDEO_EXTERNAL_HEIGHT;
+            init_data.codec = VIDEO_EXTERNAL_CODEC;
+            init_data.fps = VIDEO_EXTERNAL_FPS;
+            vp->decoded_cq = cq_init(
+                    VIDEO_CIRCULAR_QUEUE_SIZE,
+                    bag_init,
+                    &init_data,
+                    bag_destroy,
+                    get_media_time_ptr);
+            break;
+        default:
+            break;
+    }
 
     return vp;
 }
