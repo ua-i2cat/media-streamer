@@ -28,7 +28,7 @@
 
 #include <pthread.h>
 #include <semaphore.h>
-#include "video_data.h"
+#include "video_processor.h"
 #include "audio_processor.h"
 #include "participants.h"
 #include "commons.h"

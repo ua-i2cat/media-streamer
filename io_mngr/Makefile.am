@@ -10,7 +10,7 @@ libiomanager_la_CFLAGS = $(AM_CFLAGS) -I. -I.. -I../src -I../src/rtp -I../src/ut
 libiomanager_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -I.. -I../src -I../src/rtp -I../src/utils -I../src/audio -I/usr/include/groupsock -I/usr/include/liveMedia -I/usr/include/BasicUsageEnvironment -I/usr/include/UsageEnvironment
 libiomanager_la_SOURCES = stream.c \
 						  participants.c \
-						  video_data.c \
+						  video_processor.c \
 						  circular_queue.c \
                                                   audio_processor.c \
 						  transmitter.c \
@@ -28,7 +28,7 @@ uginclude_HEADERS =	receiver.h \
 					participants.h \
 					transmitter.h \
 					stream.h \
-					video_data.h \
+					video_processor.h \
 					commons.h \
 					audio_processor.h \
 					audio_config.h \

@@ -1,3 +1,36 @@
+/*
+ *  video_processor.c - Video stream processor
+ *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
+ *
+ *  This file is part of io_mngr.
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  Authors:  Jordi "Txor" Casas Ríos <jordi.casas@i2cat.net>,
+ *            David Cassany <david.cassany@i2cat.net>,
+ *            Ignacio Contreras <ignacio.contreras@i2cat.net>,
+ *            Marc Palau <marc.palau@i2cat.net>
+ */
+
+/**
+ * @file circular_queue.h
+ * @brief Thread resistant circular queue composed of 'bags', there you can store generic objects.
+ */
+
+#ifndef __VIDEO_PROCESSOR_H__
+#define __VIDEO_PROCESSOR_H__
+
 #include <semaphore.h>
 #include "config_unix.h"
 #include "types.h"
@@ -47,3 +80,6 @@ void stop_encoder(video_data_t *data);
 
 video_data_t *init_video_data(role_t type, float fps);
 int destroy_video_data(video_data_t *data);
+
+#endif //__VIDEO_PROCESSOR_H__
+
