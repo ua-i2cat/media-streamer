@@ -176,8 +176,8 @@ nobase_uginclude_HEADERS =	./tfrc.h \
 							./rtp/rtp.h \
 							./rtp/audio_decoders.h \
                                                         ./rtp/audio_frame2.h \
+                                                        ./rtp/video_frame2.h \
 							./video_decompress.h \
-							./video_data_frame.h \
                                                         ./audio/audio.h \
                                                         ./audio/utils.h \
                                                         ./audio/codec.h \

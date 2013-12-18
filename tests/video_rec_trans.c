@@ -27,8 +27,8 @@ int main(){
     struct timeval a, b;
 
     //video_frames structures
-    video_data_frame_t *in_frame;
-    video_data_frame_t *out_frame;
+    video_frame2 *in_frame;
+    video_frame2 *out_frame;
 
     //Receiver structures
     stream_list_t *in_str_list;

@@ -35,29 +35,9 @@
 //#include <semaphore.h>
 //#include "config_unix.h"
 //#include "types.h"
-//#include "video_data_frame.h"
+#include "video_frame2.h"
 #include "circular_queue.h"
 #include "commons.h"
-
-// Video frame related data goes to video specific .h ???
-typedef enum frame_type {
-    INTRA,
-    BFRAME,
-    OTHER
-} frame_type_t;
-
-// Video frame related data goes to video specific .h ???
-typedef struct video_frame_data {
-    uint8_t *buffer;
-    uint32_t buffer_len;
-    uint32_t curr_seqno;
-    uint32_t width;
-    uint32_t height;
-    uint32_t media_time;
-    uint32_t seqno;
-    frame_type_t frame_type;
-    codec_t codec;
-} video_data_frame_t;
 
 //typedef struct decoder_thread {
 //    pthread_t thread;

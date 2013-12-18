@@ -148,7 +148,7 @@ int main(int argc, char **argv)
     int counter = 0;
 
     struct timeval a, b;
-    video_data_frame_t *decoded_frame;
+    video_frame2 *decoded_frame;
     
     while(1) {
     

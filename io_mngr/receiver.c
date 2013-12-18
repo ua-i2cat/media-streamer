@@ -42,7 +42,7 @@ void *video_receiver_thread(receiver_t *receiver)
 {
     struct pdb_e *cp;
     participant_data_t *participant;
-    video_data_frame_t* coded_frame;
+    video_frame2* coded_frame;
 
     struct timeval curr_time;
     struct timeval timeout;

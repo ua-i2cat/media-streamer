@@ -35,7 +35,7 @@ struct bag_init_val {
 };
 
 // Input sizes that return AUDIO_INTERNAL_SIZE size on applying resampling.
-// Sample rates:              8K  16K  32K  48K
+// Sample rates:                 8K  16K  32K  48K
 int resampler_size_values[4] = { 50, 100, 200, 300 };
 
 // private functions

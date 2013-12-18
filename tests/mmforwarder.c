@@ -46,10 +46,10 @@ transmitter_t *transmitter;
 static void audio_frame_forward(stream_data_t *src, stream_data_t *dst);
 static void finish_handler(int signal);
 
-// Copy one video_data_frame_t between the decoded queues of two streams.
+// Copy one video_frame2 between the decoded queues of two streams.
 static void video_frame_forward(stream_data_t *src, stream_data_t *dst)
 {
-    video_data_frame_t *in_frame, *out_frame;
+    video_frame2 *in_frame, *out_frame;
     in_frame = curr_out_frame(src->video->decoded_frames);
     if (in_frame != NULL) {
         out_frame = curr_in_frame(dst->video->decoded_frames);

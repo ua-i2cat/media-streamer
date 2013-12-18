@@ -10,7 +10,7 @@ int main(){
     stream_list_t *video_stream_list, *audio_stream_list;
     stream_data_t *stream;
     receiver_t *receiver;
-    video_data_frame_t *decoded_frame;
+    video_frame2 *decoded_frame;
 
     video_stream_list = init_stream_list();
     audio_stream_list = init_stream_list();

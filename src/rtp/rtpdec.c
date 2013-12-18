@@ -12,7 +12,7 @@
 
 static const uint8_t start_sequence[] = { 0, 0, 0, 1 };
 
-int fill_coded_frame_from_sps(video_data_frame_t *rx_data, unsigned char *data, int *data_len);
+int fill_coded_frame_from_sps(video_frame2 *rx_data, unsigned char *data, int *data_len);
 
 int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
     rtp_packet *pckt = NULL;
@@ -28,7 +28,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
     unsigned char *dst = NULL;
     int src_len;
 
-    video_data_frame_t *frame = (video_data_frame_t *) rx_data;
+    video_frame2 *frame = (video_frame2 *) rx_data;
 
     for (pass = 0; pass < 2; pass++) {
 
@@ -211,7 +211,7 @@ int decode_frame(struct coded_data *cdata, void *rx_data)
     // the following is just LDGM related optimalization - normally we fill up
     // allocated buffers when we have compressed data. But in case of LDGM, there
     // is just the LDGM buffer present, so we point to it instead to copying
-    video_data_frame_t *frame = (video_data_frame_t *) rx_data; // for FEC or compressed data
+    video_frame2 *frame = (video_frame2 *) rx_data; // for FEC or compressed data
     // for (i = 0; i < (int) MAX_SUBSTREAMS; ++i) {
     //         //pckt_list[i] = ll_create();
     // 		buffers->buffer_len[i] = 0;
@@ -410,7 +410,7 @@ cleanup:
     return ret;
 }
 
-int fill_coded_frame_from_sps(video_data_frame_t *rx_data, unsigned char *data, int *data_len){
+int fill_coded_frame_from_sps(video_frame2 *rx_data, unsigned char *data, int *data_len){
     uint32_t width, height;
     sps_t* sps = (sps_t*)malloc(sizeof(sps_t));
     uint8_t* rbsp_buf = (uint8_t*)malloc(*data_len);

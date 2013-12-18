@@ -46,8 +46,8 @@ void *decoder_thread(void* data)
 {
     video_processor_t *v_data = (video_processor_t *) data;
 
-    video_data_frame_t* coded_frame;
-    video_data_frame_t* decoded_frame;
+    video_frame2* coded_frame;
+    video_frame2* decoded_frame;
 
     while(v_data->decoder->run){
         usleep(100);
@@ -84,8 +84,8 @@ void *encoder_thread(void *arg)
 {
     video_processor_t *video = (video_processor_t *)arg;
     encoder_thread_t *encoder = video->encoder;
-    video_data_frame_t* decoded_frame;
-    video_data_frame_t* coded_frame;
+    video_frame2* decoded_frame;
+    video_frame2* coded_frame;
     struct video_frame *enc_frame;
 
     // decoded_frame len and memory already initialized
@@ -224,7 +224,7 @@ decoder_thread_t *init_decoder(video_processor_t *data)
 {
     decoder_thread_t *decoder;
     struct video_desc des;
-    video_data_frame_t *coded_frame;
+    video_frame2 *coded_frame;
 
     initialize_video_decompress();
 
@@ -330,7 +330,7 @@ int vp_destroy(video_processor_t *vp)
 }
 
 //int reconf_video_frame(video_data_frame_t *frame, struct video_frame *enc_frame, uint32_t fps)
-void vp_config(video_data_frame_t *frame, struct video_frame *enc_frame, uint32_t fps)
+void vp_config(video_frame2 *frame, struct video_frame *enc_frame, uint32_t fps)
 {
     if (frame->width != vf_get_tile(enc_frame, 0)->width
             || frame->height != vf_get_tile(enc_frame, 0)->height) {

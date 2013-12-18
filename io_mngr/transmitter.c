@@ -34,13 +34,13 @@
 #include "tv.h"
 #include <stdlib.h>
 
-static int send_video_frame(stream_data_t *stream, video_data_frame_t *coded_frame, struct timeval start_time);
+static int send_video_frame(stream_data_t *stream, video_frame2 *coded_frame, struct timeval start_time);
 static int send_audio_frame(stream_data_t *stream, audio_frame2 *frame, struct timeval start_time);
 static void *video_transmitter_thread(void *arg);
 static void *audio_transmitter_thread(void *arg);
 
 // TODO: coded_frame parameter and timestamp revision.
-static int send_video_frame(stream_data_t *stream, video_data_frame_t *coded_frame, struct timeval start_time)
+static int send_video_frame(stream_data_t *stream, video_frame2 *coded_frame, struct timeval start_time)
 {
     participant_data_t *participant;
     struct timeval curr_time;
@@ -102,7 +102,7 @@ static void *video_transmitter_thread(void *arg)
 {
     transmitter_t *transmitter = (transmitter_t *)arg;
     stream_data_t *stream;
-    video_data_frame_t *coded_frame;
+    video_frame2 *coded_frame;
 
     struct timeval start_time;
     gettimeofday(&start_time, NULL);

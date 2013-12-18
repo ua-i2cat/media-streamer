@@ -161,7 +161,7 @@ int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCo
     printf("[test] entering main test loop\n");
 
     struct timeval a, b;
-    video_data_frame_t *decoded_frame;
+    video_frame2 *decoded_frame;
 
     while(1) {
     
