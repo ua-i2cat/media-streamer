@@ -2,7 +2,7 @@
  *  video_frame2.h
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
- *  This file is part of io_mngr.
+ *  This file is part of UG-Modules RTP library.
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,10 +27,18 @@
  * @brief Video frame configuration.
  */
 
+/**
+ * @file video_frame2.h
+ * @brief video_frame2 structure and methods.
+ */
+
 #ifndef __VIDEO_FRAME2_H__
 #define __VIDEO_FRAME2_H__
 
 #include "types.h"
+
+#define VIDEO_FRAME2_MAX_WIDTH 1920
+#define VIDEO_FRAME2_MAX_HEIGHT 1080
 
 typedef enum video_frame2_type {
     INTRA,
@@ -44,19 +52,37 @@ typedef struct
     unsigned int width;
     unsigned int height;
     codec_t codec;
-
     // Data
     char *buffer;
     unsigned int buffer_len;
-    
     // Stats
     double fps;
-    uint32_t media_time;
-    uint32_t seqno;
-    
+    unsigned int media_time;
+    unsigned int seqno;
     // Control
     video_frame2_type_t type;
 } video_frame2;
+
+/**
+ * Create and initialize a video_frame2 with some default values.
+ * @return video_frame2 * if succeeded, NULL otherwise.
+ */
+video_frame2 *rtp_video_frame2_init();
+
+/**
+ * Allocate memory space for the audio_frame2 buffer with specified video frame size, also configures the codec type.
+ * @param frame Target video_frame2.
+ * @param width New width for the video frame.
+ * @param height New height for the video frame.
+ * @param codec New codec type for the video frame.
+ */
+void rtp_video_frame2_allocate(video_frame2 *frame, unsigned int width, unsigned int height, codec_t codec);
+
+/**
+ * Frees the allocated memory for a video_frame2
+ * @param frame Target video_frame2.
+ */
+void rtp_video_frame2_free(video_frame2 *frame);
 
 #endif //__VIDEO_FRAME2_H__
 

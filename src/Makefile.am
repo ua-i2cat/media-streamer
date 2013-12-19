@@ -16,6 +16,7 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					rtp/rtpdec.c \
 					rtp/audio_decoders.c \
                                         rtp/audio_frame2.c \
+                                        rtp/video_frame2.c \
 					crypto/crc_32.c \
 					crypto/crypt_aes.c \
 					crypto/crypt_aes_impl.c \

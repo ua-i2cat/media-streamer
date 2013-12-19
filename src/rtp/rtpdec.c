@@ -8,7 +8,7 @@
 #include "rtp/rtp_callback.h"
 #include "rtp/rtpdec.h"
 #include "utils/h264_stream.h"
-//#include "video_data_frame.h"
+#include "video_frame2.h"
 
 static const uint8_t start_sequence[] = { 0, 0, 0, 1 };
 
@@ -25,10 +25,10 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
     int pass;
     int total_length = 0;
 
-    unsigned char *dst = NULL;
+    char *dst = NULL;
     int src_len;
 
-    video_frame2 *frame = (video_frame2 *) rx_data;
+    video_frame2 *frame = (video_frame2 *)rx_data;
 
     for (pass = 0; pass < 2; pass++) {
 
@@ -36,7 +36,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
             cdata = orig;
             frame->buffer_len = total_length;
             dst = frame->buffer + total_length;
-            frame->frame_type = BFRAME;
+            frame->type = BFRAME;
         }
 
         while (cdata != NULL) {
@@ -56,10 +56,10 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
             }
 
             if (type >= 1 && type <= 23) {
-                if(frame->frame_type != INTRA && type == 5){
-                    frame->frame_type = INTRA;
-                } else if (frame->frame_type == BFRAME && nri != 0){
-                    frame->frame_type = OTHER;
+                if(frame->type != INTRA && type == 5){
+                    frame->type = INTRA;
+                } else if (frame->type == BFRAME && nri != 0){
+                    frame->type = OTHER;
                 }
 
                 type = 1;
@@ -137,10 +137,10 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
                         uint8_t nal_type = fu_header & 0x1f;
                         uint8_t reconstructed_nal;
 
-                        if(frame->frame_type != INTRA && nal_type == 5){
-                            frame->frame_type = INTRA;
-                        } else if (frame->frame_type == BFRAME && nri != 0){
-                            frame->frame_type = OTHER;
+                        if(frame->type != INTRA && nal_type == 5){
+                            frame->type = INTRA;
+                        } else if (frame->type == BFRAME && nri != 0){
+                            frame->type = OTHER;
                         } 
 
                         // Reconstruct this packet's true nal; only the data follows.
@@ -435,7 +435,7 @@ int fill_coded_frame_from_sps(video_frame2 *rx_data, unsigned char *data, int *d
         height -= (sps->frame_crop_top_offset*2 + sps->frame_crop_bottom_offset*2);
     }
 
-    if((width != rx_data->width) || (height != rx_data->height)){
+    if((width != rx_data->width) || (height != rx_data->height)) {
         set_video_data_frame(rx_data, H264, width, height);
     }
 
