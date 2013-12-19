@@ -31,13 +31,11 @@
 #include "pdb.h"
 #include "tv.h"
 #include "debug.h"
-
-#define INITIAL_VIDEO_RECV_BUFFER_SIZE  ((4*1920*1080)*110/100) //command line net.core setup: sysctl -w net.core.rmem_max=9123840
+#include "video_config.h"
 
 static void *video_receiver_thread(receiver_t *receiver);
 static void *audio_receiver_thread(receiver_t *receiver);
 
-//TODO: refactor de la funció per evitar tants IF anidats
 void *video_receiver_thread(receiver_t *receiver)
 {
     struct pdb_e *cp;
@@ -51,75 +49,76 @@ void *video_receiver_thread(receiver_t *receiver)
 
     timeout.tv_sec = 0;
     timeout.tv_usec = 10000;
-    uint32_t timestamp; //TODO: why is this used
+    uint32_t timestamp;
 
-    while(receiver->video_run){
+    while(receiver->video_run) {
+
         gettimeofday(&curr_time, NULL);
         timestamp = tv_diff(curr_time, start_time) * 90000;
         rtp_update(receiver->video_session, curr_time);
-        //rtp_send_ctrl(receiver->session, timestamp, 0, curr_time); //TODO: why is this used?
+        rtp_send_ctrl(receiver->session, timestamp, 0, curr_time);
 
         timeout.tv_sec = 0;
         timeout.tv_usec = 10000;
 
         //TODO: repàs dels locks en accedir a src
-        if (!rtp_recv_r(receiver->video_session, &timeout, timestamp)){
+        if (!rtp_recv_r(receiver->video_session, &timeout, timestamp)) {
             pdb_iter_t it;
             cp = pdb_iter_init(receiver->video_part_db, &it);
 
             while (cp != NULL) {
 
-                participant = get_participant_stream_ssrc(receiver->video_stream_list, cp->ssrc);
-                if (participant == NULL){
-                    participant = get_participant_stream_non_init(receiver->video_stream_list);
-                    if (participant != NULL){
+                //TODO: Possible optimization using participant hash
+                if ((participant = get_participant_stream_ssrc(receiver->video_stream_list, cp->ssrc)) == NULL) {
+                    if ((participant = get_participant_stream_non_init(receiver->video_stream_list)) == NULL) {
+                        debug_msg("audio_receiver_thread: Can't find configured streams, dropping data");
+                        cp = pdb_iter_next(&it);
+                        continue;
+                    }
+                    else {
                         set_participant_ssrc(participant, cp->ssrc);
                     }
                 }
 
-                if (participant == NULL){
-                    cp = pdb_iter_next(&it);
-                    continue;
-                }
-
-                coded_frame = cq_get_rear(participant->stream->video->coded_frames);
-                if (coded_frame == NULL){
-                    if(pbuf_check_if_complete_frame(cp->playout_buffer, curr_time)){
+                if ((coded_frame = cq_get_rear(participant->stream->video->coded_cq)) == NULL) {
+                    if(pbuf_check_if_complete_frame(cp->playout_buffer, curr_time)) {
                         pbuf_remove_first(cp->playout_buffer);
                         error_msg("Warning! Coded frame discarded in reception\n");
                         participant->stream->video->lost_coded_frames++;
                     }
-                    cp = pdb_iter_next(&it);
-                    continue;
                 }
+                else {
 
-                if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, coded_frame)) {
-                    if (participant->stream->state == I_AWAIT && 
-                            coded_frame->frame_type == INTRA && 
-                            coded_frame->width != 0 && 
-                            coded_frame->height != 0){
+                    if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, coded_frame)) {
 
-                        if(participant->stream->video->decoder == NULL){
-                            set_video_frame_cq(participant->stream->video->decoded_frames, 
-                                    RGB, 
+                        if (participant->stream->state == I_AWAIT && 
+                                coded_frame->type == INTRA && 
+                                coded_frame->width != 0 && 
+                                coded_frame->height != 0) {
+
+                            vp_reconfig_external(participant->stream->video, 
+                                    coded_frame->codec,
                                     coded_frame->width, 
                                     coded_frame->height);
-                            start_decoder(participant->stream->video); 
+                            vp_reconfig_internal(participant->stream->video, 
+                                    participant->stream->video->internal_config->codec,
+                                    coded_frame->width, 
+                                    coded_frame->height);
+                            participant->stream->state = ACTIVE;
                         }
-                        participant->stream->state = ACTIVE;
-                    }
 
-                    if (participant->stream->state == ACTIVE && coded_frame->frame_type != BFRAME) {
-                        participant->stream->video->seqno++;
-                        coded_frame->seqno = participant->stream->video->seqno;
-                        coded_frame->media_time = get_local_mediatime_us();
-                        cq_add_bag(participant->stream->video->coded_frames);
-                    } else {
-                        debug_msg("No support for Bframes\n");
+                        if (participant->stream->state == ACTIVE && coded_frame->type != BFRAME) {
+                            participant->stream->video->seqno++;
+                            coded_frame->seqno = participant->stream->video->seqno;
+                            coded_frame->media_time = get_local_mediatime_us();
+                            cq_add_bag(participant->stream->video->coded_cq);
+                        }
+                        else {
+                            debug_msg("No support for Bframes\n");
+                        }
+                        //TODO: should be at the beginning of the loop
+                        pbuf_remove_first(cp->playout_buffer);
                     }
-                    //TODO: should be at the beginning of the loop
-                    pbuf_remove_first(cp->playout_buffer);
-
                 }
                 cp = pdb_iter_next(&it);
             } 
@@ -151,7 +150,7 @@ static void *audio_receiver_thread(receiver_t *receiver)
         gettimeofday(&curr_time, NULL);
         timestamp = tv_diff(curr_time, start_time) * 90000;
         rtp_update(receiver->audio_session, curr_time);
-        //rtp_send_ctrl(receiver->audio_session, timestamp, 0, curr_time); //TODO: use this.
+        rtp_send_ctrl(receiver->audio_session, timestamp, 0, curr_time);
 
         //TODO: repàs dels locks en accedir a src
         if (!rtp_recv_r(receiver->audio_session, &timeout, timestamp)){

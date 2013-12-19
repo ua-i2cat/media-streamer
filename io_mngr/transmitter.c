@@ -23,7 +23,6 @@
  *            Marc Palau <marc.palau@i2cat.net>
  */
 
-//#include "config_unix.h"
 #include <stdlib.h>
 #include "transmitter.h"
 #include "rtp/rtp.h"
@@ -32,20 +31,31 @@
 #include "video_compress.h"
 #include "debug.h"
 #include "tv.h"
-#include <stdlib.h>
 
 static int send_video_frame(stream_data_t *stream, video_frame2 *coded_frame, struct timeval start_time);
 static int send_audio_frame(stream_data_t *stream, audio_frame2 *frame, struct timeval start_time);
 static void *video_transmitter_thread(void *arg);
 static void *audio_transmitter_thread(void *arg);
 
-// TODO: coded_frame parameter and timestamp revision.
-static int send_video_frame(stream_data_t *stream, video_frame2 *coded_frame, struct timeval start_time)
+static void send_video_frame(stream_data_t *stream, video_frame2 *coded_frame, struct timeval start_time)
 {
     participant_data_t *participant;
     struct timeval curr_time;
-    double timestamp;
-    int ret = FALSE;
+
+    // video_frame2 copy to struct video_frame
+    struct tile tile;
+    struct video_frame video_frame;
+    tile->width = coded_frame->width;
+    tile->height = coded_frame->height;
+    tile->data = coded_frame->data;
+    tile->data_len = coded_frame->data_len;
+    tile->offset = 0;
+    video_frame->color_spec = coded_frame->codec;
+    video_frame->interlacing = coded_frame->codec;
+    video_frame->fps = coded_frame->fps;
+    video_frame->tiles = &tile;
+    video_frame->tile_count = 1;
+    video_frame->fragment = 0;
 
     pthread_rwlock_rdlock(&stream->plist->lock);
 
@@ -54,19 +64,16 @@ static int send_video_frame(stream_data_t *stream, video_frame2 *coded_frame, st
         
         gettimeofday(&curr_time, NULL);
         rtp_update(participant->rtp->rtp, curr_time);
-        timestamp = tv_diff(curr_time, start_time)*90000;
+        double timestamp = tv_diff(curr_time, start_time)*90000;
         rtp_send_ctrl(participant->rtp->rtp, timestamp, 0, curr_time);            
 
-        tx_send_h264(participant->rtp->tx_session, stream->video->encoder->frame, 
+        tx_send_h264(participant->rtp->tx_session, video_frame, 
                      participant->rtp->rtp, get_local_mediatime());
-        ret = TRUE;
 
         participant = participant->next;
     }
 
     pthread_rwlock_unlock(&stream->plist->lock);
-
-    return ret;
 }
 
 static int send_audio_frame(stream_data_t *stream, audio_frame2 *frame, struct timeval start_time)
@@ -113,15 +120,14 @@ static void *video_transmitter_thread(void *arg)
         pthread_rwlock_rdlock(&transmitter->video_stream_list->lock);
 
         stream = transmitter->video_stream_list->first;
-        while(stream != NULL && transmitter->video_run){
-            coded_frame = cq_get_front(stream->video->coded_frames);
-            if (coded_frame == NULL){
+        while(stream != NULL && transmitter->video_run) {
+
+            if ((coded_frame = cq_get_front(stream->video->coded_cq)) != NULL) {
+
+                send_video_frame(stream, coded_frame, start_time);
+                cq_remove_bag(stream->video->coded_frames);
                 stream = stream->next;
-                continue;
             }
-            send_video_frame(stream, coded_frame, start_time);
-            cq_remove_bag(stream->video->coded_frames);
-            stream = stream->next;
         }
 
         pthread_rwlock_unlock(&transmitter->video_stream_list->lock);

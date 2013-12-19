@@ -23,6 +23,8 @@
  *            Marc Palau <marc.palau@i2cat.net>
  */
 
+//TODO: Decouple stream and stream_list.
+
 #include "stream.h"
 #include "debug.h"
 

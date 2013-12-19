@@ -34,7 +34,8 @@
 #include "stream.h"
 #include "participants.h"
 
-typedef struct receiver {
+typedef struct receiver
+{
     // Video data
     stream_list_t *video_stream_list;
     int video_port;

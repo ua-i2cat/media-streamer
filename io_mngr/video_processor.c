@@ -286,16 +286,16 @@ void vp_destroy(video_processor_t *vp)
 void vp_reconfig_internal(audio_processor_t *vp, unsigned int width, unsigned int height, codec_t codec)
 {
     // TODO protect access with locks
-    if (width != 0) vp->internal_config->width = width;
-    if (height != 0) vp->internal_config->height = height;
+    vp->internal_config->width = width;
+    vp->internal_config->height = height;
     vp->internal_config->codec = codec;
 }
 
 void vp_reconfig_external(audio_processor_t *vp, unsigned int width, unsigned int height, codec_t codec)
 {
     // TODO protect access with locks
-    if (width != 0) vp->external_config->width = width;
-    if (height != 0) vp->external_config->height = height;
+    vp->external_config->width = width;
+    vp->external_config->height = height;
     vp->external_config->codec = codec;
 }
 
