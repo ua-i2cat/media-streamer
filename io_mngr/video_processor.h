@@ -32,40 +32,28 @@
 #ifndef __VIDEO_PROCESSOR_H__
 #define __VIDEO_PROCESSOR_H__
 
-//#include <semaphore.h>
-//#include "config_unix.h"
 #include "types.h"
 #include "video_frame2.h"
 #include "circular_queue.h"
 #include "commons.h"
 
-//typedef struct decoder_thread {
-//    pthread_t thread;
-//    uint8_t run;
-//    struct state_decompress *sd;
-//} decoder_thread_t;
-
-//typedef struct encoder_thread {
-//    pthread_t thread;
-//    uint8_t run;
-//
-//    int index;
-//
-//    struct video_frame *frame;  // TODO: should be gone!
-//                                // redundant with stream->coded_frame
-//    struct compress_state *cs;
-//} encoder_thread_t;
-
-typedef struct video_processor {
+typedef struct video_processor
+{
+    // Common data
     role_t type;
     video_frame_cq_t *decoded_cq;
     video_frame_cq_t *coded_cq;
 
-    // Video configurations
+    // Video configuration
     struct video_desc *external_config;
     struct video_desc *internal_config;
 
-    // stream related
+    struct state_decompress *decompressor;
+
+    struct compress_state *compressor;
+    struct module *module;
+
+    // Stream stats
     uint32_t bitrate;
     uint32_t lost_coded_frames; 
 
@@ -89,14 +77,22 @@ video_processor_t *vp_init(role_t role);
 void vp_destroy(video_processor_t *vp);
 
 /**
- * Configure the external and internal video format.
+ * Configure the internal video format.
  * @param vp Target video_processor_t.
- * @param bps External bytes per second value.
- * @param sample_rate External sample rate.
- * @param channels External number of channels.
- * @param codec External codification type.
+ * @param width New width value (Use 0 for avoid to change it).
+ * @param height New height value (Use 0 for avoid to change it).
+ * @param codec New codec type.
  */
-void vp_config(video_processor_t *vp, int bps, int sample_rate, int channels, video_codec_t codec);
+void vp_reconfig_internal(audio_processor_t *vp, unsigned int width, unsigned int height, codec_t codec);
+
+/**
+ * Configure the external video format.
+ * @param vp Target video_processor_t.
+ * @param width New width value (Use 0 for avoid to change it).
+ * @param height New height value (Use 0 for avoid to change it).
+ * @param codec New codec type.
+ */
+void vp_reconfig_external(audio_processor_t *vp, unsigned int width, unsigned int height, codec_t codec);
 
 /**
  * Starts the worker thread.
@@ -104,16 +100,6 @@ void vp_config(video_processor_t *vp, int bps, int sample_rate, int channels, vi
  * @return decoder_thread_t * if succeeded, NULL otherwise.
  */
 void vp_worker_start(video_processor_t *vp);
-
-/**
- * Returns the so called external configuration.
- * @param vp The target video_processor_t.
- * @return struct audio_desc *
- */
-struct audio_desc *vp_get_config(video_processor_t *vp);
-
-//decoder_thread_t *init_decoder(video_processor_t *data);
-//encoder_thread_t *init_encoder(video_processor_t *data);
 
 #endif //__VIDEO_PROCESSOR_H__
 

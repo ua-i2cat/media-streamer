@@ -40,17 +40,20 @@ typedef enum video_frame2_type {
 
 typedef struct
 {
-    // Config (included in video_desc)
+    // Config
     unsigned int width;
     unsigned int height;
     codec_t codec;
-    double fps;
+
     // Data
     char *buffer;
     unsigned int buffer_len;
+    
     // Stats
+    double fps;
     uint32_t media_time;
     uint32_t seqno;
+    
     // Control
     video_frame2_type_t type;
 } video_frame2;

@@ -43,8 +43,7 @@ librtp_la_SOURCES = rtp/net_udp.c \
 					compat/vsnprintf.c \
 					compat/drand48.c \
 					utils/list.c \
-					utils/h264_stream.c \
-					video_data_frame.c 
+					utils/h264_stream.c
 
 libvcompress_la_LDFLAGS = -version-info 0:1:0 -lrt -lpthread -ldl -lavcodec -lavutil -lieee -lm -lGLEW -lGL -lglut -lGLU
 libvcompress_la_CFLAGS = $(AM_CFLAGS) -I. -Ivideo_compress -Iutils -Icompat -Iaudio -I.. -I../dxt_compress
@@ -66,8 +65,7 @@ libvcompress_la_SOURCES = video_frame.c \
 						  video_compress/uyvy.c \
 						  utils/list.c \
 						  utils/resource_manager.cpp \
-						  utils/worker.cpp \
-						  video_data_frame.c 
+						  utils/worker.cpp 
 #						  video_compress/fastdxt.c \
 #						  ../dxt_compress/dxt_common.c \
 #						  ../dxt_compress/dxt_decoder.c \
@@ -94,8 +92,7 @@ libvdecompress_la_SOURCES =  video_frame.c \
 							 video_decompress/null.c \
 							 utils/list.c \
 							 utils/resource_manager.cpp \
-							 utils/worker.cpp \
-							 video_data_frame.c 
+							 utils/worker.cpp
 #							 ../dxt_compress/dxt_common.c \
 #							 ../dxt_compress/dxt_decoder.c \
 #							 ../dxt_compress/dxt_display.c \
