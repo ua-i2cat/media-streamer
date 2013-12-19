@@ -32,6 +32,7 @@
 #ifndef __VIDEO_PROCESSOR_H__
 #define __VIDEO_PROCESSOR_H__
 
+#include <pthread.h>
 #include "types.h"
 #include "video_frame2.h"
 #include "circular_queue.h"
@@ -41,8 +42,8 @@ typedef struct video_processor
 {
     // Common data
     role_t type;
-    video_frame_cq_t *decoded_cq;
-    video_frame_cq_t *coded_cq;
+    circular_queue_t *decoded_cq;
+    circular_queue_t *coded_cq;
 
     // Video configuration
     struct video_desc *external_config;
@@ -54,8 +55,8 @@ typedef struct video_processor
     struct module *module;
 
     // Stream stats
-    uint32_t bitrate;
-    uint32_t lost_coded_frames; 
+    unsigned int bitrate;
+    unsigned int lost_coded_frames; 
 
     // Thread data
     int run;
@@ -83,7 +84,7 @@ void vp_destroy(video_processor_t *vp);
  * @param height New height value (Use 0 for avoid to change it).
  * @param codec New codec type.
  */
-void vp_reconfig_internal(audio_processor_t *vp, unsigned int width, unsigned int height, codec_t codec);
+void vp_reconfig_internal(video_processor_t *vp, unsigned int width, unsigned int height, codec_t codec);
 
 /**
  * Configure the external video format.
@@ -92,7 +93,7 @@ void vp_reconfig_internal(audio_processor_t *vp, unsigned int width, unsigned in
  * @param height New height value (Use 0 for avoid to change it).
  * @param codec New codec type.
  */
-void vp_reconfig_external(audio_processor_t *vp, unsigned int width, unsigned int height, codec_t codec);
+void vp_reconfig_external(video_processor_t *vp, unsigned int width, unsigned int height, codec_t codec);
 
 /**
  * Starts the worker thread.

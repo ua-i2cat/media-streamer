@@ -41,7 +41,7 @@ int main() {
     // Transmitter and stream configuration
     stream_list_t *video_stream_list = init_stream_list(); // Not used
     stream_list_t *audio_stream_list = init_stream_list();
-    stream_data_t *stream = init_stream(AUDIO, OUTPUT, 0, ACTIVE, 25.0, "Stream");
+    stream_data_t *stream = init_stream(AUDIO, OUTPUT, 0, ACTIVE, "Stream");
     add_stream(audio_stream_list, stream);
     transmitter_t *transmitter = init_transmitter(video_stream_list, audio_stream_list, 25.0);
     start_transmitter(transmitter);

@@ -86,7 +86,7 @@ void destroy_stream_list(stream_list_t *list);
  * Initializes a stream.
  * @return stream_data_t * if succeeded, NULL otherwise.
  */
-stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, stream_state_t state, float fps, char *stream_name);
+stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, stream_state_t state, char *stream_name);
 
 /**
  * Destroys a stream.

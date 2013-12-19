@@ -283,7 +283,7 @@ void vp_destroy(video_processor_t *vp)
     free(vp);
 }
 
-void vp_reconfig_internal(audio_processor_t *vp, unsigned int width, unsigned int height, codec_t codec)
+void vp_reconfig_internal(video_processor_t *vp, unsigned int width, unsigned int height, codec_t codec)
 {
     // TODO protect access with locks
     vp->internal_config->width = width;
@@ -291,7 +291,7 @@ void vp_reconfig_internal(audio_processor_t *vp, unsigned int width, unsigned in
     vp->internal_config->codec = codec;
 }
 
-void vp_reconfig_external(audio_processor_t *vp, unsigned int width, unsigned int height, codec_t codec)
+void vp_reconfig_external(video_processor_t *vp, unsigned int width, unsigned int height, codec_t codec)
 {
     // TODO protect access with locks
     vp->external_config->width = width;
@@ -299,7 +299,7 @@ void vp_reconfig_external(audio_processor_t *vp, unsigned int width, unsigned in
     vp->external_config->codec = codec;
 }
 
-void vp_worker_start(audio_processor_t *vp)
+void vp_worker_start(video_processor_t *vp)
 {
     vp->run = TRUE;
     if (!pthread_create(&vp->thread, NULL, vp->worker, (void *)vp) != 0)

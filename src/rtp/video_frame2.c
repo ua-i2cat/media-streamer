@@ -20,13 +20,15 @@
  *  Authors:  Jordi "Txor" Casas Ríos <jordi.casas@i2cat.net>,
  */
 
+#include <stdlib.h>
+#include <unistd.h>
 #include "video_frame2.h"
-#include "video_config.h"
 #include "debug.h"
 
 video_frame2 *rtp_video_frame2_init()
 {
-    if ((video_frame2 *frame = malloc(sizeof(video_frame2))) == NULL) {
+    video_frame2 *frame;
+    if ((frame = malloc(sizeof(video_frame2))) == NULL) {
         error_msg("rtp_video_frame2_init: malloc: out of memory!");
         return NULL;
     }
@@ -35,9 +37,9 @@ video_frame2 *rtp_video_frame2_init()
     frame->buffer = NULL;
     frame->buffer_len = 0;
     // Stats
-    frame->fps = VIDEO_DEFAULT_FPS;
-    frame->media_time = VIDEO_DEFAULT_MEDIA_TIME;
-    frame->seqno = VIDEO_DEFAULT_SEQNO;
+    frame->fps = 0;
+    frame->media_time = 0;
+    frame->seqno = 0;
     // Control
     frame->type = BFRAME;
 

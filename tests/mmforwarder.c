@@ -121,15 +121,13 @@ int main()
             INPUT_AUDIO_PORT);
     start_receiver(receiver);
     // Video stream with a participant
-    stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT,
-            INPUT_VIDEO_FORMAT_FPS, "Input video stream");
+    stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, "Input video stream");
     add_participant_stream(stream,
             init_participant(1, INPUT, NULL, 0));
     set_video_frame_cq(stream->video->coded_frames, H264, 0, 0);
     add_stream(receiver->video_stream_list, stream);
     // Audio stream with a participant
-    stream = init_stream(AUDIO, INPUT, rand(), I_AWAIT, 0, 
-            "Input audio stream");
+    stream = init_stream(AUDIO, INPUT, rand(), I_AWAIT, "Input audio stream");
     add_participant_stream(stream,
             init_participant(1, INPUT, NULL, 0));
     ap_config(stream->audio, INPUT_AUDIO_FORMAT_BPS,
@@ -146,8 +144,7 @@ int main()
             OUTPUT_VIDEO_FORMAT_FPS);
     start_transmitter(transmitter);
     // Video stream with a participant
-    stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE,
-            OUTPUT_VIDEO_FORMAT_FPS, "Output video stream");
+    stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE, "Output video stream");
     add_participant_stream(stream,
             init_participant(0, OUTPUT, OUTPUT_IP, OUTPUT_VIDEO_PORT));
     set_video_frame_cq(stream->video->decoded_frames, RAW, 1280, 544);
@@ -155,7 +152,7 @@ int main()
     add_stream(transmitter->video_stream_list, stream);
     init_encoder(stream->video);
     // Audio stream with a participant
-    stream = init_stream(AUDIO, OUTPUT, 0, ACTIVE, 0, "Output audio stream");
+    stream = init_stream(AUDIO, OUTPUT, 0, ACTIVE, "Output audio stream");
     add_participant_stream(stream, 
             init_participant(0, OUTPUT, OUTPUT_IP, OUTPUT_AUDIO_PORT));
     ap_config(stream->audio, OUTPUT_AUDIO_FORMAT_BPS,

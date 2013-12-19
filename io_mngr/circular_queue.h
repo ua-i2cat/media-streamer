@@ -42,13 +42,13 @@ typedef struct bag {
 } bag_t;
 
 typedef struct circular_queue_stats {
-    uint32_t delay_sum;
-    uint8_t remove_counter;
+    unsigned int delay_sum;
+    unsigned int remove_counter;
     float delay;
     float fps;
-    uint8_t put_counter;
-    uint32_t fps_sum;
-    uint32_t last_frame_time;
+    unsigned int put_counter;
+    unsigned int fps_sum;
+    unsigned int last_frame_time;
 } circular_queue_stats_t;
 
 typedef struct circular_queue {

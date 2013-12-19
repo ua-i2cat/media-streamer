@@ -73,7 +73,7 @@ static void add_receiver_entity() {
     char name[256];
     sprintf(name, "IN_%i", count);
     participant_data_t *p = init_participant(1, INPUT, NULL, 0);
-    stream_data_t *s = init_stream(AUDIO, INPUT, rand(), I_AWAIT, 0, name);
+    stream_data_t *s = init_stream(AUDIO, INPUT, rand(), I_AWAIT, name);
     add_participant_stream(s, p);
     ap_config(s->audio, RECEIVER_AUDIO_FORMAT_BPS,
             RECEIVER_AUDIO_FORMAT_SAMPLE_RATE,
@@ -97,7 +97,7 @@ static void add_transmitter_entity(char *ip, int port) {
     char name[256];
     sprintf(name, "OUT_%i", count);
     participant_data_t *p = init_participant(0, OUTPUT, ip, port);
-    stream_data_t *s = init_stream(AUDIO, OUTPUT, 0, ACTIVE, 0, name);
+    stream_data_t *s = init_stream(AUDIO, OUTPUT, 0, ACTIVE, name);
     add_participant_stream(s, p);
     ap_config(s->audio, TRANSMITTER_AUDIO_FORMAT_BPS,
             TRANSMITTER_AUDIO_FORMAT_SAMPLE_RATE,

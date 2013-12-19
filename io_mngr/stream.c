@@ -59,7 +59,7 @@ void destroy_stream_list(stream_list_t *list)
     free(list);
 }
 
-stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, stream_state_t state, float fps, char *stream_name)
+stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, stream_state_t state, char *stream_name)
 {
     stream_data_t *stream = malloc(sizeof(stream_data_t));
     if (stream == NULL) {
@@ -82,9 +82,9 @@ stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, s
 
     if (type == VIDEO) {
         if (io_type == INPUT){
-            stream->video = init_video_data(DECODER, fps);
+            stream->video = vp_init(DECODER);
         } else if (io_type == OUTPUT){
-            stream->video = init_video_data(ENCODER, fps);
+            stream->video = vp_init(ENCODER);
         }
     }
     else if (type == AUDIO) {
@@ -107,7 +107,7 @@ stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, s
 void destroy_stream(stream_data_t *stream)
 {
     if (stream->type == VIDEO){
-        destroy_video_data(stream->video);
+        vp_destroy(stream->video);
     } else if (stream->type == AUDIO){
         ap_destroy(stream->audio);
     }

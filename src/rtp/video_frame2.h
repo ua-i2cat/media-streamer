@@ -67,7 +67,7 @@ typedef struct
  * Create and initialize a video_frame2 with some default values.
  * @return video_frame2 * if succeeded, NULL otherwise.
  */
-video_frame2 *rtp_video_frame2_init();
+video_frame2 *rtp_video_frame2_init(void);
 
 /**
  * Allocate memory space for the audio_frame2 buffer with specified video frame size, also configures the codec type.
