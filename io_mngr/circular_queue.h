@@ -39,8 +39,8 @@ typedef enum {
 } cq_level_t;
 
 typedef struct bag {
-    unsigned int *media_time;
     void *pocket;
+    unsigned int *media_time;
 } bag_t;
 
 typedef struct circular_queue_stats {

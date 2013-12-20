@@ -268,7 +268,7 @@ video_processor_t *vp_init(role_t role)
             get_media_time_ptr);
 
     // Coded circular queue
-    vp->decoded_cq = cq_init(
+    vp->coded_cq = cq_init(
             VIDEO_CIRCULAR_QUEUE_SIZE,
             bag_init,
             vp->external_config,

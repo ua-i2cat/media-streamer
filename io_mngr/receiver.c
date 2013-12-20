@@ -56,7 +56,7 @@ void *video_receiver_thread(receiver_t *receiver)
         gettimeofday(&curr_time, NULL);
         timestamp = tv_diff(curr_time, start_time) * 90000;
         rtp_update(receiver->video_session, curr_time);
-        rtp_send_ctrl(receiver->video_session, timestamp, 0, curr_time);
+        //rtp_send_ctrl(receiver->video_session, timestamp, 0, curr_time);
 
         timeout.tv_sec = 0;
         timeout.tv_usec = 10000;
@@ -147,7 +147,7 @@ static void *audio_receiver_thread(receiver_t *receiver)
         gettimeofday(&curr_time, NULL);
         timestamp = tv_diff(curr_time, start_time) * 90000;
         rtp_update(receiver->audio_session, curr_time);
-        rtp_send_ctrl(receiver->audio_session, timestamp, 0, curr_time);
+        //rtp_send_ctrl(receiver->audio_session, timestamp, 0, curr_time);
 
         //TODO: repàs dels locks en accedir a src
         if (!rtp_recv_r(receiver->audio_session, &timeout, timestamp)){

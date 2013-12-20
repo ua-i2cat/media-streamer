@@ -99,7 +99,7 @@
 
 (6) audio_transmitter - Reads audio from a file and transmits it to two ports (5006 and 6006).
 
-    1- (optional if already done) Copy a mono PCM at 2 BPS and 48000Hz audio data to a file called audio_transmitter.raw (audacity is a good choice to do so) on the path you'll run the test program.
+    1- (optional if already done) Copy a mono PCM at 2 BPS and 48000Hz audio data to a file called audio_transmitter.raw on the path you'll run the test program (you can generate it with audacity or other programs, another good choice is to use one of the files generated on the audio_receiver test).
 
     2- Start ffplay:
         ffplay -nodisp audio.sdp

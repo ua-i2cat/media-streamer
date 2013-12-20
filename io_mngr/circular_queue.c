@@ -45,6 +45,7 @@ circular_queue_t *cq_init(int max, void *(*init_object)(void *), void *init_data
     cq->destroy_object = destroy_object;
     cq->bags = malloc(sizeof(bag_t *) * max);
     for (int i = 0; i < max; i++) {
+        cq->bags[i] = malloc(sizeof(bag_t *));
         cq->bags[i]->pocket = init_object(init_data);
         cq->bags[i]->media_time = get_media_time_ptr(cq->bags[i]->pocket);
     }
@@ -55,7 +56,8 @@ circular_queue_t *cq_init(int max, void *(*init_object)(void *), void *init_data
 void cq_destroy(circular_queue_t* cq)
 {
     for(int i = 0; i < cq->max; i++) {
-        cq->destroy_object(cq->bags[i]);
+        cq->destroy_object(cq->bags[i]->pocket);
+        free(cq->bags[i]);
     }
     free(cq->bags);
     free(cq);

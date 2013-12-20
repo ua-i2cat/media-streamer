@@ -25,6 +25,7 @@ int main(){
     //Adding 1st incoming stream and participant
     add_participant_stream(stream, p1);
     add_stream(receiver->video_stream_list, stream);
+    vp_worker_start(stream->video);
     
     //Allocating place for unknown incoming stream
     stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
@@ -32,6 +33,7 @@ int main(){
     //Adding 1st incoming stream and participant
     add_participant_stream(stream, p2);
     add_stream(receiver->video_stream_list, stream);
+    vp_worker_start(stream->video);
 
     if (start_receiver(receiver)) {
 

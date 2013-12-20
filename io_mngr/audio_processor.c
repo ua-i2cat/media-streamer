@@ -148,13 +148,15 @@ static void *encoder_thread(void *arg)
 
 static void *bag_init(void *init)
 {
-    audio_frame2 *frame;
     struct bag_init_val *init_object = (struct bag_init_val *)init;
-    int channels = init_object->chan;
-    int max_size = init_object->size;
+    audio_frame2 *frame;
 
-    frame = rtp_audio_frame2_init();
-    rtp_audio_frame2_allocate(frame, channels, max_size);
+    if ((frame = rtp_audio_frame2_init()) == NULL) {
+        error_msg("bag_init: out of memory");
+        return NULL;
+    }
+
+    rtp_audio_frame2_allocate(frame, init_object->chan, init_object->size);
 
     return (void *)frame;
 }
