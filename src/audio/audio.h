@@ -104,6 +104,7 @@ typedef struct
         int data_len[MAX_AUDIO_CHANNELS];           /* size of useful data in buffer */
         int ch_count;		/* count of channels */
         unsigned int max_size;  /* maximal size of data in buffer */
+        unsigned int media_time;  /* statistical field for io_mngr */
         audio_codec_t codec;
 } audio_frame2;
 

@@ -41,7 +41,7 @@
 typedef struct video_processor
 {
     // Common data
-    role_t type;
+    role_t role;
     circular_queue_t *decoded_cq;
     circular_queue_t *coded_cq;
 
@@ -51,10 +51,11 @@ typedef struct video_processor
 
     struct state_decompress *decompressor;
 
-    struct compress_state *compressor;
+    struct compress_state **compressor;
     struct module *module;
 
     // Stream stats
+    unsigned int seqno;
     unsigned int bitrate;
     unsigned int lost_coded_frames; 
 

@@ -50,21 +50,21 @@ static void finish_handler(int signal);
 static void video_frame_forward(stream_data_t *src, stream_data_t *dst)
 {
     video_frame2 *in_frame, *out_frame;
-    in_frame = cq_get_front(src->video->decoded_frames);
+    in_frame = cq_get_front(src->video->decoded_cq);
     if (in_frame != NULL) {
-        out_frame = cq_get_rear(dst->video->decoded_frames);
+        out_frame = cq_get_rear(dst->video->decoded_cq);
         if (out_frame != NULL) {
-            out_frame->curr_seqno = in_frame->curr_seqno;
+            out_frame->seqno = in_frame->seqno;
             out_frame->width = in_frame->width;
             out_frame->height = in_frame->height;
             out_frame->media_time = in_frame->media_time;
             out_frame->seqno = in_frame->seqno;
-            out_frame->frame_type = in_frame->frame_type;
+            out_frame->type = in_frame->type;
             out_frame->codec = in_frame->codec;
             out_frame->buffer_len = in_frame->buffer_len;
             memcpy(out_frame->buffer, in_frame->buffer, in_frame->buffer_len);
-            cq_add_bag(dst->video->decoded_frames);
-            cq_remove_bag(src->video->decoded_frames);
+            cq_add_bag(dst->video->decoded_cq);
+            cq_remove_bag(src->video->decoded_cq);
         }
     }
 }
@@ -124,7 +124,7 @@ int main()
     stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, "Input video stream");
     add_participant_stream(stream,
             init_participant(1, INPUT, NULL, 0));
-    set_video_frame_cq(stream->video->coded_frames, H264, 0, 0);
+    vp_reconfig_external(stream->video, 0, 0, H264);
     add_stream(receiver->video_stream_list, stream);
     // Audio stream with a participant
     stream = init_stream(AUDIO, INPUT, rand(), I_AWAIT, "Input audio stream");
@@ -147,10 +147,10 @@ int main()
     stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE, "Output video stream");
     add_participant_stream(stream,
             init_participant(0, OUTPUT, OUTPUT_IP, OUTPUT_VIDEO_PORT));
-    set_video_frame_cq(stream->video->decoded_frames, RAW, 1280, 544);
-    set_video_frame_cq(stream->video->coded_frames, H264, 1280, 544);
+    vp_reconfig_internal(stream->video, 1280, 544, RAW);
+    vp_reconfig_external(stream->video, 1280, 544, H264);
     add_stream(transmitter->video_stream_list, stream);
-    init_encoder(stream->video);
+    vp_worker_start(stream->video);
     // Audio stream with a participant
     stream = init_stream(AUDIO, OUTPUT, 0, ACTIVE, "Output audio stream");
     add_participant_stream(stream, 

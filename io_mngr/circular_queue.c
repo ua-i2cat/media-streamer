@@ -26,7 +26,7 @@
 #include "debug.h"
 #include "circular_queue.h"
 
-circular_queue_t *cq_init(int max, void *(*init_object)(void *), void *init_data, void (*destroy_object)(void *), int *get_media_time_ptr(void *))
+circular_queue_t *cq_init(int max, void *(*init_object)(void *), void *init_data, void (*destroy_object)(void *), unsigned int *get_media_time_ptr(void *))
 {
     if (max <= 1){
         error_msg("video frame queue must have at least 2 positions");
@@ -45,7 +45,7 @@ circular_queue_t *cq_init(int max, void *(*init_object)(void *), void *init_data
     cq->destroy_object = destroy_object;
     cq->bags = malloc(sizeof(bag_t *) * max);
     for (int i = 0; i < max; i++) {
-        cq->bags[i]->pocket = cq->init_object(init_data);
+        cq->bags[i]->pocket = init_object(init_data);
         cq->bags[i]->media_time = get_media_time_ptr(cq->bags[i]->pocket);
     }
 
@@ -126,8 +126,8 @@ void cq_remove_bag(circular_queue_t *cq)
 void cq_flush(circular_queue_t *cq)
 {
     if (cq->level == CIRCULAR_QUEUE_FULL) {
-        frame_cq->front = (frame_cq->front + (frame_cq->max - 1))
-            % frame_cq->max;
+        cq->front = (cq->front + (cq->max - 1))
+            % cq->max;
         cq->level = CIRCULAR_QUEUE_MID;
     }
 }

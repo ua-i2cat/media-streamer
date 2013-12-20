@@ -80,7 +80,7 @@ int main(){
     //Starting RTSP server
     c_start_server(server);
     //Allocating place for unknown incoming stream
-    set_video_frame_cq(in_str->video->coded_frames, H264, 0, 0);
+    vp_reconfig_external(in_str->video, 0, 0, H264);
     //Adding 1st incoming stream and participant
     add_participant_stream(in_str, in_p1);
     add_stream(receiver->video_stream_list, in_str);
@@ -102,48 +102,47 @@ int main(){
             pthread_rwlock_unlock(&in_str_list->lock);
 
             while(in_str != NULL && out_str != NULL && !stop) {
-                if (out_str->video->encoder == NULL && in_str->video->decoder != NULL) {
-                    in_frame = cq_get_front(in_str->video->decoded_frames);
+/*                if (out_str->video->encoder == NULL && in_str->video->decoder != NULL) {
+                    in_frame = cq_get_front(in_str->video->decoded_cq);
                     if (in_frame == NULL){
                         continue;
                     }
 
-                    set_video_frame_cq(out_str->video->decoded_frames, RAW, 
+                    vp_reconfig_internal(out_str->video, 
                             in_frame->width, 
-                            in_frame->height);
-                    set_video_frame_cq(out_str->video->coded_frames, H264,
+                            in_frame->height,
+                            RAW);
+                    vp_reconfig_external(out_str->video,
                             in_frame->width, 
-                            in_frame->height);
+                            in_frame->height,
+                            H264);
                     init_encoder(out_str->video);
                     c_update_server(server);
                     continue;
+                }*/
+
+                if ((in_frame = cq_get_front(in_str->video->decoded_cq)) != NULL) {
+                    if ((out_frame = cq_get_rear(out_str->video->decoded_cq)) != NULL) {
+                        memcpy(out_frame->buffer, 
+                                in_frame->buffer, 
+                                in_frame->buffer_len);
+                        out_frame->buffer_len 
+                            = out_frame->buffer_len;
+
+                        cq_remove_bag(in_str->video->decoded_cq);
+                        cq_add_bag(out_str->video->decoded_cq);
+
+                        in_str = in_str->next;
+                        out_str = out_str->next;
+                    }
                 }
-
-                in_frame = cq_get_front(in_str->video->decoded_frames);
-                out_frame = cq_get_rear(out_str->video->decoded_frames);
-
-                if (in_frame == NULL || out_frame == NULL){
-                    continue;
-                }
-
-                memcpy(out_frame->buffer, 
-                        in_frame->buffer, 
-                        in_frame->buffer_len);
-                out_frame->buffer_len 
-                    = out_frame->buffer_len;
-
-                cq_remove_bag(in_str->video->decoded_frames);
-                cq_add_bag(out_str->video->decoded_frames);
-
-                in_str = in_str->next;
-                out_str = out_str->next;
             }
 
             gettimeofday(&b, NULL);
             if (out_str_list->count < 2 && b.tv_sec - a.tv_sec >= 50){
                 //Adding 2nd incoming participant
                 in_str = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
-                set_video_frame_cq(in_str->video->coded_frames, H264, 0, 0);
+                vp_reconfig_external(in_str->video, 0, 0, H264);
                 add_participant_stream(in_str, in_p2);
                 add_stream(receiver->video_stream_list, in_str);
                 //Adding 2nd outgoing stream

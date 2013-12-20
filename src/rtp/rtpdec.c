@@ -14,7 +14,8 @@ static const uint8_t start_sequence[] = { 0, 0, 0, 1 };
 
 int fill_coded_frame_from_sps(video_frame2 *rx_data, unsigned char *data, int *data_len);
 
-int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
+int decode_frame_h264(struct coded_data *cdata, void *rx_data)
+{
     rtp_packet *pckt = NULL;
     struct coded_data *orig = cdata;
 
@@ -25,7 +26,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data) {
     int pass;
     int total_length = 0;
 
-    char *dst = NULL;
+    unsigned char *dst = NULL;
     int src_len;
 
     video_frame2 *frame = (video_frame2 *)rx_data;
@@ -436,11 +437,12 @@ int fill_coded_frame_from_sps(video_frame2 *rx_data, unsigned char *data, int *d
     }
 
     if((width != rx_data->width) || (height != rx_data->height)) {
-        set_video_data_frame(rx_data, H264, width, height);
+        rtp_video_frame2_allocate(rx_data, width, height, H264);
     }
 
     bs_free(b);
     free(rbsp_buf);
     free(sps);
 
+    return 0;
 }

@@ -10,11 +10,11 @@ libiomanager_la_CFLAGS = $(AM_CFLAGS) -I. -I.. -I../src -I../src/rtp -I../src/ut
 libiomanager_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -I.. -I../src -I../src/rtp -I../src/utils -I../src/audio -I/usr/include/groupsock -I/usr/include/liveMedia -I/usr/include/BasicUsageEnvironment -I/usr/include/UsageEnvironment
 libiomanager_la_SOURCES = stream.c \
 						  participants.c \
-						  video_processor.c \
-						  circular_queue.c \
-                                                  audio_processor.c \
 						  transmitter.c \
 						  receiver.c \
+						  circular_queue.c \
+						  video_processor.c \
+                                                  audio_processor.c \
 						  BasicRTSPOnlyServer.cpp \
 						  BasicRTSPOnlySubsession.cpp \
 						  c_basicRTSPOnlyServer.cpp \

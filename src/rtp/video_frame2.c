@@ -29,7 +29,7 @@ video_frame2 *rtp_video_frame2_init()
 {
     video_frame2 *frame;
     if ((frame = malloc(sizeof(video_frame2))) == NULL) {
-        error_msg("rtp_video_frame2_init: malloc: out of memory!");
+        error_msg("rtp_video_frame2_init: malloc: out of memory");
         return NULL;
     }
 

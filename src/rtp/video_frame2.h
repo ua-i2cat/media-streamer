@@ -53,7 +53,7 @@ typedef struct
     unsigned int height;
     codec_t codec;
     // Data
-    char *buffer;
+    unsigned char *buffer;
     unsigned int buffer_len;
     // Stats
     double fps;

@@ -30,6 +30,8 @@
 #ifndef __CIRCULAR_QUEUE_H__
 #define __CIRCULAR_QUEUE_H__
 
+#include "config_unix.h"
+
 typedef enum {
     CIRCULAR_QUEUE_MID,
     CIRCULAR_QUEUE_EMPTY,
@@ -37,7 +39,7 @@ typedef enum {
 } cq_level_t;
 
 typedef struct bag {
-    int *media_time;
+    unsigned int *media_time;
     void *pocket;
 } bag_t;
 
@@ -76,7 +78,7 @@ circular_queue_t *cq_init(
         void *(*init_object)(void *),
         void *init_data,
         void (*destroy_object)(void *),
-        int *get_media_time_ptr(void *));
+        unsigned int *get_media_time_ptr(void *));
 
 /**
  * Destroys the circular queue.

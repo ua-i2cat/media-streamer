@@ -43,7 +43,7 @@ static void *decoder_thread(void *arg);
 static void *encoder_thread(void *arg);
 static void *bag_init(void *arg);
 static void bag_destroy(void *arg);
-static int *get_media_time_ptr(void *bag);
+static unsigned int *get_media_time_ptr(void *frame);
 static int normalize_get_size();
 static void normalize_extract(audio_frame2 *src, audio_frame2 *dst, int size);
 static void audio_frame_format(audio_frame2 *src, struct audio_desc *desc);
@@ -75,19 +75,16 @@ static void *decoder_thread(void* arg)
                         if (resampler_compare_sample_rate(ap->resampler, frame->sample_rate)) {
                             audio_codec_state_set_out(ap->compression_config, output_frame);
                             frame = audio_codec_decompress(ap->compression_config, normal);
-                        }
-                        else {
+                        } else {
                             resampler_set_resampled(ap->resampler, output_frame);
                             frame = audio_codec_decompress(ap->compression_config, normal);
                             frame = resampler_resample(ap->resampler, frame);
                         }
-                    }
-                    else {
+                    } else {
                         if (resampler_compare_sample_rate(ap->resampler, frame->sample_rate)) {
                             audio_codec_state_set_out(ap->compression_config, output_frame);
                             frame = audio_codec_decompress(ap->compression_config, frame);
-                        }
-                        else {
+                        } else {
                             resampler_set_resampled(ap->resampler, output_frame);
                             frame = audio_codec_decompress(ap->compression_config, frame);
                             frame = resampler_resample(ap->resampler, frame);
@@ -167,9 +164,11 @@ static void bag_destroy(void *bag)
     rtp_audio_frame2_free((audio_frame2 *)bag);
 }
 
-static int *get_media_time_ptr(void *bag)
+static unsigned int *get_media_time_ptr(void *frame)
 {
-    return &bag->media_time;
+    audio_frame2 *f = (audio_frame2 *)frame;
+    unsigned int *time = &f->media_time;
+    return time;
 }
 
 static int normalize_get_size(audio_processor_t *ap)
@@ -188,6 +187,9 @@ static int normalize_get_size(audio_processor_t *ap)
             break;
         case 48000:
             index = 3;
+            break;
+        default:
+            index = 0;
             break;
     }
     bps_factor = ap->internal_config->bps / ap->external_config->bps;

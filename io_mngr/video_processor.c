@@ -26,21 +26,25 @@
 //#include <stdlib.h>
 #include "video_processor.h"
 #include "video_decompress.h"
-//#include "video_decompress/libavcodec.h"
-//#include "video_codec.h"
+#include "video_decompress/libavcodec.h"
+#include "video_codec.h"
 #include "video_compress.h"
-//#include "video_frame.h"
+#include "video_frame.h"
 #include "video_config.h"
+#include "types.h"
 #include "tv.h"
 #include "module.h"
 #include "debug.h"
+
+// Used to emphasize that the state is actually a proxy (from video_compress.c).
+typedef struct compress_state compress_state_proxy;
 
 // private functions
 void *decoder_thread(void* data);
 void *encoder_thread(void *arg);
 static void *bag_init(void *init);
 static void bag_destroy(void *bag);
-static int *get_media_time_ptr(void *bag);
+static unsigned int *get_media_time_ptr(void *frame);
 
 void *decoder_thread(void* arg)
 {
@@ -56,13 +60,12 @@ void *decoder_thread(void* arg)
             decompress_done(vp->decompressor);
             vp->run = FALSE;
         }
-    }
-    else {
+    } else {
         error_msg("decompress not available");
         vp->run = FALSE;
     }
 
-    while(vp->run){
+    while(vp->run) {
         usleep(100);
 
         if ((coded_frame = cq_get_front(vp->coded_cq)) != NULL) {
@@ -70,13 +73,13 @@ void *decoder_thread(void* arg)
             if (vp->external_config->width != coded_frame->width ||
                     vp->external_config->height != coded_frame->height ||
                     vp->external_config->color_spec != coded_frame->codec ||
-                    vp->external_config->fps != data->fps) {
+                    vp->external_config->fps != coded_frame->fps) {
 
                 vp->external_config->width = coded_frame->width;
                 vp->external_config->height = coded_frame->height;
                 vp->external_config->color_spec = coded_frame->codec;
-                vp->external_config->fps = data->fps;
-                if (!decompress_reconfigure(vp->decompressor, des, 16, 8, 0,
+                vp->external_config->fps = coded_frame->fps;
+                if (!decompress_reconfigure(vp->decompressor, *vp->external_config, 16, 8, 0,
                             vc_get_linesize(vp->external_config->width, RGB),
                             RGB)) {
                     error_msg("decoder decompress reconfigure failed");
@@ -124,7 +127,7 @@ void *encoder_thread(void *arg)
         vp->run = FALSE; 
     }
 
-    while (encoder->run) {
+    while (vp->run) {
         //TODO: set a non magic number in this usleep (maybe related to framerate)
         usleep(100);
 
@@ -136,17 +139,23 @@ void *encoder_thread(void *arg)
                 vp->lost_coded_frames++;
             }
 
-            reconf_video_frame(decoded_frame, enc_frame, vp->external_config->fps);
+            if (decoded_frame->width != vf_get_tile(enc_frame, 0)->width ||
+                    decoded_frame->height != vf_get_tile(enc_frame, 0)->height) {
+                vf_get_tile(enc_frame, 0)->width = decoded_frame->width;
+                vf_get_tile(enc_frame, 0)->height = decoded_frame->height;
+                enc_frame->color_spec = VIDEO_DEFAULT_PIXEL_FORMAT;
+                enc_frame->interlacing = VIDEO_DEFAULT_INTERLACING;
+                enc_frame->fps = VIDEO_DEFAULT_FPS;
+            }
 
             enc_frame->tiles[0].data = (char *)decoded_frame->buffer;
             enc_frame->tiles[0].data_len = decoded_frame->buffer_len;
 
             struct video_frame *tx_frame;
 
-            tx_frame = compress_frame(vp->compressor, enc_frame, index);
+            tx_frame = compress_frame((compress_state_proxy *)vp->compressor, enc_frame, index);
 
-            encoder->frame = tx_frame;
-            coded_frame->buffer = (uint8_t *)vf_get_tile(tx_frame, 0)->data;
+            coded_frame->buffer = (unsigned char *)vf_get_tile(tx_frame, 0)->data;
             coded_frame->buffer_len = vf_get_tile(tx_frame, 0)->data_len;
 
             coded_frame->seqno = decoded_frame->seqno;
@@ -168,6 +177,11 @@ static void *bag_init(void *init)
 {
     struct video_desc *init_object = (struct video_desc *)init;
     video_frame2 *frame;
+
+    if ((frame = rtp_video_frame2_init()) == NULL) {
+        error_msg("bag_init: out of memory");
+        return NULL;
+    }
 
     // Config
     frame->width = init_object->width;
@@ -192,21 +206,24 @@ static void *bag_init(void *init)
     return frame;
 }
 
-static void bag_destroy(void *bag)
+static void bag_destroy(void *destroy)
 {
-    free(bag->pocket->buffer);
-    free(bag->pocket);
+    bag_t *bag = (bag_t *)destroy;
+    video_frame2 * frame = (video_frame2 *)bag->pocket; 
+    free(frame->buffer);
+    free(frame);
 }
 
-static int *get_media_time_ptr(void *frame)
+static unsigned int *get_media_time_ptr(void *frame)
 {
-    return &frame->media_time;
+    video_frame2 *f = (video_frame2 *)frame;
+    unsigned int *time = &f->media_time;
+    return time;
 }
 
 //video_processor_t *init_video_data(role_t type, float fps)
 video_processor_t *vp_init(role_t role)
 {
-    struct bag_init_val init_data;
     video_processor_t *vp;
 
     if ((vp = malloc(sizeof(video_processor_t))) == NULL) {
@@ -231,13 +248,13 @@ video_processor_t *vp_init(role_t role)
     // Default values
     vp->internal_config->width = VIDEO_DEFAULT_INTERNAL_WIDTH;
     vp->internal_config->height = VIDEO_DEFAULT_INTERNAL_HEIGHT;
-    vp->internal_config->codec = VIDEO_DEFAULT_INTERNAL_CODEC;
+    vp->internal_config->color_spec = VIDEO_DEFAULT_INTERNAL_CODEC;
     vp->internal_config->fps = VIDEO_DEFAULT_FPS;
     vp->internal_config->interlacing = VIDEO_DEFAULT_INTERLACING;
     vp->internal_config->tile_count = VIDEO_DEFAULT_TILE_COUNT;
     vp->external_config->width = VIDEO_DEFAULT_EXTERNAL_WIDTH;
     vp->external_config->height = VIDEO_DEFAULT_EXTERNAL_HEIGHT;
-    vp->external_config->codec = VIDEO_DEFAULT_EXTERNAL_CODEC;
+    vp->external_config->color_spec = VIDEO_DEFAULT_EXTERNAL_CODEC;
     vp->external_config->fps = VIDEO_DEFAULT_FPS;
     vp->external_config->interlacing = VIDEO_DEFAULT_INTERLACING;
     vp->external_config->tile_count = VIDEO_DEFAULT_TILE_COUNT;
@@ -258,12 +275,12 @@ video_processor_t *vp_init(role_t role)
             bag_destroy,
             get_media_time_ptr);
 
-    switch(ap->role) {
+    switch(vp->role) {
         case DECODER:
-            ap->worker = decoder_thread;
+            vp->worker = decoder_thread;
             break;
         case ENCODER:
-            ap->worker = encoder_thread;
+            vp->worker = encoder_thread;
             break;
         default:
             break;
@@ -288,7 +305,7 @@ void vp_reconfig_internal(video_processor_t *vp, unsigned int width, unsigned in
     // TODO protect access with locks
     vp->internal_config->width = width;
     vp->internal_config->height = height;
-    vp->internal_config->codec = codec;
+    vp->internal_config->color_spec = codec;
 }
 
 void vp_reconfig_external(video_processor_t *vp, unsigned int width, unsigned int height, codec_t codec)
@@ -296,7 +313,7 @@ void vp_reconfig_external(video_processor_t *vp, unsigned int width, unsigned in
     // TODO protect access with locks
     vp->external_config->width = width;
     vp->external_config->height = height;
-    vp->external_config->codec = codec;
+    vp->external_config->color_spec = codec;
 }
 
 void vp_worker_start(video_processor_t *vp)

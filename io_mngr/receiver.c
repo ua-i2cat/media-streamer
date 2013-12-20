@@ -56,7 +56,7 @@ void *video_receiver_thread(receiver_t *receiver)
         gettimeofday(&curr_time, NULL);
         timestamp = tv_diff(curr_time, start_time) * 90000;
         rtp_update(receiver->video_session, curr_time);
-        rtp_send_ctrl(receiver->session, timestamp, 0, curr_time);
+        rtp_send_ctrl(receiver->video_session, timestamp, 0, curr_time);
 
         timeout.tv_sec = 0;
         timeout.tv_usec = 10000;
@@ -74,8 +74,7 @@ void *video_receiver_thread(receiver_t *receiver)
                         debug_msg("audio_receiver_thread: Can't find configured streams, dropping data");
                         cp = pdb_iter_next(&it);
                         continue;
-                    }
-                    else {
+                    } else {
                         set_participant_ssrc(participant, cp->ssrc);
                     }
                 }
@@ -86,8 +85,7 @@ void *video_receiver_thread(receiver_t *receiver)
                         error_msg("Warning! Coded frame discarded in reception\n");
                         participant->stream->video->lost_coded_frames++;
                     }
-                }
-                else {
+                } else {
 
                     if (pbuf_decode(cp->playout_buffer, curr_time, decode_frame_h264, coded_frame)) {
 
@@ -101,7 +99,7 @@ void *video_receiver_thread(receiver_t *receiver)
                                     coded_frame->width, 
                                     coded_frame->height);
                             vp_reconfig_internal(participant->stream->video, 
-                                    participant->stream->video->internal_config->codec,
+                                    participant->stream->video->internal_config->color_spec,
                                     coded_frame->width, 
                                     coded_frame->height);
                             participant->stream->state = ACTIVE;
@@ -112,8 +110,7 @@ void *video_receiver_thread(receiver_t *receiver)
                             coded_frame->seqno = participant->stream->video->seqno;
                             coded_frame->media_time = get_local_mediatime_us();
                             cq_add_bag(participant->stream->video->coded_cq);
-                        }
-                        else {
+                        } else {
                             debug_msg("No support for Bframes\n");
                         }
                         //TODO: should be at the beginning of the loop
@@ -165,8 +162,7 @@ static void *audio_receiver_thread(receiver_t *receiver)
                         debug_msg("audio_receiver_thread: Can't find configured streams, dropping data");
                         cp = pdb_iter_next(&it);
                         continue;
-                    }
-                    else {
+                    } else {
                         set_participant_ssrc(participant, cp->ssrc);
                     }
                 }

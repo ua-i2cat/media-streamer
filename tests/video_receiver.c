@@ -20,15 +20,15 @@ int main(){
     participant_data_t *p2 = init_participant(2, INPUT, NULL, 0);
 
     //Allocating place for unknown incoming stream
-    stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, 25.0, NULL);
-    set_video_frame_cq(stream->video->coded_frames, H264, 0, 0);
+    stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
+    vp_reconfig_external(stream->video, 0, 0, H264);
     //Adding 1st incoming stream and participant
     add_participant_stream(stream, p1);
     add_stream(receiver->video_stream_list, stream);
     
     //Allocating place for unknown incoming stream
-    stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, 25.0, NULL);
-    set_video_frame_cq(stream->video->coded_frames, H264, 0, 0);
+    stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);
+    vp_reconfig_external(stream->video, 0, 0, H264);
     //Adding 1st incoming stream and participant
     add_participant_stream(stream, p2);
     add_stream(receiver->video_stream_list, stream);
@@ -47,7 +47,7 @@ int main(){
                 continue;	
             }
 
-            decoded_frame = cq_get_front(stream->video->decoded_frames);
+            decoded_frame = cq_get_front(stream->video->decoded_cq);
             if (decoded_frame == NULL){
                 pthread_rwlock_unlock(&video_stream_list->lock);
                 continue;
@@ -59,7 +59,7 @@ int main(){
             fwrite(decoded_frame->buffer, decoded_frame->buffer_len, 1, F_video_rx0);
             printf("Frame %d by stream 0\n", i);
             i++;
-            cq_remove_bag(stream->video->decoded_frames);
+            cq_remove_bag(stream->video->decoded_cq);
             pthread_rwlock_unlock(&video_stream_list->lock);
         }
 
@@ -73,7 +73,7 @@ int main(){
                 pthread_rwlock_unlock(&video_stream_list->lock);
                 continue;	
             }	
-            decoded_frame = cq_get_front(stream->video->decoded_frames);
+            decoded_frame = cq_get_front(stream->video->decoded_cq);
             if (decoded_frame == NULL){
                 pthread_rwlock_unlock(&video_stream_list->lock);
                 continue;
@@ -87,7 +87,7 @@ int main(){
 
             printf("Frame %d by stream 1\n", i);
             i++;
-            cq_remove_bag(stream->video->decoded_frames);
+            cq_remove_bag(stream->video->decoded_cq);
             pthread_rwlock_unlock(&video_stream_list->lock);
         }
     

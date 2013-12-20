@@ -28,9 +28,6 @@
 #include "stream.h"
 #include "debug.h"
 
-#define DEFAULT_FPS 24
-#define PIXEL_FORMAT RGB
-
 stream_list_t *init_stream_list(void)
 {
     stream_list_t *list = malloc(sizeof(stream_list_t));

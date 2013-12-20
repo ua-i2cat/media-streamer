@@ -122,8 +122,8 @@ int main(int argc, char **argv)
     printf("[test] init_stream\n");
     stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE, "i2CATRocks");
     printf("[test] set_stream_video_data\n");
-    set_video_frame_cq(stream->video->decoded_frames, RAW, 1280, 534);
-    set_video_frame_cq(stream->video->coded_frames, H264, 1280, 534);
+    vp_reconfig_internal(stream->video, 1280, 534, RAW);
+    vp_reconfig_external(stream->video, 1280, 534, H264);
     printf("[test] add_stream\n");
     add_stream(streams, stream);
 
@@ -140,7 +140,7 @@ int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCo
 
     add_participant_stream(stream, p2);
 
-    init_encoder(stream->video);
+    vp_worker_start(stream->video);
     
     // Stuff ... 
     AVFormatContext *pformat_ctx = avformat_alloc_context();
@@ -175,7 +175,7 @@ int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCo
         if (ret == 0) {
             counter++;
 
-            decoded_frame = cq_get_rear(stream->video->decoded_frames);
+            decoded_frame = cq_get_rear(stream->video->decoded_cq);
             if (decoded_frame == NULL){
                 continue;
             }
@@ -186,7 +186,7 @@ int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCo
             decoded_frame->media_time = get_local_mediatime();
             stream->video->seqno++;
             
-            cq_add_bag(stream->video->decoded_frames);
+            cq_add_bag(stream->video->decoded_cq);
         } else {
             break;
         }

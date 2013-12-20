@@ -39,14 +39,6 @@
 #include "stream.h"
 #include "participants.h"
 
-// TODO: Put away format constants
-#define DEFAULT_FPS 24
-#define DEFAULT_RTCP_BW 5 * 1024 * 1024 * 10
-#define DEFAULT_TTL 255
-#define DEFAULT_SEND_BUFFER_SIZE 1920 * 1080 * 4 * sizeof(char) * 10
-#define PIXEL_FORMAT RGB
-#define MTU 1300 // 1400
-
 typedef struct transmitter {
     // Video data
     uint32_t video_run;
