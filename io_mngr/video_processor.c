@@ -53,18 +53,6 @@ void *decoder_thread(void* arg)
     video_frame2* coded_frame;
     video_frame2* decoded_frame;
 
-    initialize_video_decompress();
-    if (decompress_is_available(LIBAVCODEC_MAGIC)) {
-        if((vp->decompressor = decompress_init(LIBAVCODEC_MAGIC)) == NULL) {
-            error_msg("decoder state decompress init failed");
-            decompress_done(vp->decompressor);
-            vp->run = FALSE;
-        }
-    } else {
-        error_msg("decompress not available");
-        vp->run = FALSE;
-    }
-
     while(vp->run) {
         usleep(100);
 
@@ -278,6 +266,17 @@ video_processor_t *vp_init(role_t role)
     switch(vp->role) {
         case DECODER:
             vp->worker = decoder_thread;
+            initialize_video_decompress();
+            if (decompress_is_available(LIBAVCODEC_MAGIC)) {
+                if((vp->decompressor = decompress_init(LIBAVCODEC_MAGIC)) == NULL) {
+                    error_msg("decoder state decompress init failed");
+                    decompress_done(vp->decompressor);
+                    return FALSE;
+                }
+            } else {
+                error_msg("decompress not available");
+                return FALSE;
+            }
             break;
         case ENCODER:
             vp->worker = encoder_thread;
@@ -319,7 +318,7 @@ void vp_reconfig_external(video_processor_t *vp, unsigned int width, unsigned in
 void vp_worker_start(video_processor_t *vp)
 {
     vp->run = TRUE;
-    if (!pthread_create(&vp->thread, NULL, vp->worker, (void *)vp) != 0)
+    if (pthread_create(&vp->thread, NULL, vp->worker, (void *)vp) != 0)
         vp->run = FALSE;
 }
 

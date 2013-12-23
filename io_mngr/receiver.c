@@ -80,7 +80,7 @@ void *video_receiver_thread(receiver_t *receiver)
                 }
 
                 if ((coded_frame = cq_get_rear(participant->stream->video->coded_cq)) == NULL) {
-                    if(pbuf_check_if_complete_frame(cp->playout_buffer, curr_time)) {
+                    if (pbuf_check_if_complete_frame(cp->playout_buffer, curr_time)) {
                         pbuf_remove_first(cp->playout_buffer);
                         error_msg("Warning! Coded frame discarded in reception\n");
                         participant->stream->video->lost_coded_frames++;
