@@ -95,13 +95,13 @@ void *video_receiver_thread(receiver_t *receiver)
                                 coded_frame->height != 0) {
 
                             vp_reconfig_external(participant->stream->video, 
-                                    coded_frame->codec,
                                     coded_frame->width, 
-                                    coded_frame->height);
+                                    coded_frame->height,
+                                    coded_frame->codec);
                             vp_reconfig_internal(participant->stream->video, 
-                                    participant->stream->video->internal_config->color_spec,
                                     coded_frame->width, 
-                                    coded_frame->height);
+                                    coded_frame->height,
+                                    participant->stream->video->internal_config->color_spec);
                             participant->stream->state = ACTIVE;
                         }
 

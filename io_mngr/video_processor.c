@@ -58,15 +58,23 @@ void *decoder_thread(void* arg)
 
         if ((coded_frame = cq_get_front(vp->coded_cq)) != NULL) {
 
+            while((decoded_frame = cq_get_rear(vp->decoded_cq)) == NULL) {
+                cq_flush(vp->decoded_cq);
+            }
+
             if (vp->external_config->width != coded_frame->width ||
                     vp->external_config->height != coded_frame->height ||
                     vp->external_config->color_spec != coded_frame->codec ||
                     vp->external_config->fps != coded_frame->fps) {
-
+                // The reconfiguration system should be redesigned to be coherent with all use cases.
                 vp->external_config->width = coded_frame->width;
                 vp->external_config->height = coded_frame->height;
                 vp->external_config->color_spec = coded_frame->codec;
                 vp->external_config->fps = coded_frame->fps;
+                vp->internal_config->width = coded_frame->width;
+                vp->internal_config->height = coded_frame->height;
+                vp->internal_config->color_spec = coded_frame->codec;
+                vp->internal_config->fps = coded_frame->fps;
                 if (!decompress_reconfigure(vp->decompressor, *vp->external_config, 16, 8, 0,
                             vc_get_linesize(vp->external_config->width, RGB),
                             RGB)) {
@@ -74,10 +82,9 @@ void *decoder_thread(void* arg)
                     decompress_done(vp->decompressor);
                     vp->run = FALSE;
                 }
-            }
-
-            while((decoded_frame = cq_get_rear(vp->decoded_cq)) == NULL) {
-                cq_flush(vp->decoded_cq);
+                rtp_video_frame2_allocate(decoded_frame, vp->internal_config->width,
+                        vp->internal_config->height,
+                        vp->internal_config->color_spec);
             }
 
             decompress_frame(vp->decompressor, decoded_frame->buffer, 
