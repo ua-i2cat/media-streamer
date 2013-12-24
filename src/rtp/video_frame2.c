@@ -37,7 +37,6 @@ video_frame2 *rtp_video_frame2_init()
     frame->buffer = NULL;
     frame->buffer_len = 0;
     // Stats
-    frame->fps = 0;
     frame->media_time = 0;
     frame->seqno = 0;
     // Control
@@ -48,15 +47,15 @@ video_frame2 *rtp_video_frame2_init()
 
 void rtp_video_frame2_allocate(video_frame2 *frame, unsigned int width, unsigned int height, codec_t codec)
 {
+    frame->width = width;
+    frame->height = height;
+    frame->codec = codec;
+    
     if (width == 0 || height == 0){
         width = VIDEO_FRAME2_MAX_WIDTH;
         height = VIDEO_FRAME2_MAX_HEIGHT;
     }
 
-    frame->width = width;
-    frame->height = height;
-    frame->codec = codec;
-    
     frame->buffer_len = width * height * 3; 
     if ((frame->buffer = realloc(frame->buffer, frame->buffer_len)) == NULL) {
         error_msg("rtp_video_frame2_allocate: realloc: out of memory!");

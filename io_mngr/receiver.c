@@ -94,14 +94,15 @@ void *video_receiver_thread(receiver_t *receiver)
                                 coded_frame->width != 0 && 
                                 coded_frame->height != 0) {
 
-                            vp_reconfig_external(participant->stream->video, 
-                                    coded_frame->width, 
-                                    coded_frame->height,
-                                    coded_frame->codec);
-                            vp_reconfig_internal(participant->stream->video, 
-                                    coded_frame->width, 
-                                    coded_frame->height,
-                                    participant->stream->video->internal_config->color_spec);
+                            if (participant->stream->video->internal_config->width == VIDEO_DEFAULT_INTERNAL_WIDTH ||
+                                    participant->stream->video->internal_config->height == VIDEO_DEFAULT_INTERNAL_HEIGHT) {
+
+                                vp_reconfig_internal(participant->stream->video, 
+                                        coded_frame->width, 
+                                        coded_frame->height,
+                                        VIDEO_DEFAULT_INTERNAL_CODEC);
+                                vp_worker_start(participant->stream->video);
+                            }
                             participant->stream->state = ACTIVE;
                         }
 

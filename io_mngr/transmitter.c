@@ -53,7 +53,7 @@ static void send_video_frame(stream_data_t *stream, video_frame2 *coded_frame, s
     tile.offset = 0;
     video_frame.color_spec = coded_frame->codec;
     video_frame.interlacing = coded_frame->codec;
-    video_frame.fps = coded_frame->fps;
+    video_frame.fps = VIDEO_DEFAULT_FPS;
     video_frame.tiles = &tile;
     video_frame.tile_count = 1;
     video_frame.fragment = 0;

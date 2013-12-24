@@ -43,6 +43,7 @@ typedef struct bag {
     unsigned int *media_time;
 } bag_t;
 
+#ifdef STATS
 typedef struct circular_queue_stats {
     unsigned int delay_sum;
     unsigned int remove_counter;
@@ -52,15 +53,19 @@ typedef struct circular_queue_stats {
     unsigned int fps_sum;
     unsigned int last_frame_time;
 } circular_queue_stats_t;
+#endif
 
 typedef struct circular_queue {
     int rear;
     int front;
     int max;
     cq_level_t level;
+#ifdef STATS
     circular_queue_stats_t stats;
-    //    void *(*init_object)(void *);
+#endif
+    void *(*init_object)(void *);
     void (*destroy_object)(void *);
+    unsigned int *(*get_media_time_ptr)(void *);
     bag_t **bags;
 } circular_queue_t;
 
@@ -78,7 +83,7 @@ circular_queue_t *cq_init(
         void *(*init_object)(void *),
         void *init_data,
         void (*destroy_object)(void *),
-        unsigned int *get_media_time_ptr(void *));
+        unsigned int *(*get_media_time_ptr)(void *));
 
 /**
  * Destroys the circular queue.
@@ -112,12 +117,18 @@ void *cq_get_rear(circular_queue_t *cq);
  */
 void cq_add_bag(circular_queue_t *cq);
 
-
 /**
  * Mercilessly forgets the rear element only if the queue is full.
  * @param max Target circular_queue_t.
  */
 void cq_flush(circular_queue_t *cq);
+
+/**
+ * Destroys and reconfigures each bag of the queue.
+ * @param max Target circular_queue_t.
+ * @param init_data Outter initialization data structure.
+ */
+void cq_reconfig(circular_queue_t *cq, void *init_data);
 
 #endif //__CIRCULAR_QUEUE_H__
 

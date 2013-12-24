@@ -56,7 +56,6 @@ typedef struct
     unsigned char *buffer;
     unsigned int buffer_len;
     // Stats
-    double fps;
     unsigned int media_time;
     unsigned int seqno;
     // Control

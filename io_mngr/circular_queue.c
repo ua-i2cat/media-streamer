@@ -26,7 +26,7 @@
 #include "debug.h"
 #include "circular_queue.h"
 
-circular_queue_t *cq_init(int max, void *(*init_object)(void *), void *init_data, void (*destroy_object)(void *), unsigned int *get_media_time_ptr(void *))
+circular_queue_t *cq_init(int max, void *(*init_object)(void *), void *init_data, void (*destroy_object)(void *), unsigned int *(*get_media_time_ptr)(void *))
 {
     if (max <= 1){
         error_msg("video frame queue must have at least 2 positions");
@@ -42,12 +42,23 @@ circular_queue_t *cq_init(int max, void *(*init_object)(void *), void *init_data
     cq->front = 0;
     cq->max = max;
     cq->level = CIRCULAR_QUEUE_EMPTY;
+#ifdef STATS
+    cq->delay_sum = 0;
+    cq->remove_counter = 0;
+    cq->delay = 0;
+    cq->fps = 0.0;
+    cq->put_counter = 0;
+    cq->fps_sum = 0;
+    cq->last_frame_time = 0;
+#endif
+    cq->init_object = init_object;
     cq->destroy_object = destroy_object;
+    cq->get_media_time_ptr = get_media_time_ptr;
     cq->bags = malloc(sizeof(bag_t *) * max);
     for (int i = 0; i < max; i++) {
         cq->bags[i] = malloc(sizeof(bag_t *));
-        cq->bags[i]->pocket = init_object(init_data);
-        cq->bags[i]->media_time = get_media_time_ptr(cq->bags[i]->pocket);
+        cq->bags[i]->pocket = cq->init_object(init_data);
+        cq->bags[i]->media_time = cq->get_media_time_ptr(cq->bags[i]->pocket);
     }
 
     return cq;
@@ -131,6 +142,15 @@ void cq_flush(circular_queue_t *cq)
         cq->front = (cq->front + (cq->max - 1))
             % cq->max;
         cq->level = CIRCULAR_QUEUE_MID;
+    }
+}
+
+void cq_reconfig(circular_queue_t *cq, void *init_data)
+{
+    for (int i = 0; i < cq->max; i++) {
+        cq->destroy_object(cq->bags[i]->pocket);
+        cq->bags[i]->pocket = cq->init_object(init_data);
+        cq->bags[i]->media_time = cq->get_media_time_ptr(cq->bags[i]->pocket);
     }
 }
 
