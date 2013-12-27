@@ -249,8 +249,10 @@ video_processor_t *vp_init(role_t role)
 
 void vp_destroy(video_processor_t *vp)
 {
-    vp->run = FALSE;
-    pthread_join(vp->thread, NULL);
+    if (vp->run == TRUE) {
+        vp->run = FALSE;
+        pthread_join(vp->thread, NULL);
+    }
     cq_destroy(vp->decoded_cq);
     cq_destroy(vp->coded_cq);
     free(vp->external_config);
