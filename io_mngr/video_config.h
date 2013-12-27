@@ -32,7 +32,8 @@
 
 #define INITIAL_VIDEO_RECV_BUFFER_SIZE  ((4*1920*1080)*110/100) //command line net.core setup: sysctl -w net.core.rmem_max=9123840
 
-#define VIDEO_CIRCULAR_QUEUE_SIZE 16
+#define VIDEO_DECODED_CIRCULAR_QUEUE_SIZE 16
+#define VIDEO_CODED_CIRCULAR_QUEUE_SIZE 2
 
 #define VIDEO_MAX_COUNTER 255
 

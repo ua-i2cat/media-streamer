@@ -219,7 +219,7 @@ video_processor_t *vp_init(role_t role)
 
     // Decoded circular queue
     vp->decoded_cq = cq_init(
-            VIDEO_CIRCULAR_QUEUE_SIZE,
+            VIDEO_DECODED_CIRCULAR_QUEUE_SIZE,
             video_frame_init,
             vp->internal_config,
             video_frame_destroy,
@@ -227,7 +227,7 @@ video_processor_t *vp_init(role_t role)
 
     // Coded circular queue
     vp->coded_cq = cq_init(
-            VIDEO_CIRCULAR_QUEUE_SIZE,
+            VIDEO_CODED_CIRCULAR_QUEUE_SIZE,
             video_frame_init,
             vp->external_config,
             video_frame_destroy,
