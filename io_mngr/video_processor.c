@@ -88,9 +88,9 @@ void *encoder_thread(void *arg)
 
     struct video_frame *enc_frame;
 
-    module_init_default(vp->module);
+    module_init_default(&vp->module);
 
-    compress_init(vp->module, "libavcodec:codec=H.264", vp->compressor);
+    compress_init(&vp->module, "libavcodec:codec=H.264", &vp->compressor);
 
     if ((enc_frame = vf_alloc(1)) == NULL) {
         error_msg("encoder_routine: vf_alloc error");
@@ -139,7 +139,7 @@ void *encoder_thread(void *arg)
         }
     }
 
-    module_done(CAST_MODULE(vp->module));
+    module_done(CAST_MODULE(&vp->module));
     free(enc_frame);
     pthread_exit((void *)NULL);
 }

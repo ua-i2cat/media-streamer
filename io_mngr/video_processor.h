@@ -37,6 +37,7 @@
 #include "video_frame2.h"
 #include "circular_queue.h"
 #include "commons.h"
+#include "module.h"
 
 typedef struct video_processor
 {
@@ -51,8 +52,8 @@ typedef struct video_processor
 
     struct state_decompress *decompressor;
 
-    struct compress_state **compressor;
-    struct module *module;
+    struct compress_state *compressor;
+    struct module module;
 
     // Stream stats
     unsigned int seqno;
