@@ -154,7 +154,10 @@ static void *video_frame_init(void *init)
         return NULL;
     }
 
-    rtp_video_frame2_allocate(frame, init_object->width, init_object->height, init_object->color_spec);
+    rtp_video_frame2_allocate(frame,
+            init_object->width,
+            init_object->height,
+            init_object->color_spec);
 
     // Stats
     frame->media_time = VIDEO_DEFAULT_MEDIA_TIME;
@@ -260,13 +263,19 @@ void vp_destroy(video_processor_t *vp)
     free(vp);
 }
 
-void vp_reconfig_internal(video_processor_t *vp, unsigned int width, unsigned int height, codec_t codec)
+void vp_reconfig_internal(video_processor_t *vp,
+        unsigned int width,
+        unsigned int height,
+        codec_t codec)
 {
     // TODO protect access with locks
-    vp->internal_config->width = width;
-    vp->internal_config->height = height;
-    vp->internal_config->color_spec = codec;
-    cq_reconfig(vp->decoded_cq, vp->internal_config);
+    if (width != vp->internal_config->width ||
+            height != vp->internal_config->height) {
+        vp->internal_config->width = width;
+        vp->internal_config->height = height;
+        vp->internal_config->color_spec = codec;
+        cq_reconfig(vp->decoded_cq, vp->internal_config);
+    }
 }
 
 void vp_reconfig_external(video_processor_t *vp,
@@ -275,9 +284,12 @@ void vp_reconfig_external(video_processor_t *vp,
         codec_t codec)
 {
     // TODO protect access with locks
-    vp->external_config->width = width;
-    vp->external_config->height = height;
-    vp->external_config->color_spec = codec;
+    if (vp->external_config->width != width ||
+            vp->external_config->height != height) {
+        vp->external_config->width = width;
+        vp->external_config->height = height;
+        vp->external_config->color_spec = codec;
+    }
 }
 
 void vp_worker_start(video_processor_t *vp)

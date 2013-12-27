@@ -1,5 +1,4 @@
 #include <signal.h>
-//#include "config.h"
 #include "io_mngr/participants.h"
 #include "io_mngr/receiver.h"
 #include "io_mngr/transmitter.h"
@@ -102,38 +101,38 @@ int main(){
             pthread_rwlock_unlock(&in_str_list->lock);
 
             while(in_str != NULL && out_str != NULL && !stop) {
-/*                if (out_str->video->encoder == NULL && in_str->video->decoder != NULL) {
-                    in_frame = cq_get_front(in_str->video->decoded_cq);
-                    if (in_frame == NULL){
-                        continue;
-                    }
-
-                    vp_reconfig_internal(out_str->video, 
-                            in_frame->width, 
-                            in_frame->height,
-                            RAW);
-                    vp_reconfig_external(out_str->video,
-                            in_frame->width, 
-                            in_frame->height,
-                            H264);
-                    init_encoder(out_str->video);
-                    c_update_server(server);
-                    continue;
-                }*/
 
                 if ((in_frame = cq_get_front(in_str->video->decoded_cq)) != NULL) {
-                    if ((out_frame = cq_get_rear(out_str->video->decoded_cq)) != NULL) {
-                        memcpy(out_frame->buffer, 
-                                in_frame->buffer, 
-                                in_frame->buffer_len);
-                        out_frame->buffer_len 
-                            = out_frame->buffer_len;
 
-                        cq_remove_bag(in_str->video->decoded_cq);
-                        cq_add_bag(out_str->video->decoded_cq);
+                    if (out_str->video->internal_config->width != in_frame->width ||
+                            out_str->video->internal_config->height != in_frame->height ||
+                            out_str->video->external_config->width != in_frame->width ||
+                            out_str->video->external_config->height != in_frame->height) {
+                        vp_reconfig_internal(out_str->video, 
+                                in_frame->width, 
+                                in_frame->height,
+                                RAW);
+                        vp_reconfig_external(out_str->video,
+                                in_frame->width, 
+                                in_frame->height,
+                                H264);
+                        vp_worker_start(out_str->video);
+                        c_update_server(server);
+                    } else {
 
-                        in_str = in_str->next;
-                        out_str = out_str->next;
+                        if ((out_frame = cq_get_rear(out_str->video->decoded_cq)) != NULL) {
+                            memcpy(out_frame->buffer, 
+                                    in_frame->buffer, 
+                                    in_frame->buffer_len);
+                            out_frame->buffer_len 
+                                = out_frame->buffer_len;
+
+                            cq_remove_bag(in_str->video->decoded_cq);
+                            cq_add_bag(out_str->video->decoded_cq);
+
+                            in_str = in_str->next;
+                            out_str = out_str->next;
+                        }
                     }
                 }
             }
@@ -164,3 +163,4 @@ int main(){
     destroy_stream_list(in_str_list);
     destroy_stream_list(out_str_list);
 }
+

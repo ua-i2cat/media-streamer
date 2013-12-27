@@ -131,8 +131,6 @@ int main(int argc, char **argv)
     transmitter_t *transmitter = init_transmitter(streams, dummy_audio_stream, 25.0);
     start_transmitter(transmitter);
 
-int load_video(const char* path, AVFormatContext *pFormatCtx, AVCodecContext *pCodecCtx, int *videostream);
-int read_frame(AVFormatContext *pFormatCtx, int videostream, AVCodecContext *pCodecCtx, uint8_t *buff);
     participant_data_t *p1 = init_participant(0, OUTPUT, "127.0.0.1", VIDEO_PORT_1);
     participant_data_t *p2 = init_participant(0, OUTPUT, "127.0.0.1", VIDEO_PORT_2);
 
