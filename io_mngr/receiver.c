@@ -52,7 +52,7 @@ void *video_receiver_thread(receiver_t *receiver)
     uint32_t timestamp;
 
     while(receiver->video_run) {
-
+        usleep(100);
         gettimeofday(&curr_time, NULL);
         timestamp = tv_diff(curr_time, start_time) * 90000;
         rtp_update(receiver->video_session, curr_time);
@@ -145,6 +145,7 @@ static void *audio_receiver_thread(receiver_t *receiver)
     decode_object.resampler = NULL;
 
     while(receiver->video_run) {
+        usleep(100);
         gettimeofday(&curr_time, NULL);
         timestamp = tv_diff(curr_time, start_time) * 90000;
         rtp_update(receiver->audio_session, curr_time);

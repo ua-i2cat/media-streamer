@@ -106,25 +106,23 @@ static void *video_transmitter_thread(void *arg)
 {
     transmitter_t *transmitter = (transmitter_t *)arg;
     stream_data_t *stream;
-    video_frame2 *coded_frame;
+    video_frame2 *frame;
 
     struct timeval start_time;
     gettimeofday(&start_time, NULL);
 
     while(transmitter->video_run){
-        usleep(500);
-
+        usleep(100);
         pthread_rwlock_rdlock(&transmitter->video_stream_list->lock);
 
         stream = transmitter->video_stream_list->first;
         while(stream != NULL && transmitter->video_run) {
-
-            if ((coded_frame = cq_get_front(stream->video->coded_cq)) != NULL) {
-
-                send_video_frame(stream, coded_frame, start_time);
+            usleep(100);
+            if ((frame = cq_get_front(stream->video->coded_cq)) != NULL) {
+                send_video_frame(stream, frame, start_time);
                 cq_remove_bag(stream->video->coded_cq);
-                stream = stream->next;
             }
+            stream = stream->next;
         }
 
         pthread_rwlock_unlock(&transmitter->video_stream_list->lock);
@@ -143,11 +141,12 @@ static void *audio_transmitter_thread(void *arg)
     gettimeofday(&start_time, NULL);
 
     while(transmitter->audio_run) {
-        usleep(500);
+        usleep(100);
         pthread_rwlock_rdlock(&transmitter->audio_stream_list->lock);
 
         stream = transmitter->audio_stream_list->first;
         while(stream != NULL && transmitter->audio_run) {
+            usleep(100);
             if ((frame = cq_get_front(stream->audio->coded_cq)) != NULL) {
                 send_audio_frame(stream, frame, start_time);
                 cq_remove_bag(stream->audio->coded_cq);
