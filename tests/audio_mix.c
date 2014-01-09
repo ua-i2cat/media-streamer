@@ -42,22 +42,63 @@
 static volatile bool stop = false;
 static stream_data_t *streams[8];
 static int nstreams = 0;
+static int nparticipants = N_PARTICIPANTS;
 
 /* Receiver and transmitter global pointers, all internal data access
    must be done from here. */
 receiver_t *receiver;
 transmitter_t *transmitter;
 
-// Function prototypes
-static void usage(void);
-static void audio_mix(stream_data_t *dst);
-static void finish_handler(int signal);
+/**
+  Client API:
+  Returns the smallest (negative) value storable in a twos-complement signed
+  integer with the specified number of bits, cast to an unsigned integer;
+  for example, SOX_INT_MIN(8) = 0x80, SOX_INT_MIN(16) = 0x8000, etc.
+  @param bits Size of value for which to calculate minimum.
+  @returns the smallest (negative) value storable in a twos-complement signed
+  integer with the specified number of bits, cast to an unsigned integer.
+ */
+#define SOX_INT_MIN(bits) (1 <<((bits)-1))
 
-static void usage(void)
-{
-    printf("Usage: audio_mix [<number_of_input_streams>]\n");
-    printf(" By Txor >:D\n");
-}
+/**         
+  Client API:
+  Returns the largest (positive) value storable in a twos-complement signed
+  integer with the specified number of bits, cast to an unsigned integer;
+  for example, SOX_INT_MAX(8) = 0x7F, SOX_INT_MAX(16) = 0x7FFF, etc.
+  @param bits Size of value for which to calculate maximum.
+  @returns the largest (positive) value storable in a twos-complement signed
+  integer with the specified number of bits, cast to an unsigned integer.
+ */
+#define SOX_INT_MAX(bits) (((unsigned)-1)>>(33-(bits)))
+
+/**
+  Client API:
+  Min value for sox_sample_t = 0x80000000.
+ */
+#define SOX_SAMPLE_MIN (char)SOX_INT_MIN(8)
+
+/**
+  Client API:
+  Max value for sox_sample_t = 0x7FFFFFFF.
+ */
+#define SOX_SAMPLE_MAX (char)SOX_INT_MAX(8)
+
+/**
+  SoX code, Client API:
+  Clips a value of a type that is larger then sox_sample_t (for example, int64)
+  to sox_sample_t's limits and increment a counter if clipping occurs.
+  @param d Value (rvalue) to be clipped.
+  @param clips Value (lvalue) that is incremented if clipping is needed.
+  @returns Clipped value.
+ */
+#define SOX_ROUND_CLIP_COUNT(d) \
+    ((d) < 0? (d) <= SOX_SAMPLE_MIN - 0.5? SOX_SAMPLE_MIN: (d) - 0.5 \
+     : (d) >= SOX_SAMPLE_MAX + 0.5? SOX_SAMPLE_MAX: (d) + 0.5)
+
+// Function prototypes
+static void audio_mix(stream_data_t *dst);
+static void change_volume(audio_frame2 *frame, double volume);
+static void finish_handler(int signal);
 
 // Mix each input audio_frame2 into the output audio_frame2 (if possible),
 // from each stream_data_t decoded queue (input ones from streams global var).
@@ -89,7 +130,7 @@ static void audio_mix(stream_data_t *dst)
         }
     }
 
-    if (in_count == N_PARTICIPANTS) {
+    if (in_count == nparticipants) {
         if ((out_frame = cq_get_rear(dst->audio->decoded_cq)) != NULL) {
             out_frame->bps = reference_frame.bps;
             out_frame->sample_rate = reference_frame.sample_rate;
@@ -102,22 +143,41 @@ static void audio_mix(stream_data_t *dst)
             //    olen = max(olen, z->ilen[i]);
             //}
             // Wave sum
+            for (int i = 0; i < in_count; ++i) {
+                change_volume(in_frame[i], 1.0 / (double)nparticipants);
+            }
             for (int ch = 0; ch < reference_frame.ch_count; ++ch) { /* for each channel */
                 out_frame->data_len[ch] = 0;
                 for (int sample = 0; sample < reference_frame.data_len[ch]; ++sample) { /* for each samples */
                     out_frame->data[ch][sample] = 0;
-                    for (int i = 0; i < in_count; ++i) /* for each audio_frame2 */
+                    for (int i = 0; i < in_count; ++i) {/* for each audio_frame2 */
                         // Sum with overflow in mind
-                        if (out_frame->data[ch][sample] + in_frame[i]->data[ch][sample] > 127) out_frame->data[ch][sample] = 127;
-                        else if (out_frame->data[ch][sample] + in_frame[i]->data[ch][sample] < -127) out_frame->data[ch][sample] = -127;
-                        else out_frame->data[ch][sample] += in_frame[i]->data[ch][sample];
+                        //if (out_frame->data[ch][sample] + in_frame[i]->data[ch][sample] > 127) out_frame->data[ch][sample] = 127;
+                        //else if (out_frame->data[ch][sample] + in_frame[i]->data[ch][sample] < -127) out_frame->data[ch][sample] = -127;
+                        //else out_frame->data[ch][sample] += in_frame[i]->data[ch][sample];
+                        double s = out_frame->data[ch][sample] + in_frame[i]->data[ch][sample];
+                        out_frame->data[ch][sample] = SOX_ROUND_CLIP_COUNT(s);
                         //out_frame->data[ch][sample] += in_frame[i]->data[ch][sample];
+                    }
                     out_frame->data_len[ch]++;
                 }
             }
             // Add and remove bags
             cq_add_bag(dst->audio->decoded_cq);
             for (int i = 0; i < in_count; ++i) cq_remove_bag(used_queues[i]);
+        }
+    }
+}
+
+// Change the volume of an audio_frame2.
+static void change_volume(audio_frame2 *frame, double volume)
+{
+    if (volume != 1) {
+        for (int ch = 0; ch < frame->ch_count; ch++) {
+            for (int sample = 0; sample < frame->data_len[ch]; sample++) {
+                double s = volume * frame->data[ch][sample];
+                frame->data[ch][sample] = SOX_ROUND_CLIP_COUNT(s);
+            }
         }
     }
 }
@@ -135,9 +195,18 @@ static void finish_handler(int sig)
     }
 }
 
-int main()
+int main(int argc, char *argv[])
 {
     fprintf(stderr, "Starting audio_mix\n");
+
+    // Option processing (only number of streams)
+    if (argc > 1) {
+        int arg = atoi(argv[1]);
+        if (arg >= 1 && arg < 9) {
+            nparticipants = arg;
+        }
+    }
+    fprintf(stderr, " ·%i streams configured\n", nparticipants);
 
     // Attach the handler to CTRL+C.
     signal(SIGINT, finish_handler);
@@ -152,7 +221,7 @@ int main()
             INPUT_AUDIO_PORT);
     start_receiver(receiver);
     char msg[32];
-    for (int i = 0; i < N_PARTICIPANTS; i++) {
+    for (int i = 0; i < nparticipants; i++) {
         // audio stream with a participant
         sprintf(msg, "Input audio stream %d", i + 1);
         stream = init_stream(AUDIO, INPUT, rand(), I_AWAIT, msg);
