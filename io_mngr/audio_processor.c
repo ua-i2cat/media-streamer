@@ -58,7 +58,7 @@ static void *decoder_thread(void* arg)
     normal = audio_frame2_init();
 
     while(ap->run) {
-        //TODO: set non magic values on usleep (calculated for performance depnding on actual resources)
+        //TODO: set non magic values on usleep (calculated for performance depending on actual resources)
         usleep(100);
         if(ap->coded_cq->level != CIRCULAR_QUEUE_EMPTY) {
             // TODO: Channel muxing
@@ -71,6 +71,7 @@ static void *decoder_thread(void* arg)
 
                     // TODO: always get the same size, not only when the frame is too big.
                     if (frame->data_len[0] > ap->internal_frame_size) {
+                        // Too many samples on the coded frame, normalize
                         normalize_extract(frame, normal, ap->internal_frame_size);
                         if (resampler_compare_sample_rate(ap->resampler, frame->sample_rate)) {
                             audio_codec_state_set_out(ap->compression_config, output_frame);
@@ -80,7 +81,28 @@ static void *decoder_thread(void* arg)
                             frame = audio_codec_decompress(ap->compression_config, normal);
                             frame = resampler_resample(ap->resampler, frame);
                         }
+                    } else if (frame->data_len[0] < ap->internal_frame_size) {
+//TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOo
+// Rethink all the logic, the data just fits all the time? It have to? Is better to just use a greedy sample eater?
+// Where we come from? Who we are? Where we go to?
+                        // There are not ehought samples on the coded frame,
+                        // consume as many samples as possible from the next frames
+                        // and fill the surplus space with zeros if needed.
+                        int consumable_frames = 1;
+                        int samples = frame->data_len[0];
+                        bool search = true;
+                        while (samples < ap->internal_frame_size && search) {
+                            if ( ) { /* no frames left */
+                                search = false;
+                            }
+
+                        }
+                        int zeroes = ap->internal_frame_size - frame->data_len[0];
+                        while (ap->decoded_cq->rear - ap->decoded_cq->front >= 2) {
+                        }
+
                     } else {
+                        // The samples on the coded frame just fits, go ahead.
                         if (resampler_compare_sample_rate(ap->resampler, frame->sample_rate)) {
                             audio_codec_state_set_out(ap->compression_config, output_frame);
                             frame = audio_codec_decompress(ap->compression_config, frame);
