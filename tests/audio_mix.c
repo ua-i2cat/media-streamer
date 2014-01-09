@@ -46,7 +46,7 @@ receiver_t *receiver;
 transmitter_t *transmitter;
 
 // Function prototypes
-static void audio_mix(stream_data_t *src, stream_data_t *dst);
+static void audio_mix(stream_data_t *dst);
 static void finish_handler(int signal);
 
 // Mix each input audio_frame2 into the output audio_frame2 (if possible),
@@ -54,14 +54,11 @@ static void finish_handler(int signal);
 static void audio_mix(stream_data_t *dst)
 {
     audio_frame2 *in_frame[8];
+    circular_queue_t *used_queues[8];
     int in_count = 0;
     audio_frame2 *reference_frame;
     audio_frame2 *out_frame;
     bool something_to_mix = false;
-
-    size_t ws, s, i;
-    size_t olen = AUDIO_INTERNAL_SIZE;
-    sox_sample_t *obuf[AUDIO_INTERNAL_SIZE];
 
     for (int i = 0; i < 8; i++) {
         if (streams[i] != NULL) {
@@ -74,6 +71,8 @@ static void audio_mix(stream_data_t *dst)
                     reference_frame->codec = in_frame[in_count]->codec;
                 }
                 in_count++;
+                // save used queues to allow removing of bags
+                used_queues[i] = streams[i]->audio->decoded_cq;
             }
         }
         else {
@@ -86,37 +85,29 @@ static void audio_mix(stream_data_t *dst)
             out_frame->sample_rate = reference_frame->sample_rate;
             out_frame->ch_count = reference_frame->ch_count;
             out_frame->codec = reference_frame->codec;
-
-            sox_sample_t * p = obuf;
-//            for (i = 0; i < input_count; ++i) {
-//                z->ilen[i] = sox_read_wide(files[i]->ft, z->ibuf[i], *osamp);
-//                balance_input(z->ibuf[i], z->ilen[i], files[i]);
-//                olen = max(olen, z->ilen[i]);
-//            }
-            for (ws = 0; ws < olen; ++ws) { /* wide samples */
-                for (s = 0; s < reference_frame->ch_count; ++s, ++p) { /* sum samples */
-                    *p = 0;
-                    for (i = 0; i < in_count; ++i)
-                        if (ws < in_frame[i]->data_len[0] && s < in_frame[i]->ch_count) {
-                            /* Cast to double prevents integer overflow */
-                            double sample;
-// TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
-                            for (int j = 0; j < 
-                            sample = *p + (double)(int)(char)in_frame[i]->data[ws * files[i]->ft->signal.channels + s];
-                            *p = SOX_ROUND_CLIP_COUNT(sample, mixing_clips);
+            out_frame->data_len[ch] = 0;
+            // Volume balance
+            //for (i = 0; i < input_count; ++i) {
+            //    z->ilen[i] = sox_read_wide(files[i]->ft, z->ibuf[i], *osamp);
+            //    balance_input(z->ibuf[i], z->ilen[i], files[i]);
+            //    olen = max(olen, z->ilen[i]);
+            //}
+            // Wave sum
+            for (int sample = 0; sample < olen; ++sample) { /* for each samples */
+                for (int ch = 0; ch < reference_frame->ch_count; ++ch) { /* for each channel */
+                    for (i = 0; i < in_count; ++i) /* for each audio_frame2 */
+                        if (sample < in_frame[i]->data_len[0] && ch < in_frame[i]->ch_count) {
+                            // Sum with overflow in mind
+                            if (out_frame->data[ch][sample] + in_frame[in_count]->data[ch][sample] > 127) out_frame->data[ch][sample] = 127;
+                            else if (out_frame->data[ch][sample] + in_frame[in_count]->data[ch][sample] < -127) out_frame->data[ch][sample] = -127;
+                            else out_frame->data[ch][sample] += in_frame[in_count]->data[ch][sample];
                         }
+                    out_frame->data_len[ch]++;
                 }
-            } /* wide samples */
-
-
-            for (int i = 0; i < in_cframe->ch_count; i++) {
-                memcpy(out_frame->data[i],
-                        in_frame->data[i],
-                        in_frame->data_len[i]);
-                out_frame->data_len[i] = in_frame->data_len[i];
             }
+            // Add and remove bags
             cq_add_bag(dst->audio->decoded_cq);
-            cq_remove_bag(src->audio->decoded_cq);
+            for (int i = 0; i < in_count; ++i) cq_remove_bag(used_queues[i]);
         }
     }
 }
@@ -189,19 +180,27 @@ int main()
     ap_worker_start(stream->audio);
 
     // Temporal variables and initializations
-    stream_data_t *audio_in_stream,
-                  *audio_out_stream,
-                  *video_in_stream,
-                  *video_out_stream;
+    stream_data_t *iterator_audio_in_stream,
+                  *audio_out_stream;
+    int index_audio_in_stream;
 
     // Main loop
     fprintf(stderr, "  ·Mixing audio! ");
     while(!stop) {
 
-        // Audio forward
-        audio_in_stream = receiver->audio_stream_list->first;
+        // Audio selection
+        iterator_audio_in_stream = receiver->audio_stream_list->first;
         audio_out_stream = transmitter->audio_stream_list->first;
-        audio_mix(audio_in_stream, audio_out_stream);
+        index_audio_in_stream = 0;
+        // SEGV if we add more than 8 input streams...
+        while (iterator_audio_in_stream != NULL) {
+            streams[index_audio_in_stream] = iterator_audio_in_stream;
+            iterator_audio_in_stream = iterator_audio_in_stream->next;
+            index_audio_in_stream++;
+        }
+
+        // mix
+        audio_mix(audio_out_stream);
 
         //Try to not send all the data suddently.
         usleep(SEND_TIME);

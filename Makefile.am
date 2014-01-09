@@ -3,7 +3,12 @@ SUBDIRS = src io_mngr
 
 AM_CFLAGS = -std=gnu99 -g -lm -DHAVE_CONFIG_H -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
 
-bin_PROGRAMS = mmforwarder video_receiver video_transmitter video_rec_trans audio_receiver audio_transmitter audio_rec_trans
+bin_PROGRAMS = audio_mix mmforwarder video_receiver video_transmitter video_rec_trans audio_receiver audio_transmitter audio_rec_trans
+
+audio_mix_SOURCES = tests/audio_mix.c
+audio_mix_CFLAGS = $(AM_CFLAGS) -Isrc -Itests -Iio_mngr -Isrc/rtp -Isrc/utils -Isrc/audio -Idxt_compress
+audio_mix_LDFLAGS = -L. -L./src -L./io_mngr -lvcompress -lvdecompress -lacompression -liomanager -lavcodec -lrtp
+audio_mix_DEPENDENCIES = src/librtp.la src/libvcompress.la src/libvdecompress.la src/libacompression.la io_mngr/libiomanager.la
 
 mmforwarder_SOURCES = tests/mmforwarder.c
 mmforwarder_CFLAGS = $(AM_CFLAGS) -Isrc -Itests -Iio_mngr -Isrc/rtp -Isrc/utils -Isrc/audio -Idxt_compress
