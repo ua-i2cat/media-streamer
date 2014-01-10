@@ -45,17 +45,31 @@ static void *bag_init(void *arg);
 static void bag_destroy(void *arg);
 static unsigned int *get_media_time_ptr(void *frame);
 static int normalize_get_size();
-static void normalize_extract(audio_frame2 *src, audio_frame2 *dst, int size);
+static void audio_frame_extract(audio_frame2 *src, audio_frame2 *dst);
 static void audio_frame_format(audio_frame2 *src, struct audio_desc *desc);
 static void audio_frame_append(audio_frame2 *src, audio_frame2 *dst);
+static void audio_frame_copy(audio_frame2 *src, audio_frame2 *dst);
+static void audio_frame_fill_with_zeroes(audio_frame2 *dst);
+static void audio_frame_check_internal_reconfig(audio_frame2 *dst);
 
 static void *decoder_thread(void* arg)
 {
     audio_processor_t *ap = (audio_processor_t *) arg;
 
-    audio_frame2 *frame, *output_frame, *normal;
+    audio_frame2 *frame,
+                 *output_frame,
+                 *norm_frame,
+                 *decomp_frame;
 
-    normal = audio_frame2_init();
+    norm_frame = audio_frame2_init();
+    audio_frame2_allocate(norm_frame,
+            ap->internal_config->ch_count,
+            ap->internal_frame_conversion_size);
+
+    decomp_frame = audio_frame2_init();
+    audio_frame2_allocate(decomp_frame,
+            ap->internal_config->ch_count,
+            ap->internal_frame_conversion_size);
 
     while(ap->run) {
         //TODO: set non magic values on usleep (calculated for performance depending on actual resources)
@@ -69,56 +83,87 @@ static void *decoder_thread(void* arg)
                 // Get the place to save the resampled frame (last step).
                 if ((output_frame = (audio_frame2 *)cq_get_rear(ap->decoded_cq)) != NULL) {
 
-                    // TODO: always get the same size, not only when the frame is too big.
-                    if (frame->data_len[0] > ap->internal_frame_size) {
-                        // Too many samples on the coded frame, normalize
-                        normalize_extract(frame, normal, ap->internal_frame_size);
-                        if (resampler_compare_sample_rate(ap->resampler, frame->sample_rate)) {
-                            audio_codec_state_set_out(ap->compression_config, output_frame);
-                            frame = audio_codec_decompress(ap->compression_config, normal);
-                        } else {
-                            resampler_set_resampled(ap->resampler, output_frame);
-                            frame = audio_codec_decompress(ap->compression_config, normal);
-                            frame = resampler_resample(ap->resampler, frame);
-                        }
-                    } else if (frame->data_len[0] < ap->internal_frame_size) {
-//TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOo
-// Rethink all the logic, the data just fits all the time? It have to? Is better to just use a greedy sample eater?
-// Where we come from? Who we are? Where we go to?
-                        // There are not ehought samples on the coded frame,
-                        // consume as many samples as possible from the next frames
-                        // and fill the surplus space with zeros if needed.
-                        int consumable_frames = 1;
-                        int samples = frame->data_len[0];
-                        bool search = true;
-                        while (samples < ap->internal_frame_size && search) {
-                            if ( ) { /* no frames left */
-                                search = false;
+                    // Reconfigure auxiliar frame if needed
+                    if (norm_frame->max_size != ap->internal_frame_conversion_size) {
+                        audio_frame2_allocate(norm_frame,
+                                ap->external_config->ch_count,
+                                ap->internal_frame_conversion_size);
+                        audio_frame2_allocate(decomp_frame,
+                                ap->external_config->ch_count,
+                                ap->internal_frame_conversion_size);
+                    }
+
+                    // Reconfigure output_frame if needed
+                    audio_frame_check_internal_reconfig(output_frame);
+
+                    // Normalize number of samples,
+                    // norm_frame must point to the desired data.
+                    audio_frame_format(norm_frame, ap->external_config);
+                    if ((unsigned int)frame->data_len[0] > ap->internal_frame_conversion_size) {
+                        // Too many samples on the coded frame,
+                        // extract normalized amount of frames.
+                        audio_frame_extract(frame, norm_frame);
+                    } else if ((unsigned int)frame->data_len[0] < ap->internal_frame_conversion_size) {
+                        // Not ehought samples on the coded frame,
+                        // eat as many samples as possible from the next frames,
+                        // fill the surplus space with zeros if needed.
+                        audio_frame2 *iterator_frame = frame;
+                        bool hungry = true;
+                        while (hungry) {
+                            audio_frame_extract(iterator_frame, norm_frame);
+                            // It ate the current frame?
+                            if (iterator_frame->data_len[0] == 0) {
+                                cq_remove_bag(ap->coded_cq);
+                                // It is still hungry?
+                                if ((unsigned int)norm_frame->data_len[0] < norm_frame->max_size) {
+                                    // There is more food?
+                                    //TODO: Implement timed out wait to increase the probability of getting enoguth frames.
+                                    if ((iterator_frame = (audio_frame2 *)cq_get_front(ap->coded_cq)) == NULL) {
+                                        // No food left, stop thinking on eating.
+                                        hungry = false;
+                                    }
+                                } else {
+                                    // Just filled its appetite!
+                                    hungry = false;
+                                }
+
+                            } else {
+                                // It left food, it can't be hungry.
+                                hungry = false;
                             }
-
                         }
-                        int zeroes = ap->internal_frame_size - frame->data_len[0];
-                        while (ap->decoded_cq->rear - ap->decoded_cq->front >= 2) {
-                        }
-
                     } else {
-                        // The samples on the coded frame just fits, go ahead.
-                        if (resampler_compare_sample_rate(ap->resampler, frame->sample_rate)) {
-                            audio_codec_state_set_out(ap->compression_config, output_frame);
-                            frame = audio_codec_decompress(ap->compression_config, frame);
-                        } else {
-                            resampler_set_resampled(ap->resampler, output_frame);
-                            frame = audio_codec_decompress(ap->compression_config, frame);
-                            frame = resampler_resample(ap->resampler, frame);
-                        }
+                        // The samples on the coded frame fits in the output_frame,
+                        // copy it.
+                        audio_frame_copy(frame, norm_frame);
                         cq_remove_bag(ap->coded_cq);
                     }
+
+                    // Decompress
+                    audio_codec_state_set_out(ap->compression_config, decomp_frame);
+                    (void)audio_codec_decompress(ap->compression_config, norm_frame);
+
+                    // Resample (if needed)
+                    //if (resampler_compare_sample_rate(ap->resampler, frame->sample_rate)) {
+                    if (!resampler_compare_sample_rate(ap->resampler, ap->external_config->sample_rate)) {
+                        resampler_set_resampled(ap->resampler, output_frame);
+                        (void)resampler_resample(ap->resampler, decomp_frame);
+                    } else {
+                        audio_frame_copy(decomp_frame, output_frame);
+                    }
+
+                    // Fill-up the holes
+                    if ((unsigned int)output_frame->data_len[0] != output_frame->max_size) {
+                        audio_frame_fill_with_zeroes(output_frame);
+                    }
+
+                    // Add the bag
                     cq_add_bag(ap->decoded_cq);
                 }
             }
         }
     }
-    audio_frame2_free(normal);
+    audio_frame2_free(norm_frame);
 
     pthread_exit((void *)NULL);    
 }
@@ -222,31 +267,55 @@ static int normalize_get_size(audio_processor_t *ap)
     return size;
 }
 
-static void normalize_extract(audio_frame2 *src, audio_frame2 *dst, int size)
+static void audio_frame_extract(audio_frame2 *src, audio_frame2 *dst)
 {
     char *buf;
-    if ((buf = malloc(src->data_len[0])) == NULL) {
-        error_msg("normalize_extract: malloc: out of memory!");
-        return;
+    int remaining_data;
+
+    // Calculate the data fitting and reserve memory for data movements if needed.
+    remaining_data = src->data_len[0] - (dst->max_size - dst->data_len[0]);
+    if (remaining_data < 0 ) {
+        remaining_data = 0;
+    } else {
+        if ((buf = malloc(remaining_data)) == NULL) {
+            error_msg("audio_frame_extract: malloc: out of memory!");
+            return;
+        }
     }
 
-    audio_frame2_allocate(dst, src->ch_count, size);
-
-    dst->bps = src->bps;
-    dst->sample_rate = src->sample_rate;
-    dst->codec = src->codec;
-
-    for (int i = 0; i < src->ch_count; i++) {
-        memcpy(buf, src->data[i], src->data_len[i]);
-
-        src->data_len[i] = src->data_len[i] - size;
-        memcpy(src->data[i], buf + size, src->data_len[i]);
-
-        dst->data_len[i] = size;
-        memcpy(dst->data[i], buf, size);
+    // Copy data from src to dst.
+    int ins, outs;
+    for (int ch = 0; ch < src->ch_count; ch++) {
+        for (ins = 0, outs = dst->data_len[0];
+                ins < src->data_len[0] && (unsigned int)outs < dst->max_size;
+                ins++, outs++) {
+            dst->data[ch][outs] = src->data[ch][ins];
+            dst->data_len[ch]++;
+        }
     }
 
-    free(buf);
+    // Move remainig data to the start of src buffer if needed.
+    if (remaining_data != 0) {
+        for (int ch = 0; ch < src->ch_count; ch++) {
+            int j, k, s;
+            for (j = 0, s = ins;
+                    s < src->data_len[ch];
+                    j++, s++) {
+                buf[j] = src->data[ch][s];
+            }
+            src->data_len[ch] = 0;
+            for (k = 0; k < j; k++) {
+                src->data[ch][k] = buf[k];
+                src->data_len[ch]++;
+            }
+        }
+        free(buf);
+    }
+    else {
+        for (int ch = 0; ch < src->ch_count; ch++) {
+            src->data_len[ch] = 0;
+        }
+    }
 }
 
 static void audio_frame_format(audio_frame2 *src, struct audio_desc *desc)
@@ -262,9 +331,57 @@ static void audio_frame_format(audio_frame2 *src, struct audio_desc *desc)
 
 static void audio_frame_append(audio_frame2 *src, audio_frame2 *dst)
 {
-    for (int i = 0; i < src->ch_count; i++) {
-        memcpy(dst->data[i] + dst->data_len[i], src->data[i], src->data_len[i]);
-        dst->data_len[i] += src->data_len[i];
+    int ch, ins, outs;
+    for (ch = 0; ch < src->ch_count; ch++) {
+        for (ins = 0, outs = dst->data_len[0];
+                ins < src->data_len[0] && (unsigned int)outs < dst->max_size;
+                ins++, outs++) {
+            dst->data[ch][outs] = src->data[ch][ins];
+            dst->data_len[ch] ++;
+        }
+    }
+}
+
+static void audio_frame_copy(audio_frame2 *src, audio_frame2 *dst)
+{
+    if ((unsigned int)src->data_len[0] <= dst->max_size) {
+        dst->bps = src->bps;
+        dst->sample_rate = src->sample_rate;
+        dst->ch_count = src->ch_count;
+        dst->codec = src->codec;
+        for (int ch = 0; ch < src->ch_count; ch++) {
+            memcpy(dst->data[ch],
+                    src->data[ch],
+                    src->data_len[ch]);
+            dst->data_len[ch] = src->data_len[ch];
+        }
+    }
+}
+
+static void audio_frame_fill_with_zeroes(audio_frame2 *dst)
+{
+    for (int ch = 0; ch < dst->ch_count; ch++) {
+        for (int s = dst->data_len[ch]; (unsigned int)s < dst->max_size; s++) {
+            dst->data[ch][s] = (char)0x00;
+        }
+        dst->data_len[ch] = dst->max_size;
+    }
+}
+
+static void audio_frame_check_internal_reconfig(audio_frame2 *dst)
+{
+    if (dst->max_size != AUDIO_INTERNAL_SIZE ||
+            dst->ch_count != AUDIO_INTERNAL_CHANNELS ||
+            dst->bps != AUDIO_INTERNAL_BPS ||
+            dst->sample_rate != AUDIO_INTERNAL_SAMPLE_RATE ||
+            dst->codec != AUDIO_INTERNAL_CODEC) {
+        dst->bps = AUDIO_INTERNAL_BPS;
+        dst->sample_rate = AUDIO_INTERNAL_SAMPLE_RATE;
+        dst->codec = AUDIO_INTERNAL_CODEC;
+        audio_frame2_allocate(dst,
+                AUDIO_INTERNAL_CHANNELS,
+                AUDIO_INTERNAL_SIZE);
+
     }
 }
 
@@ -297,7 +414,7 @@ audio_processor_t *ap_init(role_t role)
     ap_config(ap, AUDIO_DEFAULT_BPS, AUDIO_DEFAULT_SAMPLE_RATE, AUDIO_DEFAULT_CHANNELS, AUDIO_DEFAULT_CODEC);
     // Decoded circular queue
     init_data.chan = AUDIO_INTERNAL_CHANNELS;
-    init_data.size = (AUDIO_INTERNAL_SAMPLE_RATE * AUDIO_INTERNAL_BPS);
+    init_data.size = AUDIO_INTERNAL_SIZE;
     ap->decoded_cq = cq_init(
             AUDIO_CIRCULAR_QUEUE_SIZE,
             bag_init,
@@ -361,7 +478,7 @@ void ap_config(audio_processor_t *ap, int bps, int sample_rate, int channels, au
             // Specific configurations and conversion bussines logic.
             ap->compression_config = audio_codec_init(ap->external_config->codec, AUDIO_DECODER);
             ap->resampler = resampler_prepare(ap->internal_config->sample_rate);
-            ap->internal_frame_size = normalize_get_size(ap);
+            ap->internal_frame_conversion_size = normalize_get_size(ap);
             break;
 
         case ENCODER:
