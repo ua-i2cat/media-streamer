@@ -1,3 +1,28 @@
+/*
+ *  participants.c - Participants and sessions implementations.
+ *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
+ *
+ *  This file is part of io_mngr.
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  Authors:  Jordi "Txor" Casas Ríos <txorlings@gmail.com>,
+ *            David Cassany <david.cassany@i2cat.net>,
+ *            Ignacio Contreras <ignacio.contreras@i2cat.net>,
+ *            Marc Palau <marc.palau@i2cat.net>
+ */
+
 #include "config_unix.h"
 #include "participants.h"
 #include "transmitter.h"
@@ -5,9 +30,66 @@
 #include "video_decompress.h"
 #include "debug.h"
 
+participant_list_t *init_participant_list(void)
+{
+    participant_list_t  *list;
+
+    if ((list = malloc(sizeof(participant_list_t))) == NULL) {
+        error_msg("init_participant_list malloc out of memory!");
+        return NULL;
+    }
+    pthread_rwlock_init(&list->lock, NULL);
+    list->count = 0;
+    list->first = NULL;
+    list->last = NULL;
+
+    return list;
+}
+
+void destroy_participant_list(participant_list_t *list)
+{
+    participant_data_t *participant;
+
+    participant = list->first;
+    while(participant != NULL){
+        remove_participant(list, participant->id);
+        participant = participant->next;
+    }
+    assert(list->count == 0);
+    pthread_rwlock_destroy(&list->lock);
+
+    free(list);
+}
+
+void add_participant(participant_list_t *list, participant_data_t *participant)
+{
+    pthread_rwlock_wrlock(&list->lock);
+
+    if (list->count == 0) {
+        assert(list->first == NULL && list->last == NULL);
+        list->count++;
+        list->first = list->last = participant;
+    } else if (list->count > 0){
+        assert(list->first != NULL && list->last != NULL);
+        participant->previous = list->last;
+        list->count++;
+        list->last->next = participant;
+        list->last = participant;
+    } else{
+        error_msg("add_participant error");
+        pthread_rwlock_unlock(&list->lock);
+        return FALSE;
+    }
+
+    pthread_rwlock_unlock(&list->lock);
+}
+
+
+//OLDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+
 void destroy_participant(participant_data_t *src);
 int remove_participant(participant_list_t *list, uint32_t id);
-void destroy_participant_list(participant_list_t *list);
+//void destroy_participant_list(participant_list_t *list);
 void dummy_callback(struct rtp *session, rtp_event *e);
 rtp_session_t * init_rtp_session(uint32_t port, char *addr);
 int destroy_rtp_session(rtp_session_t *rtp);
@@ -18,7 +100,8 @@ void dummy_callback(struct rtp *session, rtp_event *e)
     UNUSED(e);
 }
 
-rtp_session_t * init_rtp_session(uint32_t port, char *addr){
+rtp_session_t * init_rtp_session(uint32_t port, char *addr)
+{
     rtp_session_t *rtp;
     char *mcast_if = NULL;
     double rtcp_bw = DEFAULT_RTCP_BW;
@@ -62,7 +145,8 @@ rtp_session_t * init_rtp_session(uint32_t port, char *addr){
     return rtp;
 }
 
-int destroy_rtp_session(rtp_session_t *rtp){
+int destroy_rtp_session(rtp_session_t *rtp)
+{
     if (rtp == NULL){
         return TRUE;
     }
@@ -80,7 +164,8 @@ int destroy_rtp_session(rtp_session_t *rtp){
     return TRUE;
 }
 
-participant_data_t *init_participant(uint32_t id, io_type_t type, char *addr, uint32_t port){
+participant_data_t *init_participant(uint32_t id, io_type_t type, char *addr, uint32_t port)
+{
     participant_data_t *participant;
 
     participant = (participant_data_t *) malloc(sizeof(participant_data_t));
@@ -103,56 +188,15 @@ participant_data_t *init_participant(uint32_t id, io_type_t type, char *addr, ui
     return participant;
 }
 
-int add_participant(participant_list_t *list, participant_data_t *participant)
+void destroy_participant(participant_data_t *src)
 {
-    pthread_rwlock_wrlock(&list->lock);
-
-    if (list->count == 0) {
-
-        assert(list->first == NULL && list->last == NULL);
-        list->count++;
-        list->first = list->last = participant;
-
-    } else if (list->count > 0){
-
-        assert(list->first != NULL && list->last != NULL);
-        participant->previous = list->last;
-        list->count++;
-        list->last->next = participant;
-        list->last = participant;
-
-    } else{
-        error_msg("add_participant error");
-        pthread_rwlock_unlock(&list->lock);
-        return FALSE;
-    }
-    pthread_rwlock_unlock(&list->lock);
-
-    return TRUE;
-}
-
-void destroy_participant(participant_data_t *src){
     pthread_mutex_destroy(&src->lock);
     destroy_rtp_session(src->rtp);
     free(src);
 }
 
-participant_list_t *init_participant_list(void){
-    participant_list_t  *list;
-
-    list = (participant_list_t *) malloc(sizeof(participant_list_t));
-
-    pthread_rwlock_init(&list->lock, NULL);
-
-    list->count = 0;
-    list->first = NULL;
-    list->last = NULL;
-
-    return list;
-}
-
-
-participant_data_t *get_participant_id(participant_list_t *list, uint32_t id){
+participant_data_t *get_participant_id(participant_list_t *list, uint32_t id)
+{
     participant_data_t *participant;
     participant = list->first;
     while(participant != NULL) {
@@ -166,7 +210,8 @@ participant_data_t *get_participant_id(participant_list_t *list, uint32_t id){
     return NULL;
 }
 
-participant_data_t *get_participant_ssrc(participant_list_t *list, uint32_t ssrc){
+participant_data_t *get_participant_ssrc(participant_list_t *list, uint32_t ssrc)
+{
     participant_data_t *participant;
 
     participant = list->first;
@@ -179,7 +224,8 @@ participant_data_t *get_participant_ssrc(participant_list_t *list, uint32_t ssrc
     return NULL;
 }
 
-participant_data_t *get_participant_non_init(participant_list_t *list){
+participant_data_t *get_participant_non_init(participant_list_t *list)
+{
     participant_data_t *participant;
 
     participant = list->first;
@@ -191,14 +237,16 @@ participant_data_t *get_participant_non_init(participant_list_t *list){
     return NULL;
 }
 
-int set_participant_ssrc(participant_data_t *participant, uint32_t ssrc){
+int set_participant_ssrc(participant_data_t *participant, uint32_t ssrc)
+{
     pthread_mutex_lock(&participant->lock);
     participant->ssrc = ssrc;
     pthread_mutex_unlock(&participant->lock);
     return TRUE;
 }
 
-int remove_participant(participant_list_t *list, uint32_t id){
+int remove_participant(participant_list_t *list, uint32_t id)
+{
     participant_data_t *participant;
 
     pthread_rwlock_wrlock(&list->lock);
@@ -244,23 +292,3 @@ int remove_participant(participant_list_t *list, uint32_t id){
 
     return TRUE;
 }
-
-void destroy_participant_list(participant_list_t *list){
-    participant_data_t *participant;
-
-    participant = list->first;
-
-    while(participant != NULL){
-        //pthread_rwlock_wrlock(&list->lock);
-        remove_participant(list, participant->id);
-        //pthread_rwlock_unlock(&list->lock);
-        participant = participant->next;
-    }
-
-    assert(list->count == 0);
-
-    pthread_rwlock_destroy(&list->lock);
-
-    free(list);
-}
-

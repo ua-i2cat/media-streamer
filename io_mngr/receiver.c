@@ -17,21 +17,21 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  Jordi "Txor" Casas Ríos <jordi.casas@i2cat.net>,
+ *  Authors:  Jordi "Txor" Casas Ríos <txorlings@gmail.com>,
  *            David Cassany <david.cassany@i2cat.net>,
  *            Ignacio Contreras <ignacio.contreras@i2cat.net>,
  *            Marc Palau <marc.palau@i2cat.net>
  */
 
-//#include "config_unix.h"
 #include "receiver.h"
-#include "rtp/rtp_callback.h"
 #include "rtp/rtp.h"
+#include "rtp/rtp_callback.h"
 #include "rtp/audio_decoders.h"
 #include "pdb.h"
 #include "tv.h"
 #include "debug.h"
 #include "video_config.h"
+#include "commons.h"
 
 static void *video_receiver_thread(receiver_t *receiver);
 static void *audio_receiver_thread(receiver_t *receiver);
@@ -52,7 +52,7 @@ void *video_receiver_thread(receiver_t *receiver)
     uint32_t timestamp;
 
     while(receiver->video_run) {
-        usleep(100);
+        usleep(THREAD_SLEEP_TIMEOUT);
         gettimeofday(&curr_time, NULL);
         timestamp = tv_diff(curr_time, start_time) * 90000;
         rtp_update(receiver->video_session, curr_time);
@@ -61,7 +61,7 @@ void *video_receiver_thread(receiver_t *receiver)
         timeout.tv_sec = 0;
         timeout.tv_usec = 10000;
 
-        //TODO: repàs dels locks en accedir a src
+        //TODO: check locks on src access
         if (!rtp_recv_r(receiver->video_session, &timeout, timestamp)) {
             pdb_iter_t it;
             cp = pdb_iter_init(receiver->video_part_db, &it);
@@ -145,13 +145,13 @@ static void *audio_receiver_thread(receiver_t *receiver)
     decode_object.resampler = NULL;
 
     while(receiver->video_run) {
-        usleep(100);
+        usleep(THREAD_SLEEP_TIMEOUT);
         gettimeofday(&curr_time, NULL);
         timestamp = tv_diff(curr_time, start_time) * 90000;
         rtp_update(receiver->audio_session, curr_time);
         //rtp_send_ctrl(receiver->audio_session, timestamp, 0, curr_time);
 
-        //TODO: repàs dels locks en accedir a src
+        //TODO: check locks on src access
         if (!rtp_recv_r(receiver->audio_session, &timeout, timestamp)){
             pdb_iter_t it;
             cp = pdb_iter_init(receiver->audio_part_db, &it);
@@ -213,7 +213,7 @@ receiver_t *init_receiver(stream_list_t *video_stream_list, stream_list_t *audio
             return NULL;
         }
         if (!rtp_set_sdes(receiver->video_session, rtp_my_ssrc(receiver->video_session),
-                    RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING))) { //TODO: is this needed?			
+                    RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING))) {
             return NULL;
         }
         if (!rtp_set_recv_buf(receiver->video_session, INITIAL_VIDEO_RECV_BUFFER_SIZE)) {
@@ -235,7 +235,7 @@ receiver_t *init_receiver(stream_list_t *video_stream_list, stream_list_t *audio
             return NULL;
         }
         if (!rtp_set_sdes(receiver->audio_session, rtp_my_ssrc(receiver->audio_session),
-                    RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING))) { //TODO: is this needed?			
+                    RTCP_SDES_TOOL, PACKAGE_STRING, strlen(PACKAGE_STRING))) {
             return NULL;
         }
         if (!rtp_set_recv_buf(receiver->audio_session, INITIAL_VIDEO_RECV_BUFFER_SIZE)) {

@@ -1,5 +1,5 @@
 /*
- *  audio_processor.h
+ *  audio_processor.h - Audio processor definitions.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  Jordi "Txor" Casas Ríos <jordi.casas@i2cat.net>,
+ *  Authors:  Jordi "Txor" Casas Ríos <txorlings@gmail.com>,
  *            David Cassany <david.cassany@i2cat.net>,
  *            Ignacio Contreras <ignacio.contreras@i2cat.net>,
  *            Marc Palau <marc.palau@i2cat.net>

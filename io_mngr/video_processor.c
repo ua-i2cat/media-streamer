@@ -17,23 +17,22 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  Jordi "Txor" Casas Ríos <jordi.casas@i2cat.net>,
+ *  Authors:  Jordi "Txor" Casas Ríos <txorlings@gmail.com>,
  *            David Cassany <david.cassany@i2cat.net>,
  *            Ignacio Contreras <ignacio.contreras@i2cat.net>,
  *            Marc Palau <marc.palau@i2cat.net>
  */
 
-//#include <stdlib.h>
 #include "video_processor.h"
-#include "video_decompress.h"
-#include "video_decompress/libavcodec.h"
+#include "video_frame.h"
 #include "video_codec.h"
 #include "video_compress.h"
-#include "video_frame.h"
+#include "video_decompress.h"
+#include "video_decompress/libavcodec.h"
 #include "video_config.h"
 #include "types.h"
-#include "tv.h"
 #include "module.h"
+#include "tv.h"
 #include "debug.h"
 
 // Used to emphasize that the state is actually a proxy (from video_compress.c).
@@ -54,7 +53,7 @@ void *decoder_thread(void* arg)
     video_frame2* decoded_frame;
 
     while(vp->run) {
-        usleep(100);
+        usleep(THREAD_SLEEP_TIMEOUT);
 
         if ((coded_frame = cq_get_front(vp->coded_cq)) != NULL) {
 
@@ -99,8 +98,7 @@ void *encoder_thread(void *arg)
     }
 
     while (vp->run) {
-        //TODO: set a non magic number in this usleep (maybe related to framerate)
-        usleep(100);
+        usleep(THREAD_SLEEP_TIMEOUT);
 
         if ((decoded_frame = cq_get_front(vp->decoded_cq)) != NULL) {
 

@@ -17,16 +17,15 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  Jordi "Txor" Casas Ríos <jordi.casas@i2cat.net>
+ *  Authors:  Jordi "Txor" Casas Ríos <txorlings@gmail.com>
  */
 
-#include <stdlib.h>
-#include "debug.h"
+//#include <stdlib.h>
 #include "audio_processor.h"
-#include "audio_config.h"
-#include "circular_queue.h"
 #include "audio_frame2.h"
+#include "audio_config.h"
 #include "utils.h"
+#include "debug.h"
 
 // Decoder thread constants
 #define DECODER_THREAD_WAIT_TIMEOUT 250
@@ -72,8 +71,7 @@ static void *decoder_thread(void* arg)
             ap->internal_conversion_resample_size);
 
     while(ap->run) {
-        //TODO: set non magic values on usleep (calculated for performance depending on actual resources)
-        usleep(100);
+        usleep(THREAD_SLEEP_TIMEOUT);
         if(ap->coded_cq->level != CIRCULAR_QUEUE_EMPTY) {
             // TODO: Channel muxing
 
@@ -182,8 +180,7 @@ static void *encoder_thread(void *arg)
     resampler_set_resampled(ap->resampler, tmp_frame);
 
     while (ap->run) {
-        //TODO: set non magic values on usleep (calculated for performance depnding on actual resources)
-        usleep(100);
+        usleep(THREAD_SLEEP_TIMEOUT);
         if(ap->decoded_cq->level != CIRCULAR_QUEUE_EMPTY) {
             // TODO: Channel muxing
 
@@ -267,22 +264,16 @@ static int normalize_get_resample_size(audio_processor_t *ap)
 
 static void audio_frame_extract(audio_frame2 *src, audio_frame2 *dst)
 {
-    char *buf;
     int remaining_data;
+    int ins = 0;
+    int outs = 0;
 
     // Calculate the data fitting and reserve memory for data movements if needed.
-    remaining_data = src->data_len[0] - (dst->max_size - dst->data_len[0]);
-    if (remaining_data < 0 ) {
+    if ((remaining_data = src->data_len[0] - (dst->max_size - dst->data_len[0])) < 0) {
         remaining_data = 0;
-    } else {
-        if ((buf = malloc(remaining_data)) == NULL) {
-            error_msg("audio_frame_extract: malloc: out of memory!");
-            return;
-        }
     }
 
     // Copy data from src to dst.
-    int ins, outs;
     for (int ch = 0; ch < src->ch_count; ch++) {
         for (ins = 0, outs = dst->data_len[0];
                 ins < src->data_len[0] && (unsigned int)outs < dst->max_size;
@@ -294,6 +285,11 @@ static void audio_frame_extract(audio_frame2 *src, audio_frame2 *dst)
 
     // Move remainig data to the start of src buffer if needed.
     if (remaining_data != 0) {
+        char *buf;
+        if ((buf = malloc(remaining_data)) == NULL) {
+            error_msg("audio_frame_extract: malloc: out of memory!");
+            return;
+        }
         for (int ch = 0; ch < src->ch_count; ch++) {
             int j, k, s;
             for (j = 0, s = ins;

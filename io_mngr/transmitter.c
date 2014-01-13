@@ -17,21 +17,21 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  Jordi "Txor" Casas Ríos <jordi.casas@i2cat.net>,
+ *  Authors:  Jordi "Txor" Casas Ríos <txorlings@gmail.com>,
  *            David Cassany <david.cassany@i2cat.net>,
  *            Ignacio Contreras <ignacio.contreras@i2cat.net>,
  *            Marc Palau <marc.palau@i2cat.net>
  */
 
-#include <stdlib.h>
+//#include <stdlib.h>
 #include "transmitter.h"
 #include "rtp/rtp.h"
 #include "pdb.h"
+#include "tv.h"
+#include "debug.h"
+#include "video_config.h"
 #include "video_codec.h"
 #include "video_compress.h"
-#include "video_config.h"
-#include "debug.h"
-#include "tv.h"
 
 static void send_video_frame(stream_data_t *stream, video_frame2 *coded_frame, struct timeval start_time);
 static void send_audio_frame(stream_data_t *stream, audio_frame2 *frame, struct timeval start_time);
@@ -112,12 +112,12 @@ static void *video_transmitter_thread(void *arg)
     gettimeofday(&start_time, NULL);
 
     while(transmitter->video_run){
-        usleep(100);
+        usleep(THREAD_SLEEP_TIMEOUT);
         pthread_rwlock_rdlock(&transmitter->video_stream_list->lock);
 
         stream = transmitter->video_stream_list->first;
         while(stream != NULL && transmitter->video_run) {
-            usleep(100);
+            usleep(THREAD_SLEEP_TIMEOUT);
             if ((frame = cq_get_front(stream->video->coded_cq)) != NULL) {
                 send_video_frame(stream, frame, start_time);
                 cq_remove_bag(stream->video->coded_cq);
@@ -141,12 +141,12 @@ static void *audio_transmitter_thread(void *arg)
     gettimeofday(&start_time, NULL);
 
     while(transmitter->audio_run) {
-        usleep(100);
+        usleep(THREAD_SLEEP_TIMEOUT);
         pthread_rwlock_rdlock(&transmitter->audio_stream_list->lock);
 
         stream = transmitter->audio_stream_list->first;
         while(stream != NULL && transmitter->audio_run) {
-            usleep(100);
+            usleep(THREAD_SLEEP_TIMEOUT);
             if ((frame = cq_get_front(stream->audio->coded_cq)) != NULL) {
                 send_audio_frame(stream, frame, start_time);
                 cq_remove_bag(stream->audio->coded_cq);

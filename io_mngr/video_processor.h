@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  Jordi "Txor" Casas Ríos <jordi.casas@i2cat.net>,
+ *  Authors:  Jordi "Txor" Casas Ríos <txorlings@gmail.com>,
  *            David Cassany <david.cassany@i2cat.net>,
  *            Ignacio Contreras <ignacio.contreras@i2cat.net>,
  *            Marc Palau <marc.palau@i2cat.net>
@@ -32,7 +32,7 @@
 #ifndef __VIDEO_PROCESSOR_H__
 #define __VIDEO_PROCESSOR_H__
 
-#include <pthread.h>
+//#include <pthread.h>
 #include "types.h"
 #include "video_frame2.h"
 #include "circular_queue.h"

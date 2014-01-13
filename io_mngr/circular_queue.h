@@ -1,5 +1,5 @@
 /*
- *  circular_queue.h
+ *  circular_queue.h - Thread safe circular queue.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -17,14 +17,14 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  Jordi "Txor" Casas Ríos <jordi.casas@i2cat.net>,
+ *  Authors:  Jordi "Txor" Casas Ríos <txorlings@gmail.com>,
  *            David Cassany <david.cassany@i2cat.net>
  *            Marc Palau <marc.palau@i2cat.net>
  */
 
 /**
  * @file circular_queue.h
- * @brief Thread resistant circular queue composed of 'bags', there you can store generic objects.
+ * @brief Thread safe (one reader, one writer) circular queue composed of 'bags' where generic objects can be stored.
  */
 
 #ifndef __CIRCULAR_QUEUE_H__

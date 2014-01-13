@@ -1,5 +1,5 @@
 /*
- *  commons.h
+ *  commons.h - Common definitions.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -17,12 +17,12 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  Jordi "Txor" Casas Ríos <jordi.casas@i2cat.net>,
+ *  Authors:  Jordi "Txor" Casas Ríos <txorlings@gmail.com>,
  *            David Cassany <david.cassany@i2cat.net>
  */
 
 /**
- * @file circular_queue.h
+ * @file commons.h
  * @brief Common definitions for io_mngr entities.
  */
 
@@ -33,6 +33,7 @@
 #define DEFAULT_TTL 255
 #define DEFAULT_SEND_BUFFER_SIZE 1920 * 1080 * 4 * sizeof(char) * 10
 #define MTU 1300 // 1400
+#define THREAD_SLEEP_TIMEOUT 50
 
 typedef enum role {
     ENCODER,

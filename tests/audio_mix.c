@@ -106,11 +106,20 @@ static void audio_mix(stream_data_t *dst)
 {
     audio_frame2 *in_frame[8];
     circular_queue_t *used_queues[8];
-    audio_frame2 reference_frame;
+
     audio_frame2 *out_frame;
 
     bool something_to_mix = false;
     int in_count = 0;
+
+    audio_frame2 reference_frame;
+    // Preliminar initialization
+    reference_frame.bps = 1;
+    reference_frame.sample_rate = 8000;
+    reference_frame.ch_count = 8;
+    reference_frame.codec = AC_MULAW;
+    for (int j = 0; j < reference_frame.ch_count; j++)
+        reference_frame.data_len[j] = 0;
 
     for (int i = 0; i < nstreams; i++) {
         if ((in_frame[in_count] = cq_get_front(streams[i]->audio->decoded_cq)) != NULL) {
@@ -120,7 +129,6 @@ static void audio_mix(stream_data_t *dst)
                 reference_frame.sample_rate = in_frame[in_count]->sample_rate;
                 reference_frame.ch_count = in_frame[in_count]->ch_count;
                 reference_frame.codec = in_frame[in_count]->codec;
-                reference_frame.ch_count = in_frame[in_count]->ch_count;
                 for (int j = 0; j < reference_frame.ch_count; j++)
                     reference_frame.data_len[j] = in_frame[in_count]->data_len[j];
             }

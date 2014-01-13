@@ -1,5 +1,5 @@
 /*
- *  circular_queue.c
+ *  circular_queue.c - Thread safe circular queue.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -17,14 +17,12 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  Jordi "Txor" Casas Ríos <jordi.casas@i2cat.net>,
+ *  Authors:  Jordi "Txor" Casas Ríos <txorlings@gmail.com>,
  *            David Cassany <david.cassany@i2cat.net>
  */
 
-//#include <stdlib.h>
-//#include <unistd.h>
-#include "debug.h"
 #include "circular_queue.h"
+#include "debug.h"
 
 circular_queue_t *cq_init(int max, void *(*init_object)(void *), void *init_data, void (*destroy_object)(void *), unsigned int *(*get_media_time_ptr)(void *))
 {
