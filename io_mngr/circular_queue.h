@@ -30,7 +30,7 @@
 #ifndef __CIRCULAR_QUEUE_H__
 #define __CIRCULAR_QUEUE_H__
 
-#include "config_unix.h"
+#include "commons.h"
 
 typedef enum {
     CIRCULAR_QUEUE_MID,

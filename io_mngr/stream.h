@@ -1,5 +1,5 @@
 /*
- *  stream.h - Stream definitions.
+ *  stream.h - Audio/video stream definitions.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -35,60 +35,60 @@ typedef enum stream_type {
     VIDEO
 } stream_type_t;
 
-typedef enum stream_state{
+typedef enum stream_state {
     ACTIVE,
     I_AWAIT,
     NON_ACTIVE
 } stream_state_t;
 
-typedef struct stream_data {
+typedef struct stream {
     stream_type_t type;
     io_type_t io_type;
     stream_state_t state;
     char *stream_name;
-    uint32_t id;
+    unsigned int id;
     participant_list_t *plist;
-    struct stream_data *prev;
-    struct stream_data *next;
+    struct stream *prev;
+    struct stream *next;
     union {
         audio_processor_t *audio;
         video_processor_t *video;
     };
-} stream_data_t;
+} stream_t;
 
 /**
  * Initializes a stream.
- * @return stream_data_t * if succeeded, NULL otherwise.
+ * @return stream_t * if succeeded, NULL otherwise.
  */
-stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, stream_state_t state, char *stream_name);
+stream_t *init_stream(stream_type_t type, io_type_t io_type, unsigned int id, stream_state_t state, char *stream_name);
 
 /**
  * Destroys a stream.
- * @param stream Target stream_data_t.
+ * @param stream Target stream_t.
  */
-void destroy_stream(stream_data_t *stream);
+void destroy_stream(stream_t *stream);
 
 /**
  * Set the stream state.
- * @param stream Target stream_data_t.
+ * @param stream Target stream_t.
  * @param state New stream_state_t value.
  */
-void set_stream_state(stream_data_t *stream, stream_state_t state);
+void set_stream_state(stream_t *stream, stream_state_t state);
 
 /**
  * Add a participant to the stream.
- * @param stream Target stream_data_t.
+ * @param stream Target stream_t.
  * @param participant Target participant_data_t.
  */
-void add_participant_stream(stream_data_t *stream, participant_data_t *participant);
+void add_participant_stream(stream_t *stream, participant_data_t *participant);
 
 /**
  * Remove a participant, idenified with its id, from a stream.
- * @param stream Target stream_data_t.
+ * @param stream Target stream_t.
  * @param id Target participant id.
- * @return TRUE if succeeded, FALSE otherwise.
+ * @return true if succeeded, false otherwise.
  */
-int remove_participant_from_stream(stream_data_t *stream, uint32_t id);
+int remove_participant_from_stream(stream_t *stream, unsigned int id);
 
 #endif //__STREAM_H__
 

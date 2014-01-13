@@ -43,11 +43,11 @@ receiver_t *receiver;
 transmitter_t *transmitter;
 
 // Function prototypes
-static void audio_frame_forward(stream_data_t *src, stream_data_t *dst);
+static void audio_frame_forward(stream_t *src, stream_t *dst);
 static void finish_handler(int signal);
 
 // Copy one video_frame2 between the decoded queues of two streams.
-static void video_frame_forward(stream_data_t *src, stream_data_t *dst)
+static void video_frame_forward(stream_t *src, stream_t *dst)
 {
     video_frame2 *in_frame, *out_frame;
     in_frame = cq_get_front(src->video->decoded_cq);
@@ -70,7 +70,7 @@ static void video_frame_forward(stream_data_t *src, stream_data_t *dst)
 }
 
 // Copy one audio_frame2 between the decoded queues of two streams.
-static void audio_frame_forward(stream_data_t *src, stream_data_t *dst)
+static void audio_frame_forward(stream_t *src, stream_t *dst)
 {
     audio_frame2 *in_frame, *out_frame;
     if ((in_frame = cq_get_front(src->audio->decoded_cq)) != NULL) {
@@ -111,7 +111,7 @@ int main()
     // Attach the handler to CTRL+C.
     signal(SIGINT, finish_handler);
 
-    stream_data_t *stream;
+    stream_t *stream;
 
     // Receiver startup
     fprintf(stderr, " ·Configuring receiver\n");
@@ -163,7 +163,7 @@ int main()
     ap_worker_start(stream->audio);
 
     // Temporal variables and initializations
-    stream_data_t *audio_in_stream,
+    stream_t *audio_in_stream,
                   *audio_out_stream,
                   *video_in_stream,
                   *video_out_stream;

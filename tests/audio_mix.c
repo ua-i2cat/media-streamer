@@ -40,7 +40,7 @@
 
 // Global variables
 static volatile bool stop = false;
-static stream_data_t *streams[8];
+static stream_t *streams[8];
 static int nstreams = 0;
 static int nparticipants = N_PARTICIPANTS;
 
@@ -96,13 +96,13 @@ transmitter_t *transmitter;
      : (d) >= SOX_SAMPLE_MAX + 0.5? SOX_SAMPLE_MAX: (d) + 0.5)
 
 // Function prototypes
-static void audio_mix(stream_data_t *dst);
+static void audio_mix(stream_t *dst);
 static void change_volume(audio_frame2 *frame, double volume);
 static void finish_handler(int signal);
 
 // Mix each input audio_frame2 into the output audio_frame2 (if possible),
-// from each stream_data_t decoded queue (input ones from streams global var).
-static void audio_mix(stream_data_t *dst)
+// from each stream_t decoded queue (input ones from streams global var).
+static void audio_mix(stream_t *dst)
 {
     audio_frame2 *in_frame[8];
     circular_queue_t *used_queues[8];
@@ -219,7 +219,7 @@ int main(int argc, char *argv[])
     // Attach the handler to CTRL+C.
     signal(SIGINT, finish_handler);
 
-    stream_data_t *stream;
+    stream_t *stream;
 
     // Receiver startup
     fprintf(stderr, " ·Configuring receiver\n");
@@ -263,7 +263,7 @@ int main(int argc, char *argv[])
     ap_worker_start(stream->audio);
 
     // Temporal variables and initializations
-    stream_data_t *audio_out_stream = transmitter->audio_stream_list->first;
+    stream_t *audio_out_stream = transmitter->audio_stream_list->first;
 
     // Main loop
     fprintf(stderr, "  ·Mixing audio! ");

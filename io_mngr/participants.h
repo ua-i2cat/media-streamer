@@ -33,7 +33,6 @@
 #define __PARTICIPANTS_H__
 
 //#include <semaphore.h>
-//#include "config_unix.h"
 #include "rtpdec.h"
 #include "video.h"
 #include "module.h"
@@ -42,7 +41,7 @@
 
 typedef struct participant_data participant_data_t;
 
-typedef struct stream_data stream_data_t;
+typedef struct stream stream_t;
 
 typedef struct rtp_session {
     uint32_t port;
@@ -61,13 +60,13 @@ typedef struct participant_list {
 struct participant_data {
     pthread_mutex_t lock;
     uint32_t ssrc;
-    uint32_t id;
+    unsigned int id;
     uint8_t active;
     participant_data_t *next;
     participant_data_t *previous;
     io_type_t type;
     rtp_session_t *rtp;
-    stream_data_t *stream;
+    stream_t *stream;
 };
 
 /**
@@ -96,14 +95,14 @@ void add_participant(participant_list_t *list, participant_data_t *participant);
  * @param get_media_time_ptr Callback to get the media_time field address.
  * @return participant_list_t *.
  */
-int remove_participant(participant_list_t *list, uint32_t id);
+bool remove_participant(participant_list_t *list, unsigned int id);
 
 /**
  * Initializes a Participants list.
  * @param get_media_time_ptr Callback to get the media_time field address.
  * @return participant_list_t *.
  */
-participant_data_t *get_participant_id(participant_list_t *list, uint32_t id);
+participant_data_t *get_participant_id(participant_list_t *list, unsigned int id);
 
 /**
  * Initializes a Participants list.
@@ -131,21 +130,7 @@ int set_participant_ssrc(participant_data_t *participant, uint32_t ssrc);
  * @param get_media_time_ptr Callback to get the media_time field address.
  * @return participant_list_t *.
  */
-participant_data_t *init_participant(uint32_t id, io_type_t type, char *addr, uint32_t port);
-
-/**
- * Initializes a Participants list.
- * @param get_media_time_ptr Callback to get the media_time field address.
- * @return participant_list_t *.
- */
-void set_active_participant(participant_data_t *participant, uint8_t active);
-
-/**
- * Initializes a Participants list.
- * @param get_media_time_ptr Callback to get the media_time field address.
- * @return participant_list_t *.
- */
-void destroy_participant(participant_data_t *src);
+participant_data_t *init_participant(unsigned int id, io_type_t type, char *addr, uint32_t port);
 
 #endif //__PARTICIPANTS_H__
 

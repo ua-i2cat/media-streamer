@@ -120,7 +120,7 @@ int main(int argc, char **argv)
     stream_list_t *streams = init_stream_list();
     stream_list_t *dummy_audio_stream = init_stream_list(); //Not used.
     printf("[test] init_stream\n");
-    stream_data_t *stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE, "i2CATRocks");
+    stream_t *stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE, "i2CATRocks");
     printf("[test] set_stream_video_data\n");
     vp_reconfig_internal(stream->video, 1280, 534, RAW);
     vp_reconfig_external(stream->video, 1280, 534, H264);

@@ -1,5 +1,5 @@
 /*
- *  BasicRTSPOnlyServer.hh
+ *  c_basicRTSPOnlyServer.hh
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -21,32 +21,45 @@
  *            David Cassany <david.cassany@i2cat.net>
  */
 
-#ifndef __BASIC_RTSP_ONLY_SERVER_HH__
-#define __BASIC_RTSP_ONLY_SERVER_HH__
+/**
+ * @file c_basicRTSPOnlyServer.hh
+ * @brief 
+ */
 
-#include <RTSPServer.hh>
-#include <BasicUsageEnvironment.hh>
-#include "BasicRTSPOnlySubsession.hh"
+#ifndef __C_BASIC_RTSP_ONLY_SERVER_HH__
+#define __C_BASIC_RTSP_ONLY_SERVER_HH__
 
-class BasicRTSPOnlyServer {
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include "transmitter.h"
+#ifdef __cplusplus
+}
+#endif
 
-private:
-    BasicRTSPOnlyServer(int port, transmitter_t* transmitter);
-    
-public:
-    static BasicRTSPOnlyServer* initInstance(int port, transmitter_t* transmitter);
-    static BasicRTSPOnlyServer* getInstance();
-    int init_server();
-    static void *start_server(void *args);
-    int update_server();
-    
-private:
-    static BasicRTSPOnlyServer* srvInstance;
-    int fPort;
-    transmitter_t* fTransmitter;
-    RTSPServer* rtspServer;
-    UsageEnvironment* env;
-};
+#ifdef __cplusplus
+#define EXTERNC extern "C"
+#else
+#define EXTERNC
+#endif
 
-#endif //__BASIC_RTSP_ONLY_SERVER_HH__
+EXTERNC typedef struct rtsp_serv {
+    uint port;
+    transmitter_t* transmitter;
+    pthread_t server_th;
+    uint8_t watch;
+    uint8_t run;
+} rtsp_serv_t;
+
+EXTERNC int c_start_server(rtsp_serv_t* server);
+
+EXTERNC void c_stop_server(rtsp_serv_t* server);
+
+EXTERNC int c_update_server(rtsp_serv_t* server); 
+
+EXTERNC rtsp_serv_t* init_rtsp_server(uint port, transmitter_t *transmitter);
+
+#undef EXTERNC
+
+#endif //__C_BASIC_RTSP_ONLY_SERVER_HH__
 

@@ -29,9 +29,9 @@
 #include "debug.h"
 #include "commons.h"
 
-stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, stream_state_t state, char *stream_name)
+stream_t *init_stream(stream_type_t type, io_type_t io_type, unsigned int id, stream_state_t state, char *stream_name)
 {
-    stream_data_t *stream = malloc(sizeof(stream_data_t));
+    stream_t *stream = malloc(sizeof(stream_t));
     if (stream == NULL) {
         error_msg("init_video_stream malloc error");
         return NULL;
@@ -74,7 +74,7 @@ stream_data_t *init_stream(stream_type_t type, io_type_t io_type, uint32_t id, s
     return stream;
 }
 
-void destroy_stream(stream_data_t *stream)
+void destroy_stream(stream_t *stream)
 {
     if (stream->type == VIDEO){
         vp_destroy(stream->video);
@@ -88,7 +88,7 @@ void destroy_stream(stream_data_t *stream)
     free(stream);
 }
 
-void set_stream_state(stream_data_t *stream, stream_state_t state)
+void set_stream_state(stream_t *stream, stream_state_t state)
 {
     if (state == NON_ACTIVE) {
         stream->state = state;
@@ -97,13 +97,13 @@ void set_stream_state(stream_data_t *stream, stream_state_t state)
     }
 }
 
-void add_participant_stream(stream_data_t *stream, participant_data_t *participant)
+void add_participant_stream(stream_t *stream, participant_data_t *participant)
 {
     add_participant(stream->plist, participant);
     participant->stream = stream;
 }
 
-int remove_participant_from_stream(stream_data_t *stream, uint32_t id)
+int remove_participant_from_stream(stream_t *stream, unsigned int id)
 {
     return remove_participant(stream->plist, id);
 }

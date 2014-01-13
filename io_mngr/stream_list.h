@@ -31,8 +31,8 @@
 typedef struct stream_list {
     pthread_rwlock_t lock;
     int count;
-    stream_data_t *first;
-    stream_data_t *last;
+    stream_t *first;
+    stream_t *last;
 } stream_list_t;
 
 /**
@@ -50,26 +50,26 @@ void destroy_stream_list(stream_list_t *list);
 /**
  * Attaches a stream to the first free position of a stream list.
  * @param list Target stream_list_t.
- * @param stream Target stream_data_t.
- * @return TRUE if succeeded, FALSE otherwise.
+ * @param stream Target stream_t.
+ * @return true if succeeded, false otherwise.
  */
-void add_stream(stream_list_t *list, stream_data_t *stream);
+void add_stream(stream_list_t *list, stream_t *stream);
 
 /**
  * Removes a stream, identified with its id, from a stream list.
  * @param list Target stream_list_t.
  * @param id Target stream id.
- * @return TRUE if succeeded, FALSE otherwise.
+ * @return true if succeeded, false otherwise.
  */
-bool remove_stream(stream_list_t *list, uint32_t id);
+bool remove_stream(stream_list_t *list, unsigned int id);
 
 /**
  * Get a pointer to the stream identified with an id from a stream list.
  * @param list Target stream_list_t.
  * @param id Target stream id.
- * @return stream_data_t * if the list had streams, NULL if the list was empty.
+ * @return stream_t * if the list had streams, NULL if the list was empty.
  */
-stream_data_t *get_stream_id(stream_list_t *list, uint32_t id);
+stream_t *get_stream_id(stream_list_t *list, unsigned int id);
 
 //TODO: rethink these function names
 /**
@@ -78,7 +78,7 @@ stream_data_t *get_stream_id(stream_list_t *list, uint32_t id);
  * @param id Target participant id.
  * @return participant_data_t * to the participant identified with id if it was found, NULL otherwise.
  */
-participant_data_t *get_participant_stream_id(stream_list_t *list, uint32_t id);
+participant_data_t *get_participant_stream_id(stream_list_t *list, unsigned int id);
 
 /**
  * Get the pointer to the first participant with an ssrc from a stream list.

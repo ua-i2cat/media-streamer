@@ -177,10 +177,10 @@ int kill(pid_t pid, int sig);
 typedef u_char  ttl_t;
 typedef int     fd_t;
 
-#ifndef TRUE
-#define FALSE	0
-#define	TRUE	1
-#endif /* TRUE */
+#ifndef true
+#define false	0
+#define	true	1
+#endif /* true */
 
 #define USERNAMELEN	8
 

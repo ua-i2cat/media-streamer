@@ -440,7 +440,7 @@ audio_processor_t *ap_init(role_t role)
 
 void ap_destroy(audio_processor_t *ap)
 {
-    ap->run = FALSE;
+    ap->run = false;
     pthread_join(ap->thread, NULL);
     cq_destroy(ap->decoded_cq);
     cq_destroy(ap->coded_cq);
@@ -479,9 +479,9 @@ void ap_config(audio_processor_t *ap, int bps, int sample_rate, int channels, au
 
 void ap_worker_start(audio_processor_t *ap)
 {
-    ap->run = TRUE;
+    ap->run = true;
     if (pthread_create(&ap->thread, NULL, ap->worker, (void *)ap) != 0)
-        ap->run = FALSE;
+        ap->run = false;
 }
 
 struct audio_desc *ap_get_config(audio_processor_t *ap)

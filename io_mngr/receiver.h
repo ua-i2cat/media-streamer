@@ -31,7 +31,7 @@
 #ifndef __RECEIVER_H__
 #define __RECEIVER_H__
 
-#include "stream.h"
+#include "stream_list.h"
 #include "participants.h"
 
 typedef struct receiver
@@ -66,7 +66,7 @@ receiver_t *init_receiver(stream_list_t *video_stream_list, stream_list_t *audio
 /**
  * Starts both audio and video receiver threads.
  * @param transmitter The receiver_t target.
- * @return Returns TRUE if both threads are running, FALSE otherwise.
+ * @return Returns true if both threads are running, false otherwise.
  */
 int start_receiver(receiver_t *receiver);
 
@@ -79,7 +79,7 @@ void stop_receiver(receiver_t *receiver);
 /**
  * Frees the receiver_t object if the threads are stopped.
  * @param receiver The receiver_t target.
- * @return TRUE if freed, FALSE otherwise.
+ * @return true if freed, false otherwise.
  */
 int destroy_receiver(receiver_t *receiver);
 

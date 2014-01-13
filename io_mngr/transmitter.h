@@ -36,7 +36,7 @@
 #ifndef __TRANSMITTER_H__
 #define __TRANSMITTER_H__
 
-#include "stream.h"
+#include "stream_list.h"
 #include "participants.h"
 
 typedef struct transmitter {
@@ -74,7 +74,7 @@ transmitter_t *init_transmitter(stream_list_t *video_stream_list, stream_list_t 
 /**
  * Starts both audio and video transmitter threads.
  * @param transmitter The transmitter_t target.
- * @return Returns TRUE if both threads are running, FALSE otherwise.
+ * @return Returns true if both threads are running, false otherwise.
  */
 int start_transmitter(transmitter_t *transmitter);
 
@@ -87,7 +87,7 @@ void stop_transmitter(transmitter_t *transmitter);
 /**
  * Frees the transmitter_t object if the threads are stopped.
  * @param transmitter The transmitter_t target.
- * @return TRUE if freed, FALSE otherwise.
+ * @return true if freed, false otherwise.
  */
 int destroy_transmitter(transmitter_t *transmitter);
 

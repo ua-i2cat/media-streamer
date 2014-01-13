@@ -29,6 +29,10 @@
 #ifndef __COMMONS_H__
 #define __COMMONS_H__
 
+// config_unix.h
+#include <unistd.h>
+#include <stdlib.h>
+
 #define DEFAULT_RTCP_BW 5 * 1024 * 1024 * 10
 #define DEFAULT_TTL 255
 #define DEFAULT_SEND_BUFFER_SIZE 1920 * 1080 * 4 * sizeof(char) * 10

@@ -62,7 +62,7 @@ transmitter_t *transmitter;
 // Function prototypes
 static void add_receiver_entity();
 static void add_transmitter_entity(char *ip, int port);
-static void audio_frame_forward(stream_data_t *src, stream_data_t *dst);
+static void audio_frame_forward(stream_t *src, stream_t *dst);
 static void finish_handler(int signal);
 static void action_handler(int signal);
 
@@ -73,7 +73,7 @@ static void add_receiver_entity() {
     char name[256];
     sprintf(name, "IN_%i", count);
     participant_data_t *p = init_participant(1, INPUT, NULL, 0);
-    stream_data_t *s = init_stream(AUDIO, INPUT, rand(), I_AWAIT, name);
+    stream_t *s = init_stream(AUDIO, INPUT, rand(), I_AWAIT, name);
     add_participant_stream(s, p);
     ap_config(s->audio, RECEIVER_AUDIO_FORMAT_BPS,
             RECEIVER_AUDIO_FORMAT_SAMPLE_RATE,
@@ -97,7 +97,7 @@ static void add_transmitter_entity(char *ip, int port) {
     char name[256];
     sprintf(name, "OUT_%i", count);
     participant_data_t *p = init_participant(0, OUTPUT, ip, port);
-    stream_data_t *s = init_stream(AUDIO, OUTPUT, 0, ACTIVE, name);
+    stream_t *s = init_stream(AUDIO, OUTPUT, 0, ACTIVE, name);
     add_participant_stream(s, p);
     ap_config(s->audio, TRANSMITTER_AUDIO_FORMAT_BPS,
             TRANSMITTER_AUDIO_FORMAT_SAMPLE_RATE,
@@ -118,7 +118,7 @@ static void add_transmitter_entity(char *ip, int port) {
 }
 
 // Copy one audio_frame2 between the decoded queues of two streams.
-static void audio_frame_forward(stream_data_t *src, stream_data_t *dst)
+static void audio_frame_forward(stream_t *src, stream_t *dst)
 {
     audio_frame2 *in_frame, *out_frame;
     in_frame = cq_get_front(src->audio->decoded_cq);
@@ -205,7 +205,7 @@ int main()
     add_transmitter_entity(TRANSMITTER_IP_1, TRANSMITTER_PORT_1);
 
     // Temporal variables and initializations
-    stream_data_t *in_stream_couple1,
+    stream_t *in_stream_couple1,
                   *out_stream_couple1,
                   *in_stream_couple2,
                   *out_stream_couple2;

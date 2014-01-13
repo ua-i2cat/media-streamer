@@ -33,12 +33,12 @@
 #include "video_codec.h"
 #include "video_compress.h"
 
-static void send_video_frame(stream_data_t *stream, video_frame2 *coded_frame, struct timeval start_time);
-static void send_audio_frame(stream_data_t *stream, audio_frame2 *frame, struct timeval start_time);
+static void send_video_frame(stream_t *stream, video_frame2 *coded_frame, struct timeval start_time);
+static void send_audio_frame(stream_t *stream, audio_frame2 *frame, struct timeval start_time);
 static void *video_transmitter_thread(void *arg);
 static void *audio_transmitter_thread(void *arg);
 
-static void send_video_frame(stream_data_t *stream, video_frame2 *coded_frame, struct timeval start_time)
+static void send_video_frame(stream_t *stream, video_frame2 *coded_frame, struct timeval start_time)
 {
     participant_data_t *participant;
     struct timeval curr_time;
@@ -77,7 +77,7 @@ static void send_video_frame(stream_data_t *stream, video_frame2 *coded_frame, s
     pthread_rwlock_unlock(&stream->plist->lock);
 }
 
-static void send_audio_frame(stream_data_t *stream, audio_frame2 *frame, struct timeval start_time)
+static void send_audio_frame(stream_t *stream, audio_frame2 *frame, struct timeval start_time)
 {
     participant_data_t *participant;
     struct timeval curr_time;
@@ -105,7 +105,7 @@ static void send_audio_frame(stream_data_t *stream, audio_frame2 *frame, struct 
 static void *video_transmitter_thread(void *arg)
 {
     transmitter_t *transmitter = (transmitter_t *)arg;
-    stream_data_t *stream;
+    stream_t *stream;
     video_frame2 *frame;
 
     struct timeval start_time;
@@ -134,7 +134,7 @@ static void *video_transmitter_thread(void *arg)
 static void *audio_transmitter_thread(void *arg)
 {
     transmitter_t *transmitter = (transmitter_t *)arg;
-    stream_data_t *stream;
+    stream_t *stream;
     audio_frame2 *frame;
 
     struct timeval start_time;
@@ -169,8 +169,8 @@ transmitter_t *init_transmitter(stream_list_t *video_stream_list, stream_list_t 
         return NULL;
     }
 
-    transmitter->video_run = FALSE;
-    transmitter->audio_run = FALSE;
+    transmitter->video_run = false;
+    transmitter->audio_run = false;
 
     if (fps <= 0.0) {
         transmitter->fps = VIDEO_DEFAULT_FPS;
@@ -194,14 +194,14 @@ transmitter_t *init_transmitter(stream_list_t *video_stream_list, stream_list_t 
 
 int start_transmitter(transmitter_t *transmitter)
 {  
-    transmitter->video_run = TRUE;
+    transmitter->video_run = true;
     if (pthread_create(&transmitter->video_thread, NULL, video_transmitter_thread, transmitter) != 0) {
-        transmitter->video_run = FALSE;
+        transmitter->video_run = false;
     }
 
-    transmitter->audio_run = TRUE;
+    transmitter->audio_run = true;
     if (pthread_create(&transmitter->audio_thread, NULL, audio_transmitter_thread, transmitter) != 0) {
-        transmitter->audio_run = FALSE;
+        transmitter->audio_run = false;
     }
 
     return transmitter->video_run && transmitter->audio_run;
@@ -209,18 +209,18 @@ int start_transmitter(transmitter_t *transmitter)
 
 void stop_transmitter(transmitter_t *transmitter)
 {
-    transmitter->video_run = FALSE;
+    transmitter->video_run = false;
     pthread_join(transmitter->video_thread, NULL); 
-    transmitter->audio_run = FALSE;
+    transmitter->audio_run = false;
     pthread_join(transmitter->audio_thread, NULL); 
 }
 
 int destroy_transmitter(transmitter_t *transmitter)
 {
     if (transmitter->video_run || transmitter->audio_run) {
-        return FALSE;
+        return false;
     }
 
     free(transmitter);
-    return TRUE;
+    return true;
 }

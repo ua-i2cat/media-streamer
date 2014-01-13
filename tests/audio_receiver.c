@@ -45,7 +45,7 @@ int main() {
 
     // First stream and participant configuration
     participant_data_t *p1 = init_participant(1, INPUT, NULL, 0);
-    stream_data_t *stream1 = init_stream(AUDIO, INPUT, rand(), I_AWAIT, "Stream1");
+    stream_t *stream1 = init_stream(AUDIO, INPUT, rand(), I_AWAIT, "Stream1");
     add_participant_stream(stream1, p1);
     add_stream(receiver->audio_stream_list, stream1);
     fprintf(stderr, " ·Stream1 configuration: 1 bps, 32000Hz, 1 channel, mulaw\n");
@@ -54,7 +54,7 @@ int main() {
 
     // Second stream and participant configuration
     participant_data_t *p2 = init_participant(2, INPUT, NULL, 0);
-    stream_data_t *stream2 = init_stream(AUDIO, INPUT, rand(), I_AWAIT, "Stream2");
+    stream_t *stream2 = init_stream(AUDIO, INPUT, rand(), I_AWAIT, "Stream2");
     add_participant_stream(stream2, p2);
     add_stream(receiver->audio_stream_list, stream2);
     fprintf(stderr, " ·Stream2 configuration: 1 bps, 8000Hz, 1 channel, mulaw\n");

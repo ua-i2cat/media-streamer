@@ -94,7 +94,7 @@ void *encoder_thread(void *arg)
     if ((enc_frame = vf_alloc(1)) == NULL) {
         error_msg("encoder_routine: vf_alloc error");
         //compress_done(&encoder->cs);
-        vp->run = FALSE; 
+        vp->run = false; 
     }
 
     while (vp->run) {
@@ -202,7 +202,7 @@ video_processor_t *vp_init(role_t role)
     vp->role = role;
     vp->bitrate = 0;
     vp->lost_coded_frames = 0;
-    vp->run = FALSE;
+    vp->run = false;
 
     // Default values
     vp->internal_config->width = VIDEO_DEFAULT_INTERNAL_WIDTH;
@@ -250,8 +250,8 @@ video_processor_t *vp_init(role_t role)
 
 void vp_destroy(video_processor_t *vp)
 {
-    if (vp->run == TRUE) {
-        vp->run = FALSE;
+    if (vp->run == true) {
+        vp->run = false;
         pthread_join(vp->thread, NULL);
     }
     cq_destroy(vp->decoded_cq);
@@ -294,7 +294,7 @@ void vp_worker_start(video_processor_t *vp)
 {
     video_frame2 *coded_frame;
 
-    if (vp->run == FALSE) {
+    if (vp->run == false) {
 
         switch(vp->role) {
             case DECODER:
@@ -339,9 +339,9 @@ void vp_worker_start(video_processor_t *vp)
                 break;
         }
 
-        vp->run = TRUE;
+        vp->run = true;
         if (pthread_create(&vp->thread, NULL, vp->worker, (void *)vp) != 0)
-            vp->run = FALSE;
+            vp->run = false;
     }
 }
 

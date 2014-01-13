@@ -2,7 +2,7 @@
 #include "io_mngr/participants.h"
 #include "io_mngr/receiver.h"
 #include "io_mngr/transmitter.h"
-#include "io_mngr/c_basicRTSPOnlyServer.h"
+#include "io_mngr/c_basicRTSPOnlyServer.hh"
 
 #define LIVE_TIME 120
 
@@ -32,18 +32,18 @@ int main(){
     //Receiver structures
     stream_list_t *in_str_list;
     stream_list_t *dummy_audio_str_list2;
-    stream_data_t *in_str;
+    stream_t *in_str;
     receiver_t *receiver;
 
     //Transmitter structures
     stream_list_t *out_str_list;
     stream_list_t *dummy_audio_str_list1;
-    stream_data_t *out_str;
+    stream_t *out_str;
     transmitter_t *transmitter;
 
     //Outgoing streams and incomping streams
-    stream_data_t *out_str1;
-    stream_data_t *out_str2;
+    stream_t *out_str1;
+    stream_t *out_str2;
 
     //RTSP server
     rtsp_serv_t *server = (rtsp_serv_t*) malloc(sizeof(rtsp_serv_t));

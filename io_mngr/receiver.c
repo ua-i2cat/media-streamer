@@ -202,7 +202,7 @@ receiver_t *init_receiver(stream_list_t *video_stream_list, stream_list_t *audio
     // Video initialization
     receiver->video_session = (struct rtp *) malloc(sizeof(struct rtp *));
     receiver->video_part_db = pdb_init();
-    receiver->video_run = FALSE;
+    receiver->video_run = false;
     receiver->video_port = video_port;
     receiver->video_stream_list = video_stream_list;
     receiver->video_session = rtp_init_if(NULL, NULL, receiver->video_port, 0, ttl,
@@ -224,7 +224,7 @@ receiver_t *init_receiver(stream_list_t *video_stream_list, stream_list_t *audio
     // Audio initialization
     receiver->audio_session = (struct rtp *) malloc(sizeof(struct rtp *));
     receiver->audio_part_db = pdb_init();
-    receiver->audio_run = FALSE;
+    receiver->audio_run = false;
     receiver->audio_port = audio_port;
     receiver->audio_stream_list = audio_stream_list;
     receiver->audio_session = rtp_init_if(NULL, NULL, receiver->audio_port,
@@ -248,31 +248,31 @@ receiver_t *init_receiver(stream_list_t *video_stream_list, stream_list_t *audio
 
 int start_receiver(receiver_t *receiver)
 {
-    receiver->video_run = TRUE;
-    receiver->audio_run = TRUE;
+    receiver->video_run = true;
+    receiver->audio_run = true;
 
     if (pthread_create(&receiver->video_th_id, NULL, (void *)video_receiver_thread, receiver) != 0)
-        receiver->video_run = FALSE;
+        receiver->video_run = false;
 
     if (pthread_create(&receiver->audio_th_id, NULL, (void *)audio_receiver_thread, receiver) != 0)
-        receiver->audio_run = FALSE;
+        receiver->audio_run = false;
 
     return receiver->video_run && receiver->audio_run;
 }
 
 void stop_receiver(receiver_t *receiver)
 {
-    receiver->video_run = FALSE;
+    receiver->video_run = false;
     pthread_join(receiver->video_th_id, NULL); 
 
-    receiver->audio_run = FALSE;
+    receiver->audio_run = false;
     pthread_join(receiver->audio_th_id, NULL);
 }
 
 int destroy_receiver(receiver_t *receiver)
 {
     if (receiver->video_run || receiver->audio_run) {
-        return FALSE;
+        return false;
     }
 
     rtp_done(receiver->video_session);
@@ -281,5 +281,5 @@ int destroy_receiver(receiver_t *receiver)
     pdb_destroy(&receiver->audio_part_db);
     free(receiver);
 
-    return TRUE;
+    return true;
 }
