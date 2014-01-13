@@ -28,6 +28,10 @@
 #include "audio_frame2.h"
 #include "utils.h"
 
+// Decoder thread constants
+#define DECODER_THREAD_WAIT_TIMEOUT 250
+#define DECODER_THREAD_CHECK_PERIOD 15
+
 // private data
 struct bag_init_val {
     int chan;
@@ -46,7 +50,6 @@ static void audio_frame_extract(audio_frame2 *src, audio_frame2 *dst);
 static void audio_frame_format(audio_frame2 *src, struct audio_desc *desc);
 static void audio_frame_append(audio_frame2 *src, audio_frame2 *dst);
 static void audio_frame_copy(audio_frame2 *src, audio_frame2 *dst);
-//static void audio_frame_fill_with_zeroes(audio_frame2 *dst);
 static void audio_frame_check_internal_reconfig(audio_frame2 *dst);
 
 static void *decoder_thread(void* arg)
@@ -116,9 +119,15 @@ static void *decoder_thread(void* arg)
                                 // It is still hungry?
                                 if ((unsigned int)norm_frame->data_len[0] < norm_frame->max_size) {
                                     // There is more food?
-                                    //TODO: Implement timed out wait to increase the probability of getting enoguth frames.
-                                    if ((iterator_frame = (audio_frame2 *)cq_get_front(ap->coded_cq)) == NULL) {
-                                        // No food left, stop thinking on eating.
+                                    struct timeval a, b;
+                                    gettimeofday(&a, NULL);
+                                    a.tv_usec += DECODER_THREAD_WAIT_TIMEOUT;
+                                    while ((iterator_frame = (audio_frame2 *)cq_get_front(ap->coded_cq)) == NULL && a.tv_usec > b.tv_usec) {
+                                        usleep(DECODER_THREAD_CHECK_PERIOD);
+                                        gettimeofday(&b, NULL);
+                                    }
+                                    if (iterator_frame == NULL) {
+                                        // No food arrivals, stop eating.
                                         hungry = false;
                                     }
                                 } else {
@@ -143,18 +152,12 @@ static void *decoder_thread(void* arg)
                     (void)audio_codec_decompress(ap->compression_config, norm_frame);
 
                     // Resample (if needed)
-                    //if (resampler_compare_sample_rate(ap->resampler, frame->sample_rate)) {
                     if (!resampler_compare_sample_rate(ap->resampler, ap->external_config->sample_rate)) {
                         resampler_set_resampled(ap->resampler, output_frame);
                         (void)resampler_resample(ap->resampler, decomp_frame);
                     } else {
                         audio_frame_copy(decomp_frame, output_frame);
                     }
-
-                    // Fill-up the holes
-                    //if ((unsigned int)output_frame->data_len[0] != output_frame->max_size) {
-                    //    audio_frame_fill_with_zeroes(output_frame);
-                    //}
 
                     // Add the bag
                     cq_add_bag(ap->decoded_cq);
@@ -352,16 +355,6 @@ static void audio_frame_copy(audio_frame2 *src, audio_frame2 *dst)
         }
     }
 }
-
-//static void audio_frame_fill_with_zeroes(audio_frame2 *dst)
-//{
-//    for (int ch = 0; ch < dst->ch_count; ch++) {
-//        for (int s = dst->data_len[ch]; (unsigned int)s < dst->max_size; s++) {
-//            dst->data[ch][s] = (char)0x00;
-//        }
-//        dst->data_len[ch] = dst->max_size;
-//    }
-//}
 
 static void audio_frame_check_internal_reconfig(audio_frame2 *dst)
 {
