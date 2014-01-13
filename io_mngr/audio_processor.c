@@ -34,22 +34,19 @@ struct bag_init_val {
     int size;
 };
 
-// Input sizes that return AUDIO_INTERNAL_SIZE size on applying resampling.
-// Sample rates:                 8K  16K  32K  48K
-int resampler_size_values[4] = { 50, 100, 200, 300 };
-
 // private functions
 static void *decoder_thread(void *arg);
 static void *encoder_thread(void *arg);
 static void *bag_init(void *arg);
 static void bag_destroy(void *arg);
 static unsigned int *get_media_time_ptr(void *frame);
-static int normalize_get_size();
+static int normalize_get_decompress_size();
+static int normalize_get_resample_size();
 static void audio_frame_extract(audio_frame2 *src, audio_frame2 *dst);
 static void audio_frame_format(audio_frame2 *src, struct audio_desc *desc);
 static void audio_frame_append(audio_frame2 *src, audio_frame2 *dst);
 static void audio_frame_copy(audio_frame2 *src, audio_frame2 *dst);
-static void audio_frame_fill_with_zeroes(audio_frame2 *dst);
+//static void audio_frame_fill_with_zeroes(audio_frame2 *dst);
 static void audio_frame_check_internal_reconfig(audio_frame2 *dst);
 
 static void *decoder_thread(void* arg)
@@ -64,12 +61,12 @@ static void *decoder_thread(void* arg)
     norm_frame = audio_frame2_init();
     audio_frame2_allocate(norm_frame,
             ap->internal_config->ch_count,
-            ap->internal_frame_conversion_size);
+            ap->internal_conversion_decompress_size);
 
     decomp_frame = audio_frame2_init();
     audio_frame2_allocate(decomp_frame,
             ap->internal_config->ch_count,
-            ap->internal_frame_conversion_size);
+            ap->internal_conversion_resample_size);
 
     while(ap->run) {
         //TODO: set non magic values on usleep (calculated for performance depending on actual resources)
@@ -83,14 +80,16 @@ static void *decoder_thread(void* arg)
                 // Get the place to save the resampled frame (last step).
                 if ((output_frame = (audio_frame2 *)cq_get_rear(ap->decoded_cq)) != NULL) {
 
-                    // Reconfigure auxiliar frame if needed
-                    if (norm_frame->max_size != ap->internal_frame_conversion_size) {
+                    // Reconfigure auxiliar frames if needed
+                    if (norm_frame->max_size != ap->internal_conversion_decompress_size) {
                         audio_frame2_allocate(norm_frame,
                                 ap->external_config->ch_count,
-                                ap->internal_frame_conversion_size);
+                                ap->internal_conversion_decompress_size);
+                    }
+                    if (decomp_frame->max_size != ap->internal_conversion_resample_size) {
                         audio_frame2_allocate(decomp_frame,
                                 ap->external_config->ch_count,
-                                ap->internal_frame_conversion_size);
+                                ap->internal_conversion_resample_size);
                     }
 
                     // Reconfigure output_frame if needed
@@ -99,11 +98,11 @@ static void *decoder_thread(void* arg)
                     // Normalize number of samples,
                     // norm_frame must point to the desired data.
                     audio_frame_format(norm_frame, ap->external_config);
-                    if ((unsigned int)frame->data_len[0] > ap->internal_frame_conversion_size) {
+                    if ((unsigned int)frame->data_len[0] > ap->internal_conversion_decompress_size) {
                         // Too many samples on the coded frame,
                         // extract normalized amount of frames.
                         audio_frame_extract(frame, norm_frame);
-                    } else if ((unsigned int)frame->data_len[0] < ap->internal_frame_conversion_size) {
+                    } else if ((unsigned int)frame->data_len[0] < ap->internal_conversion_decompress_size) {
                         // Not ehought samples on the coded frame,
                         // eat as many samples as possible from the next frames,
                         // fill the surplus space with zeros if needed.
@@ -153,9 +152,9 @@ static void *decoder_thread(void* arg)
                     }
 
                     // Fill-up the holes
-                    if ((unsigned int)output_frame->data_len[0] != output_frame->max_size) {
-                        audio_frame_fill_with_zeroes(output_frame);
-                    }
+                    //if ((unsigned int)output_frame->data_len[0] != output_frame->max_size) {
+                    //    audio_frame_fill_with_zeroes(output_frame);
+                    //}
 
                     // Add the bag
                     cq_add_bag(ap->decoded_cq);
@@ -240,29 +239,25 @@ static unsigned int *get_media_time_ptr(void *frame)
     return time;
 }
 
-static int normalize_get_size(audio_processor_t *ap)
+// TODO: Rethink about internal audio_frame2 max size.
+static int normalize_get_decompress_size(audio_processor_t *ap)
 {
-    int size, bps_factor, index;
+    int bps_factor, size;
 
-    switch(ap->external_config->sample_rate) {
-        case 8000:
-            index = 0;
-            break;
-        case 16000:
-            index = 1;
-            break;
-        case 32000:
-            index = 2;
-            break;
-        case 48000:
-            index = 3;
-            break;
-        default:
-            index = 0;
-            break;
-    }
+    // What if external bps is greater than internal bps?
     bps_factor = ap->internal_config->bps / ap->external_config->bps;
-    size = resampler_size_values[(int)index] / bps_factor;
+    size = ap->internal_conversion_resample_size / bps_factor;
+
+    return size;
+}
+
+// TODO: Rethink about internal audio_frame2 max size.
+static int normalize_get_resample_size(audio_processor_t *ap)
+{
+    int rate_factor, size;
+
+    rate_factor = ap->internal_config->sample_rate / ap->external_config->sample_rate;
+    size = AUDIO_INTERNAL_SIZE / rate_factor;
 
     return size;
 }
@@ -358,15 +353,15 @@ static void audio_frame_copy(audio_frame2 *src, audio_frame2 *dst)
     }
 }
 
-static void audio_frame_fill_with_zeroes(audio_frame2 *dst)
-{
-    for (int ch = 0; ch < dst->ch_count; ch++) {
-        for (int s = dst->data_len[ch]; (unsigned int)s < dst->max_size; s++) {
-            dst->data[ch][s] = (char)0x00;
-        }
-        dst->data_len[ch] = dst->max_size;
-    }
-}
+//static void audio_frame_fill_with_zeroes(audio_frame2 *dst)
+//{
+//    for (int ch = 0; ch < dst->ch_count; ch++) {
+//        for (int s = dst->data_len[ch]; (unsigned int)s < dst->max_size; s++) {
+//            dst->data[ch][s] = (char)0x00;
+//        }
+//        dst->data_len[ch] = dst->max_size;
+//    }
+//}
 
 static void audio_frame_check_internal_reconfig(audio_frame2 *dst)
 {
@@ -478,7 +473,8 @@ void ap_config(audio_processor_t *ap, int bps, int sample_rate, int channels, au
             // Specific configurations and conversion bussines logic.
             ap->compression_config = audio_codec_init(ap->external_config->codec, AUDIO_DECODER);
             ap->resampler = resampler_prepare(ap->internal_config->sample_rate);
-            ap->internal_frame_conversion_size = normalize_get_size(ap);
+            ap->internal_conversion_resample_size = normalize_get_resample_size(ap);
+            ap->internal_conversion_decompress_size = normalize_get_decompress_size(ap);
             break;
 
         case ENCODER:

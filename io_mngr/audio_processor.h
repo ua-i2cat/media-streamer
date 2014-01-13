@@ -47,7 +47,8 @@ typedef struct audio_processor {
     struct audio_desc *external_config;
     //unsigned int external_frame_size;
     struct audio_desc *internal_config;
-    unsigned int internal_frame_conversion_size;
+    unsigned int internal_conversion_decompress_size;
+    unsigned int internal_conversion_resample_size;
     struct resampler *resampler;
     struct audio_codec_state *compression_config;
 
