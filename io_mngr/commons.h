@@ -36,7 +36,7 @@
 #define DEFAULT_TTL 255
 #define DEFAULT_SEND_BUFFER_SIZE 1920 * 1080 * 4 * sizeof(char) * 10
 #define MTU 1300 // 1400
-#define THREAD_SLEEP_TIMEOUT 350 /* Tune it up */
+#define THREAD_SLEEP_TIMEOUT 50 /* Tune it up */
 
 typedef enum role {
     ENCODER,

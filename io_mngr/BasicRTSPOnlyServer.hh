@@ -1,5 +1,5 @@
 /*
- *  BasicRTSPOnlyServer.hh
+ *  BasicRTSPOnlyServer.hh - Main RTSP server for io_mngr.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -21,6 +21,12 @@
  *            David Cassany <david.cassany@i2cat.net>
  */
 
+/**
+ * @file BasicRTSPOnlyServer.hh
+ * @brief RTSP server for io_mngr, it manages the RTSP streams.
+ *
+ */
+
 #ifndef __BASIC_RTSP_ONLY_SERVER_HH__
 #define __BASIC_RTSP_ONLY_SERVER_HH__
 
@@ -31,13 +37,23 @@ extern "C" {
 #include "transmitter.h"
 }
 
+/**
+ * BasicRTSPOnlyServer class contains the main engine for RTSP protocol handling. It binds to a port and serves a transmitter_t configuration.
+ */
 class BasicRTSPOnlyServer {
 
     private:
         BasicRTSPOnlyServer(int port, transmitter_t* transmitter);
 
     public:
+        /**
+         * Initializes the server.
+         * @param port Port to listen.
+         * @param transmitter Transmitter instance whose configuration is published.
+         * @return BasicRTSPOnlyServer* The server instance.
+         */
         static BasicRTSPOnlyServer* initInstance(int port, transmitter_t* transmitter);
+
         static BasicRTSPOnlyServer* getInstance();
         int init_server();
         static void *start_server(void *args);

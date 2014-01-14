@@ -214,7 +214,12 @@ int main(int argc, char *argv[])
             nparticipants = arg;
         }
     }
-    fprintf(stderr, " ·%i streams configured\n", nparticipants);
+    fprintf(stderr,
+            " ·%i streams configured at %i bps, %i Hz, %i channels and mulaw\n",
+            nparticipants,
+            INPUT_AUDIO_FORMAT_BPS,
+            INPUT_AUDIO_FORMAT_SAMPLE_RATE,
+            INPUT_AUDIO_FORMAT_CHANNELS);
 
     // Attach the handler to CTRL+C.
     signal(SIGINT, finish_handler);
