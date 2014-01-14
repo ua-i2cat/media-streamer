@@ -39,7 +39,7 @@ static void *audio_receiver_thread(receiver_t *receiver);
 void *video_receiver_thread(receiver_t *receiver)
 {
     struct pdb_e *cp;
-    participant_data_t *participant;
+    participant_t *participant;
     video_frame2* coded_frame;
 
     struct timeval curr_time;
@@ -130,7 +130,7 @@ void *video_receiver_thread(receiver_t *receiver)
 static void *audio_receiver_thread(receiver_t *receiver)
 {
     struct pdb_e *cp;
-    participant_data_t *participant;
+    participant_t *participant;
     struct state_audio_decoder decode_object;
 
     struct timeval curr_time;

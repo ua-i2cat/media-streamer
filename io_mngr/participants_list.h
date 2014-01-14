@@ -1,5 +1,5 @@
 /*
- *  participants.h - Participants and sessions definitions.
+ *  participants_list.h - Participants list definitions.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -29,59 +29,71 @@
  *
  */
 
-#ifndef __PARTICIPANTS_H__
-#define __PARTICIPANTS_H__
+#ifndef __PARTICIPANTS_LIST_H__
+#define __PARTICIPANTS_LIST_H__
 
-#include "rtpdec.h"
+//#include "rtpdec.h"
 //#include "video.h"
 //#include "module.h"
-#include "commons.h"
+//#include "commons.h"
 //#include "debug.h"
+#include "participants.h"
 
-
-typedef struct participant participant_t;
-
-typedef struct stream stream_t;
-
-typedef struct rtp_session {
-    uint32_t port;
-    char *addr;
-    struct rtp *rtp;
-    struct tx *tx_session;
-} rtp_session_t;
-
-typedef struct participant {
-    pthread_mutex_t lock;
-    uint32_t ssrc;
-    unsigned int id;
-    uint8_t active;
-    participant_t *next;
-    participant_t *previous;
-    io_type_t type;
-    rtp_session_t *rtp;
-    stream_t *stream;
-} participant_t;
+typedef struct participant_list {
+    pthread_rwlock_t lock;
+    int count;
+    participant_t *first;
+    participant_t *last;
+} participant_list_t;
 
 /**
  * Initializes a Participants list.
  * @param get_media_time_ptr Callback to get the media_time field address.
  * @return participant_list_t *.
  */
-participant_t *init_participant(unsigned int id, io_type_t type, char *addr, uint32_t port);
+participant_list_t *init_participant_list(void);
 
 /**
  * Initializes a Participants list.
  * @param get_media_time_ptr Callback to get the media_time field address.
  * @return participant_list_t *.
  */
-void destroy_participant(participant_t *src);
+void destroy_participant_list(participant_list_t *list);
 
 /**
  * Initializes a Participants list.
  * @param get_media_time_ptr Callback to get the media_time field address.
  * @return participant_list_t *.
  */
-int set_participant_ssrc(participant_t *participant, uint32_t ssrc);
+void add_participant(participant_list_t *list, participant_t *participant);
 
-#endif //__PARTICIPANTS_H__
+/**
+ * Initializes a Participants list.
+ * @param get_media_time_ptr Callback to get the media_time field address.
+ * @return participant_list_t *.
+ */
+bool remove_participant(participant_list_t *list, unsigned int id);
+
+/**
+ * Initializes a Participants list.
+ * @param get_media_time_ptr Callback to get the media_time field address.
+ * @return participant_list_t *.
+ */
+participant_t *get_participant_id(participant_list_t *list, unsigned int id);
+
+/**
+ * Initializes a Participants list.
+ * @param get_media_time_ptr Callback to get the media_time field address.
+ * @return participant_list_t *.
+ */
+participant_t *get_participant_ssrc(participant_list_t *list, uint32_t ssrc);
+
+/**
+ * Initializes a Participants list.
+ * @param get_media_time_ptr Callback to get the media_time field address.
+ * @return participant_list_t *.
+ */
+participant_t *get_participant_non_init(participant_list_t *list);
+
+#endif //__PARTICIPANTS_LIST_H__
 

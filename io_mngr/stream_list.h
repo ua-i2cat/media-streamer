@@ -76,24 +76,24 @@ stream_t *get_stream_id(stream_list_t *list, unsigned int id);
  * Get the pointer to the first participant with an id from a stream list.
  * @param list Target stream_list_t.
  * @param id Target participant id.
- * @return participant_data_t * to the participant identified with id if it was found, NULL otherwise.
+ * @return participant_t * to the participant identified with id if it was found, NULL otherwise.
  */
-participant_data_t *get_participant_stream_id(stream_list_t *list, unsigned int id);
+participant_t *get_participant_stream_id(stream_list_t *list, unsigned int id);
 
 /**
  * Get the pointer to the first participant with an ssrc from a stream list.
  * @param list Target stream_list_t.
  * @param ssrc Target participant ssrc.
- * @return participant_data_t * to the participant identified with ssrc if it was found, NULL otherwise.
+ * @return participant_t * to the participant identified with ssrc if it was found, NULL otherwise.
  */
-participant_data_t *get_participant_stream_ssrc(stream_list_t *list, uint32_t ssrc);
+participant_t *get_participant_stream_ssrc(stream_list_t *list, uint32_t ssrc);
 
 /**
  * Get the first uninitialized participant from a stream list.
  * @param list Target stream_list_t.
- * @return participant_data_t * to the participant, NULL otherwise.
+ * @return participant_t * to the participant, NULL otherwise.
  */
-participant_data_t *get_participant_stream_non_init(stream_list_t *list);
+participant_t *get_participant_stream_non_init(stream_list_t *list);
 
 #endif //__STREAM_LIST_H__
 

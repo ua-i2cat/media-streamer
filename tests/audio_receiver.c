@@ -44,7 +44,7 @@ int main() {
     receiver_t *receiver = init_receiver(video_stream_list, audio_stream_list, 5004, 5006);
 
     // First stream and participant configuration
-    participant_data_t *p1 = init_participant(1, INPUT, NULL, 0);
+    participant_t *p1 = init_participant(1, INPUT, NULL, 0);
     stream_t *stream1 = init_stream(AUDIO, INPUT, rand(), I_AWAIT, "Stream1");
     add_participant_stream(stream1, p1);
     add_stream(receiver->audio_stream_list, stream1);
@@ -53,7 +53,7 @@ int main() {
     ap_worker_start(stream1->audio);
 
     // Second stream and participant configuration
-    participant_data_t *p2 = init_participant(2, INPUT, NULL, 0);
+    participant_t *p2 = init_participant(2, INPUT, NULL, 0);
     stream_t *stream2 = init_stream(AUDIO, INPUT, rand(), I_AWAIT, "Stream2");
     add_participant_stream(stream2, p2);
     add_stream(receiver->audio_stream_list, stream2);

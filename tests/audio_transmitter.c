@@ -48,10 +48,10 @@ int main() {
     fprintf(stderr, " ·Transmitter started!\n");
 
     // Configure two participants
-    participant_data_t *p1 = init_participant(0, OUTPUT, IP_FIRST, PORT_FIRST);
+    participant_t *p1 = init_participant(0, OUTPUT, IP_FIRST, PORT_FIRST);
     add_participant_stream(stream, p1);    
     fprintf(stderr, " ·Output participant to rtp://%s:%i\n", IP_FIRST, PORT_FIRST);
-    participant_data_t *p2 = init_participant(0, OUTPUT, IP_SECOND, PORT_SECOND);
+    participant_t *p2 = init_participant(0, OUTPUT, IP_SECOND, PORT_SECOND);
     add_participant_stream(stream, p2);
     fprintf(stderr, " ·Output participant to rtp://%s:%i\n", IP_SECOND, PORT_SECOND);
 

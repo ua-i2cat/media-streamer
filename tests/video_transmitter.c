@@ -1,6 +1,7 @@
 #include "config.h"
 #include "transmitter.h"
 #include "video_compress.h"
+#include "video_codec.h"
 #include "debug.h"
 #include "tv.h"
 #include <libavcodec/avcodec.h>
@@ -131,8 +132,8 @@ int main(int argc, char **argv)
     transmitter_t *transmitter = init_transmitter(streams, dummy_audio_stream, 25.0);
     start_transmitter(transmitter);
 
-    participant_data_t *p1 = init_participant(0, OUTPUT, "127.0.0.1", VIDEO_PORT_1);
-    participant_data_t *p2 = init_participant(0, OUTPUT, "127.0.0.1", VIDEO_PORT_2);
+    participant_t *p1 = init_participant(0, OUTPUT, "127.0.0.1", VIDEO_PORT_1);
+    participant_t *p2 = init_participant(0, OUTPUT, "127.0.0.1", VIDEO_PORT_2);
 
     add_participant_stream(stream, p1);    
 

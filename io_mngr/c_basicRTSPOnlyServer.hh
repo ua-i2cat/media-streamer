@@ -33,33 +33,26 @@
 extern "C" {
 #endif
 #include "transmitter.h"
+
+    typedef struct rtsp_serv {
+        uint port;
+        transmitter_t* transmitter;
+        pthread_t server_th;
+        uint8_t watch;
+        uint8_t run;
+    } rtsp_serv_t;
+
+    int c_start_server(rtsp_serv_t* server);
+
+    void c_stop_server(rtsp_serv_t* server);
+
+    int c_update_server(rtsp_serv_t* server); 
+
+    rtsp_serv_t* init_rtsp_server(uint port, transmitter_t *transmitter);
+
 #ifdef __cplusplus
 }
 #endif
-
-#ifdef __cplusplus
-#define EXTERNC extern "C"
-#else
-#define EXTERNC
-#endif
-
-EXTERNC typedef struct rtsp_serv {
-    uint port;
-    transmitter_t* transmitter;
-    pthread_t server_th;
-    uint8_t watch;
-    uint8_t run;
-} rtsp_serv_t;
-
-EXTERNC int c_start_server(rtsp_serv_t* server);
-
-EXTERNC void c_stop_server(rtsp_serv_t* server);
-
-EXTERNC int c_update_server(rtsp_serv_t* server); 
-
-EXTERNC rtsp_serv_t* init_rtsp_server(uint port, transmitter_t *transmitter);
-
-#undef EXTERNC
 
 #endif //__C_BASIC_RTSP_ONLY_SERVER_HH__
 

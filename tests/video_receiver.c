@@ -16,8 +16,8 @@ int main(){
     audio_stream_list = init_stream_list();
 
     receiver = init_receiver(video_stream_list, audio_stream_list, 5004, 5006);
-    participant_data_t *p1 = init_participant(1, INPUT, NULL, 0);
-    participant_data_t *p2 = init_participant(2, INPUT, NULL, 0);
+    participant_t *p1 = init_participant(1, INPUT, NULL, 0);
+    participant_t *p2 = init_participant(2, INPUT, NULL, 0);
 
     //Allocating place for unknown incoming stream
     stream = init_stream(VIDEO, INPUT, rand(), I_AWAIT, NULL);

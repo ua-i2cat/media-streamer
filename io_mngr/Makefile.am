@@ -9,6 +9,7 @@ libiomanager_la_CXXFLAGS = $(AM_CXXFLAGS) -I. -I.. -I../src -I../src/rtp -I../sr
 libiomanager_la_SOURCES = stream.c \
                             stream_list.c \
                             participants.c \
+                            participants_list.c \
                             transmitter.c \
                             receiver.c \
                             circular_queue.c \
@@ -24,6 +25,7 @@ libiomanager_la_SOURCES = stream.c \
 ugincludedir = $(includedir)/io_mngr
 uginclude_HEADERS = receiver.h \
                             participants.h \
+                            participants_list.h \
                             transmitter.h \
                             stream.h \
                             stream_list.h \

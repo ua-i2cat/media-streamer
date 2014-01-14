@@ -22,6 +22,9 @@
  */
 
 #include "BasicRTSPOnlyServer.hh"
+extern "C" {
+#include "stream.h"
+}
 
 BasicRTSPOnlyServer *BasicRTSPOnlyServer::srvInstance = NULL;
 

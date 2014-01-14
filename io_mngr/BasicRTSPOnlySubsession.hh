@@ -27,15 +27,14 @@
 #ifndef _SERVER_MEDIA_SESSION_HH
 #include <ServerMediaSession.hh>
 #endif
-
-#ifdef __cplusplus
+//#ifdef __cplusplus
 extern "C" {
-#endif
-#include "transmitter.h"
-#include "participants.h"
-#ifdef __cplusplus
+    //#endif
+    //#include "transmitter.h"
+#include "stream.h"
+    //#ifdef __cplusplus
 }
-#endif
+//#endif
 
 class BasicRTSPOnlySubsession: public ServerMediaSubsession {
 

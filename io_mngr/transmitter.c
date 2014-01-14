@@ -39,7 +39,7 @@ static void *audio_transmitter_thread(void *arg);
 
 static void send_video_frame(stream_t *stream, video_frame2 *coded_frame, struct timeval start_time)
 {
-    participant_data_t *participant;
+    participant_t *participant;
     struct timeval curr_time;
 
     // video_frame2 copy to struct video_frame
@@ -78,7 +78,7 @@ static void send_video_frame(stream_t *stream, video_frame2 *coded_frame, struct
 
 static void send_audio_frame(stream_t *stream, audio_frame2 *frame, struct timeval start_time)
 {
-    participant_data_t *participant;
+    participant_t *participant;
     struct timeval curr_time;
     double timestamp;
 

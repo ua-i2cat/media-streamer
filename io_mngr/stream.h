@@ -28,7 +28,7 @@
 
 #include "video_processor.h"
 #include "audio_processor.h"
-#include "participants.h"
+#include "participants_list.h"
 
 typedef enum stream_type {
     AUDIO,
@@ -78,9 +78,9 @@ void set_stream_state(stream_t *stream, stream_state_t state);
 /**
  * Add a participant to the stream.
  * @param stream Target stream_t.
- * @param participant Target participant_data_t.
+ * @param participant Target participant_t.
  */
-void add_participant_stream(stream_t *stream, participant_data_t *participant);
+void add_participant_stream(stream_t *stream, participant_t *participant);
 
 /**
  * Remove a participant, idenified with its id, from a stream.

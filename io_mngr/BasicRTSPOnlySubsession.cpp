@@ -25,6 +25,9 @@
 #include <RTSPServer.hh>
 #include <GroupsockHelper.hh>
 #include "BasicRTSPOnlySubsession.hh"
+extern "C" {
+#include "participants.h"
+}
 
     BasicRTSPOnlySubsession*
 BasicRTSPOnlySubsession::createNew(UsageEnvironment& env,
@@ -148,7 +151,7 @@ void BasicRTSPOnlySubsession::startStream(unsigned clientSessionId,
     if (dst == NULL){
         return;
     } else {
-        participant_data_t *participant;
+        participant_t *participant;
         participant = init_participant(clientSessionId, OUTPUT, inet_ntoa(dst->addr), ntohs(dst->rtpPort.num()));
         add_participant_stream(fStream, participant);
     }

@@ -49,8 +49,8 @@ int main(){
     rtsp_serv_t *server = (rtsp_serv_t*) malloc(sizeof(rtsp_serv_t));
 
     //Incoming participants
-    participant_data_t *in_p1;
-    participant_data_t *in_p2;
+    participant_t *in_p1;
+    participant_t *in_p2;
 
     //Attach signal handler and start alarm
     signal(SIGINT, finish_handler);

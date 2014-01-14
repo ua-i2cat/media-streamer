@@ -128,10 +128,10 @@ stream_t *get_stream_id(stream_list_t *list, unsigned int id)
     return stream;
 }
 
-participant_data_t *get_participant_stream_id(stream_list_t *list, unsigned int id)
+participant_t *get_participant_stream_id(stream_list_t *list, unsigned int id)
 {
     stream_t *stream;
-    participant_data_t *part = NULL;
+    participant_t *part = NULL;
 
     pthread_rwlock_rdlock(&list->lock);
     stream = list->first;
@@ -144,10 +144,10 @@ participant_data_t *get_participant_stream_id(stream_list_t *list, unsigned int 
     return part;
 }
 
-participant_data_t *get_participant_stream_ssrc(stream_list_t *list, uint32_t ssrc)
+participant_t *get_participant_stream_ssrc(stream_list_t *list, uint32_t ssrc)
 {
     stream_t *stream;
-    participant_data_t *part = NULL;
+    participant_t *part = NULL;
 
     pthread_rwlock_rdlock(&list->lock);
     stream = list->first;
@@ -160,10 +160,10 @@ participant_data_t *get_participant_stream_ssrc(stream_list_t *list, uint32_t ss
     return part;
 }
 
-participant_data_t *get_participant_stream_non_init(stream_list_t *list)
+participant_t *get_participant_stream_non_init(stream_list_t *list)
 {
     stream_t *stream;
-    participant_data_t *part = NULL;
+    participant_t *part = NULL;
 
     pthread_rwlock_rdlock(&list->lock);
     stream = list->first;

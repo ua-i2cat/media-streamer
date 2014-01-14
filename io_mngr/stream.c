@@ -95,7 +95,7 @@ void set_stream_state(stream_t *stream, stream_state_t state)
     }
 }
 
-void add_participant_stream(stream_t *stream, participant_data_t *participant)
+void add_participant_stream(stream_t *stream, participant_t *participant)
 {
     add_participant(stream->plist, participant);
     participant->stream = stream;
