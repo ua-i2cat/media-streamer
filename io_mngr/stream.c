@@ -23,8 +23,6 @@
  *            Marc Palau <marc.palau@i2cat.net>
  */
 
-//#include <pthread.h>
-//#include <semaphore.h>
 #include "stream.h"
 #include "debug.h"
 #include "commons.h"

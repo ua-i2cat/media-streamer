@@ -23,7 +23,6 @@
  *            Marc Palau <marc.palau@i2cat.net>
  */
 
-#include <pthread.h>
 #include "stream_list.h"
 #include "debug.h"
 

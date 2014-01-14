@@ -28,8 +28,6 @@
 #ifndef __AUDIO_CONFIG_H__ 
 #define __AUDIO_CONFIG_H__ 
 
-//#include "audio.h"
-
 #define AUDIO_CIRCULAR_QUEUE_SIZE 16
 
 #define AUDIO_INTERNAL_SIZE 300

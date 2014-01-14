@@ -20,7 +20,6 @@
  *  Authors:  Jordi "Txor" Casas Ríos <txorlings@gmail.com>
  */
 
-//#include <stdlib.h>
 #include "audio_processor.h"
 #include "audio_frame2.h"
 #include "audio_config.h"

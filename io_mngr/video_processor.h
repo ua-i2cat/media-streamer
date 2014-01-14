@@ -32,7 +32,6 @@
 #ifndef __VIDEO_PROCESSOR_H__
 #define __VIDEO_PROCESSOR_H__
 
-//#include <pthread.h>
 #include "types.h"
 #include "video_frame2.h"
 #include "circular_queue.h"

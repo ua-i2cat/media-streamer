@@ -32,7 +32,6 @@
 #ifndef __PARTICIPANTS_H__
 #define __PARTICIPANTS_H__
 
-//#include <semaphore.h>
 #include "rtpdec.h"
 #include "video.h"
 #include "module.h"

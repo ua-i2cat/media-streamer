@@ -23,7 +23,6 @@
  *            Marc Palau <marc.palau@i2cat.net>
  */
 
-//#include <stdlib.h>
 #include "transmitter.h"
 #include "rtp/rtp.h"
 #include "pdb.h"
