@@ -24,6 +24,7 @@
 #include <BasicUsageEnvironment.hh>
 #include <RTSPServer.hh>
 #include <GroupsockHelper.hh>
+#include <stdio.h>
 #include "BasicRTSPOnlySubsession.hh"
 extern "C" {
 #include "participants_list.h"
@@ -114,6 +115,9 @@ void BasicRTSPOnlySubsession::getStreamParameters(unsigned clientSessionId,
         Port& serverRTCPPort,
         void*& streamToken)
 {
+    char conversion[64];
+    snprintf(conversion, 64, "%d", clientSessionId);
+
     if (destinationAddress == 0) {
         destinationAddress = clientAddress;
     }
@@ -124,7 +128,8 @@ void BasicRTSPOnlySubsession::getStreamParameters(unsigned clientSessionId,
     Destinations* destinations;
 
     destinations = new Destinations(destinationAddr, clientRTPPort, clientRTCPPort);
-    fDestinationsHashTable->Add((char const*)clientSessionId, destinations);
+    //fDestinationsHashTable->Add((char const*)clientSessionId, destinations);
+    fDestinationsHashTable->Add((char const*)&conversion, destinations);
 }
 
 void BasicRTSPOnlySubsession::startStream(unsigned clientSessionId,
@@ -136,8 +141,11 @@ void BasicRTSPOnlySubsession::startStream(unsigned clientSessionId,
         ServerRequestAlternativeByteHandler* serverRequestAlternativeByteHandler,
         void* serverRequestAlternativeByteHandlerClientData)
 {
+    char conversion[64];
+    snprintf(conversion, 64, "%d", clientSessionId);
+
     Destinations* dst = 
-        (Destinations*)(fDestinationsHashTable->Lookup((char const*)clientSessionId));
+        (Destinations*)(fDestinationsHashTable->Lookup((char const*)&conversion));
     if (dst != NULL) {
         participant_t *participant;
         participant = init_participant(clientSessionId, OUTPUT, inet_ntoa(dst->addr), ntohs(dst->rtpPort.num()));
@@ -147,8 +155,11 @@ void BasicRTSPOnlySubsession::startStream(unsigned clientSessionId,
 
 void BasicRTSPOnlySubsession::deleteStream(unsigned clientSessionId, void*& streamToken)
 {
+    char conversion[64];
+    snprintf(conversion, 64, "%d", clientSessionId);
+
     Destinations* dst = 
-        (Destinations*)(fDestinationsHashTable->Lookup((char const*)clientSessionId));
+        (Destinations*)(fDestinationsHashTable->Lookup((char const*)&conversion));
     if (dst != NULL) {
         remove_participant(fStream->plist, clientSessionId);
     }

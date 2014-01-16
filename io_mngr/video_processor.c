@@ -1,5 +1,5 @@
 /*
- *  video_processor.c - Video stream processor
+ *  video_processor.c - Implementation of the video stream processor.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.

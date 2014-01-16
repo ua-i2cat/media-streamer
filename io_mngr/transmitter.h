@@ -71,23 +71,23 @@ transmitter_t *init_transmitter(stream_list_t *video_stream_list, stream_list_t 
 
 /**
  * Starts both audio and video transmitter threads.
- * @param transmitter The transmitter_t target.
- * @return Returns true if both threads are running, false otherwise.
+ * @param transmitter The transmitter instance.
+ * @return True if both threads are running, false otherwise.
  */
-int start_transmitter(transmitter_t *transmitter);
+bool start_transmitter(transmitter_t *transmitter);
 
 /**
  * Stops both audio and video transmitter threads.
- * @param transmitter The transmitter_t target.
+ * @param transmitter The transmitter instance.
  */
 void stop_transmitter(transmitter_t *transmitter);
 
 /**
- * Frees the transmitter_t object if the threads are stopped.
- * @param transmitter The transmitter_t target.
- * @return true if freed, false otherwise.
+ * Destroys a transmitter if its threads are stopped.
+ * @param transmitter The transmitter instance.
+ * @return true if success, false otherwise.
  */
-int destroy_transmitter(transmitter_t *transmitter);
+bool destroy_transmitter(transmitter_t *transmitter);
 
 #endif //__TRANSMITTER_H__
 

@@ -198,9 +198,7 @@ int main()
 
     // Transmitter startup
     fprintf(stderr, " ·Configuring transmitter\n");
-    transmitter = init_transmitter(init_stream_list(),
-            init_stream_list(),
-            25.0);
+    transmitter = init_transmitter(init_stream_list(), init_stream_list());
     start_transmitter(transmitter);
     add_transmitter_entity(TRANSMITTER_IP_1, TRANSMITTER_PORT_1);
 

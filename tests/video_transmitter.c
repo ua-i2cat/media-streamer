@@ -129,7 +129,7 @@ int main(int argc, char **argv)
     add_stream(streams, stream);
 
     printf("[test] initializing transmitter\n");
-    transmitter_t *transmitter = init_transmitter(streams, dummy_audio_stream, 25.0);
+    transmitter_t *transmitter = init_transmitter(streams, dummy_audio_stream);
     start_transmitter(transmitter);
 
     participant_t *p1 = init_participant(0, OUTPUT, "127.0.0.1", VIDEO_PORT_1);

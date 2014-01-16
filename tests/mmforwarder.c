@@ -139,9 +139,7 @@ int main()
 
     // Transmitter startup
     fprintf(stderr, " ·Configuring transmitter\n");
-    transmitter = init_transmitter(init_stream_list(),
-            init_stream_list(),
-            OUTPUT_VIDEO_FORMAT_FPS);
+    transmitter = init_transmitter(init_stream_list(), init_stream_list());
     start_transmitter(transmitter);
     // Video stream with a participant
     stream = init_stream(VIDEO, OUTPUT, 0, ACTIVE, "Output video stream");

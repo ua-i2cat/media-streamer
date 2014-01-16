@@ -1,5 +1,5 @@
 /*
- *  video_processor.h
+ *  video_processor.h - Video stream processor.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -66,21 +66,21 @@ typedef struct video_processor
 } video_processor_t;
 
 /**
- * Initializes the video processor
- * @param role Defines the role of this video processor (encoder or decoder)
- * @return video_processor_t * if succeeded, NULL otherwise
+ * Initializes the video processor.
+ * @param role Role of the video processor.
+ * @return Video processor instance if succeeded, NULL otherwise.
  */
 video_processor_t *vp_init(role_t role);
 
 /**
  * Destroys the video processor
- * @param vp Target video_processor_t
+ * @param vp Video processor instance.
  */
 void vp_destroy(video_processor_t *vp);
 
 /**
  * Configure the internal video format.
- * @param vp Target video_processor_t.
+ * @param vp Video processor instance.
  * @param width New width value (Use 0 for avoid to change it).
  * @param height New height value (Use 0 for avoid to change it).
  * @param codec New codec type.
@@ -89,7 +89,7 @@ void vp_reconfig_internal(video_processor_t *vp, unsigned int width, unsigned in
 
 /**
  * Configure the external video format.
- * @param vp Target video_processor_t.
+ * @param vp Video processor instance.
  * @param width New width value (Use 0 for avoid to change it).
  * @param height New height value (Use 0 for avoid to change it).
  * @param codec New codec type.
@@ -97,9 +97,8 @@ void vp_reconfig_internal(video_processor_t *vp, unsigned int width, unsigned in
 void vp_reconfig_external(video_processor_t *vp, unsigned int width, unsigned int height, codec_t codec);
 
 /**
- * Starts the worker thread.
- * @param vp The video_processor_t where the thread operates.
- * @return decoder_thread_t * if succeeded, NULL otherwise.
+ * Starts the video processor worker thread.
+ * @param vp Video processor instance.
  */
 void vp_worker_start(video_processor_t *vp);
 

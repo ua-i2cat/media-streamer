@@ -43,7 +43,7 @@ int main() {
     stream_list_t *audio_stream_list = init_stream_list();
     stream_t *stream = init_stream(AUDIO, OUTPUT, 0, ACTIVE, "Stream");
     add_stream(audio_stream_list, stream);
-    transmitter_t *transmitter = init_transmitter(video_stream_list, audio_stream_list, 25.0);
+    transmitter_t *transmitter = init_transmitter(video_stream_list, audio_stream_list);
     start_transmitter(transmitter);
     fprintf(stderr, " ·Transmitter started!\n");
 

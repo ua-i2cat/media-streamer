@@ -252,9 +252,7 @@ int main(int argc, char *argv[])
 
     // Transmitter startup
     fprintf(stderr, " ·Configuring transmitter\n");
-    transmitter = init_transmitter(init_stream_list(),
-            init_stream_list(),
-            OUTPUT_VIDEO_FORMAT_FPS);
+    transmitter = init_transmitter(init_stream_list(), init_stream_list());
     start_transmitter(transmitter);
     // Audio stream with a participant
     stream = init_stream(AUDIO, OUTPUT, 0, ACTIVE, "Output audio stream");

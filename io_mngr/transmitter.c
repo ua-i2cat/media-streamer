@@ -186,7 +186,7 @@ transmitter_t *init_transmitter(stream_list_t *video_stream_list, stream_list_t 
     return transmitter;
 }
 
-int start_transmitter(transmitter_t *transmitter)
+bool start_transmitter(transmitter_t *transmitter)
 {  
     transmitter->video_run = true;
     if (pthread_create(&transmitter->video_thread, NULL, video_transmitter_thread, transmitter) != 0) {
@@ -209,7 +209,7 @@ void stop_transmitter(transmitter_t *transmitter)
     pthread_join(transmitter->audio_thread, NULL); 
 }
 
-int destroy_transmitter(transmitter_t *transmitter)
+bool destroy_transmitter(transmitter_t *transmitter)
 {
     if (transmitter->video_run || transmitter->audio_run) {
         return false;

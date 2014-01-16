@@ -1,5 +1,5 @@
 /*
- *  audio_processor.h - Audio stream processor,
+ *  audio_processor.h - Audio stream processor.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -66,7 +66,7 @@ audio_processor_t *ap_init(role_t role);
 
 /**
  * Destroys the audio processor.
- * @param ap Target audio processor.
+ * @param ap Audio processor instance.
  */
 void ap_destroy(audio_processor_t *ap);
 
@@ -81,7 +81,7 @@ void ap_destroy(audio_processor_t *ap);
 void ap_config(audio_processor_t *ap, int bps, int sample_rate, int channels, audio_codec_t codec);
 
 /**
- * Starts the worker thread.
+ * Starts the audio processor worker thread.
  * @param ap Audio processor instance.
  */
 void ap_worker_start(audio_processor_t *ap);

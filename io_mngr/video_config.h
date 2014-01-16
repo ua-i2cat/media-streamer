@@ -1,5 +1,5 @@
 /*
- *  video_config.h - Compile time video configurations.
+ *  video_config.h - Video configurations.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -22,7 +22,7 @@
 
 /**
  * @file audio_config.h
- * @brief Compile time video configurations like internal format and queue size.
+ * @brief Video configurations like internal format and queue size.
  */
 
 #ifndef __VIDEO_CONFIG_H__ 
