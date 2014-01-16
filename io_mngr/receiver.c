@@ -1,5 +1,5 @@
 /*
- *  receiver.c
+ *  receiver.c - Implementaion of the manager for the received media streams.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -197,7 +197,10 @@ receiver_t *init_receiver(stream_list_t *video_stream_list, stream_list_t *audio
     double rtcp_bw = 5 * 1024 * 1024; /* FIXME */
     int ttl = 255; //TODO: get rid of magic numbers!
 
-    receiver = malloc(sizeof(receiver_t));
+    if ((receiver = malloc(sizeof(receiver_t))) == NULL) {
+        error_msg("init_receiver malloc out of memory!");
+        return NULL;
+    }
 
     // Video initialization
     receiver->video_session = (struct rtp *) malloc(sizeof(struct rtp *));
@@ -246,7 +249,7 @@ receiver_t *init_receiver(stream_list_t *video_stream_list, stream_list_t *audio
     return receiver;
 }
 
-int start_receiver(receiver_t *receiver)
+bool start_receiver(receiver_t *receiver)
 {
     receiver->video_run = true;
     receiver->audio_run = true;

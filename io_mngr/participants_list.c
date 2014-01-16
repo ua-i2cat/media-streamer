@@ -1,5 +1,5 @@
 /*
- *  participants_list.c - Participants list implementation.
+ *  participants_list.c - Implementation of the participant list.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -24,9 +24,6 @@
  */
 
 #include "participants_list.h"
-//#include "transmitter.h"
-//#include "video_decompress/libavcodec.h"
-//#include "video_decompress.h"
 #include "debug.h"
 
 participant_list_t *init_participant_list(void)

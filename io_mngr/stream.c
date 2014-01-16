@@ -1,5 +1,5 @@
 /*
- *  stream.c - Audio/video stream implementation.
+ *  stream.c - Implementation of the audio or video stream entity.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -101,7 +101,7 @@ void add_participant_stream(stream_t *stream, participant_t *participant)
     participant->stream = stream;
 }
 
-int remove_participant_from_stream(stream_t *stream, unsigned int id)
+bool remove_participant_from_stream(stream_t *stream, unsigned int id)
 {
     return remove_participant(stream->plist, id);
 }

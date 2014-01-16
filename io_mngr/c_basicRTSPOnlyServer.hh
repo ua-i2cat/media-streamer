@@ -45,28 +45,27 @@ extern "C" {
     /**
      * Initializes the RTSP server.
      * @param port Port to bind.
-     * @param transmitter_t * Transmitter instance from which the media information is fetched.
-     * @return rtsp_serv_t * Server instance pointer.
+     * @param transmitter_t * Transmitter instance.
+     * @return RTSP server instance.
      */
     rtsp_serv_t *init_rtsp_server(uint port, transmitter_t *transmitter);
 
     /**
-     * Creates and initializes all stuff needed to run the server including starting the thread.
-     * @param port Port to bind.
-     * @param transmitter_t * Transmitter instance from which the media information is fetched.
-     * @return int Returns the pthread_create returning value.
+     * Creates and initializes all stuff needed to run the server including starting its thread.
+     * @param rtsp_serv_t * RTSP server instance to start.
+     * @return Returns the pthread_create returning value.
      */
     int c_start_server(rtsp_serv_t* server);
 
     /**
      * Stops the RTSP server.
-     * @param rtsp_serv_t * RTSP server to stop.
+     * @param rtsp_serv_t * RTSP server instance to stop.
      */
     void c_stop_server(rtsp_serv_t *server);
 
     /**
      * Reload RTSP server media infonrmation.
-     * @param rtsp_serv_t * RTSP server to refresh.
+     * @param rtsp_serv_t * RTSP server instance to refresh.
      */
     void c_update_server(rtsp_serv_t* server); 
 

@@ -1,5 +1,5 @@
 /*
- *  stream.h - Audio/video stream definitions.
+ *  stream.h - Audio or video stream entity.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -21,6 +21,12 @@
  *            David Cassany <david.cassany@i2cat.net>,
  *            Ignacio Contreras <ignacio.contreras@i2cat.net>,
  *            Marc Palau <marc.palau@i2cat.net>
+ */
+
+/**
+ * @file stream.h
+ * @brief The stream contains all the necessary data to implement a node of audio or video stream list and to link with its corresponding participant.
+ *
  */
 
 #ifndef __STREAM_H__
@@ -58,37 +64,42 @@ typedef struct stream {
 
 /**
  * Initializes a stream.
- * @return stream_t * if succeeded, NULL otherwise.
+ * @param type Type of media.
+ * @param io_type Type of input/output.
+ * @param id Internal identification.
+ * @param state Stream current status.
+ * @param stream_name Stream name.
+ * @return The stream instance, NULL otherwise.
  */
 stream_t *init_stream(stream_type_t type, io_type_t io_type, unsigned int id, stream_state_t state, char *stream_name);
 
 /**
  * Destroys a stream.
- * @param stream Target stream_t.
+ * @param stream The stream instance.
  */
 void destroy_stream(stream_t *stream);
 
 /**
- * Set the stream state.
- * @param stream Target stream_t.
+ * Setter for the stream state.
+ * @param stream The stream instance.
  * @param state New stream_state_t value.
  */
 void set_stream_state(stream_t *stream, stream_state_t state);
 
 /**
  * Add a participant to the stream.
- * @param stream Target stream_t.
+ * @param stream The stream instance.
  * @param participant Target participant_t.
  */
 void add_participant_stream(stream_t *stream, participant_t *participant);
 
 /**
  * Remove a participant, idenified with its id, from a stream.
- * @param stream Target stream_t.
- * @param id Target participant id.
- * @return true if succeeded, false otherwise.
+ * @param stream The stream instance.
+ * @param id Participant internal id.
+ * @return True if succeeded, false otherwise.
  */
-int remove_participant_from_stream(stream_t *stream, unsigned int id);
+bool remove_participant_from_stream(stream_t *stream, unsigned int id);
 
 #endif //__STREAM_H__
 

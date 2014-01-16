@@ -70,13 +70,13 @@ typedef struct circular_queue {
 } circular_queue_t;
 
 /**
- * Initializes a 'bag' circular queue.
- * @param max Maximum number of 'bags'.
- * @param init_object Callback to initialize 'bag' objects.
+ * Initializes a circular queue.
+ * @param max Maximum number of bags.
+ * @param init_object Callback to initialize an empty object inside a bag.
  * @param init_data Initialization data to be passed to the init_object function.
- * @param destroy_object Callback to destroy 'bag' objects.
+ * @param destroy_object Callback to destroy an object from a bag.
  * @param get_media_time_ptr Callback to get the media_time field address.
- * @return circular_queue_t * if succeeded, NULL otherwise.
+ * @return Circular queue instance if succeeded, NULL otherwise.
  */
 circular_queue_t *cq_init(
         int max,
@@ -87,45 +87,45 @@ circular_queue_t *cq_init(
 
 /**
  * Destroys the circular queue.
- * @param max Target circular_queue_t.
+ * @param cq Circular queue instance.
  */
 void cq_destroy(circular_queue_t* cq);
 
 /**
- * Returns the pointer from the front 'bag', useful to get the element from the 'bag'.
- * @param max Target circular_queue_t.
+ * Returns the pointer to the front bag, used to get (read) an object from a bag.
+ * @param cq Circular queue instance.
  * @return A pointer to the front element or NULL if the queue is empty.
  */
 void* cq_get_front(circular_queue_t *cq);
 
 /**
- * Advances the front one position removing the latter front 'bag' from filled 'bags' set.
- * @param max Target circular_queue_t.
+ * Advances the front one position, used to remove (forget) the current front bag.
+ * @param cq Circular queue instance.
  */
 void cq_remove_bag(circular_queue_t *cq);
 
 /**
- * Returns the pointer pointing to the free 'bag' from rear, useful for fill the 'bag'.
- * @param max Target circular_queue_t.
- * @return A pointer to the free rear 'bag' or NULL if the queue is full.
+ * Returns the pointer to the rear bag, used to add (fill) an object into a bag.
+ * @param cq Circular queue instance.
+ * @return A pointer to the rear bag or NULL if the queue is full.
  */
 void *cq_get_rear(circular_queue_t *cq);
 
 /**
- * Advances the rear one position adding the latter rear element to the filled 'bags' set.
- * @param max Target circular_queue_t.
+ * Advances the rear one position, used to add a new rear bag.
+ * @param cq Circular queue instance.
  */
 void cq_add_bag(circular_queue_t *cq);
 
 /**
- * Mercilessly forgets the rear element only if the queue is full.
- * @param max Target circular_queue_t.
+ * Mercilessly removes (forgets) the rear element if the queue is full.
+ * @param cq Circular queue instance.
  */
 void cq_flush(circular_queue_t *cq);
 
 /**
  * Destroys and reconfigures each bag of the queue.
- * @param max Target circular_queue_t.
+ * @param cq Circular queue instance.
  * @param init_data Outter initialization data structure.
  */
 void cq_reconfig(circular_queue_t *cq, void *init_data);

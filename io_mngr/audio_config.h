@@ -1,5 +1,5 @@
 /*
- *  audio_config.h - Compile time audio configurations.
+ *  audio_config.h - Audio configurations.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -22,7 +22,7 @@
 
 /**
  * @file audio_config.h
- * @brief Compile time audio configurations like internal format and queue size.
+ * @brief Audio configurations like internal format and queue size.
  */
 
 #ifndef __AUDIO_CONFIG_H__ 

@@ -1,5 +1,5 @@
 /*
- *  stream_list.h - Stream list implementation.
+ *  stream_list.c - Implementation of the stream list.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.

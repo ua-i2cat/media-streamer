@@ -1,5 +1,6 @@
 /*
- *  audio_processor.c - Audio stream processor based on video_processor.c
+ *  audio_processor.c - Implementation of the audio stream processor,
+ *                      based on video_processor.c
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.

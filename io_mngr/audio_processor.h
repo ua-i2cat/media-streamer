@@ -1,5 +1,5 @@
 /*
- *  audio_processor.h - Audio processor definitions.
+ *  audio_processor.h - Audio stream processor,
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -45,7 +45,6 @@ typedef struct audio_processor {
 
     // Audio configurations
     struct audio_desc *external_config;
-    //unsigned int external_frame_size;
     struct audio_desc *internal_config;
     unsigned int internal_conversion_decompress_size;
     unsigned int internal_conversion_resample_size;
@@ -59,21 +58,21 @@ typedef struct audio_processor {
 } audio_processor_t;
 
 /**
- * Initializes the audio processor
- * @param role Defines the role of this audio processor (encoder or decoder)
- * @return audio_processor_t * if succeeded, NULL otherwise
+ * Initializes the audio processor.
+ * @param role Defines the role of this audio processor (encoder or decoder).
+ * @return Audio processor instance if succeeded, NULL otherwise.
  */
 audio_processor_t *ap_init(role_t role);
 
 /**
- * Destroys the audio processor
- * @param ap Target audio_processor_t
+ * Destroys the audio processor.
+ * @param ap Target audio processor.
  */
 void ap_destroy(audio_processor_t *ap);
 
 /**
  * Configure the external and internal audio format.
- * @param ap Target audio_processor_t.
+ * @param ap Audio processor instance.
  * @param bps External bytes per second value.
  * @param sample_rate External sample rate.
  * @param channels External number of channels.
@@ -83,15 +82,14 @@ void ap_config(audio_processor_t *ap, int bps, int sample_rate, int channels, au
 
 /**
  * Starts the worker thread.
- * @param ap The audio_processor_t where the thread operates.
- * @return decoder_thread_t * if succeeded, NULL otherwise.
+ * @param ap Audio processor instance.
  */
 void ap_worker_start(audio_processor_t *ap);
 
 /**
- * Returns the so called external configuration.
- * @param ap The target audio_processor_t.
- * @return struct audio_desc *
+ * Getter for the external configuration.
+ * @param ap Audio processor instance.
+ * @return External audio configuration.
  */
 struct audio_desc *ap_get_config(audio_processor_t *ap);
 

@@ -1,5 +1,5 @@
 /*
- *  BasicRTSPOnlyServer.cpp
+ *  BasicRTSPOnlyServer.cpp - Implmentation fo the RTSP server for io_mngr.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.

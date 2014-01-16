@@ -1,5 +1,5 @@
 /*
- *  participants.c - Participants and sessions implementations.
+ *  participants.c - Implementation of the participants and its RTP sessions.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -24,9 +24,6 @@
  */
 
 #include "participants.h"
-//#include "transmitter.h"
-//#include "video_decompress/libavcodec.h"
-//#include "video_decompress.h"
 #include "module.h"
 #include "debug.h"
 
@@ -130,19 +127,17 @@ participant_t *init_participant(unsigned int id, io_type_t type, char *addr, uin
     return participant;
 }
 
-void destroy_participant(participant_t *src)
+void destroy_participant(participant_t *participant)
 {
-    pthread_mutex_destroy(&src->lock);
-    destroy_rtp_session(src->rtp);
-    free(src);
+    pthread_mutex_destroy(&participant->lock);
+    destroy_rtp_session(participant->rtp);
+    free(participant);
 }
 
-int set_participant_ssrc(participant_t *participant, uint32_t ssrc)
+void set_participant_ssrc(participant_t *participant, uint32_t ssrc)
 {
     pthread_mutex_lock(&participant->lock);
     participant->ssrc = ssrc;
     pthread_mutex_unlock(&participant->lock);
-
-    return true;
 }
 

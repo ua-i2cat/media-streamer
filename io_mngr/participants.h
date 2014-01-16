@@ -1,5 +1,5 @@
 /*
- *  participants.h - Participants and sessions definitions.
+ *  participants.h - Participants and its RTP sessions.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -25,7 +25,7 @@
 
 /**
  * @file participants.h
- * @brief Participants data structures and functions.
+ * @brief Participants data structures and its RTP sessions.
  *
  */
 
@@ -33,11 +33,7 @@
 #define __PARTICIPANTS_H__
 
 #include "rtpdec.h"
-//#include "video.h"
-//#include "module.h"
 #include "commons.h"
-//#include "debug.h"
-
 
 typedef struct participant participant_t;
 
@@ -63,25 +59,27 @@ typedef struct participant {
 } participant_t;
 
 /**
- * Initializes a Participants list.
- * @param get_media_time_ptr Callback to get the media_time field address.
- * @return participant_list_t *.
+ * Initializes a participant and its RTP session.
+ * @param id Internal identifier.
+ * @param type Type of input/output.
+ * @param addr IP destination of the RTP session.
+ * @param port Port of the RTP session.
+ * @return The participant instance.
  */
 participant_t *init_participant(unsigned int id, io_type_t type, char *addr, uint32_t port);
 
 /**
- * Initializes a Participants list.
- * @param get_media_time_ptr Callback to get the media_time field address.
- * @return participant_list_t *.
+ * Destroys a participant and its RTP session.
+ * @param participant Participant instance.
  */
-void destroy_participant(participant_t *src);
+void destroy_participant(participant_t *participant);
 
 /**
- * Initializes a Participants list.
- * @param get_media_time_ptr Callback to get the media_time field address.
- * @return participant_list_t *.
+ * Setter for the SSRC field.
+ * @param participant Participant instance.
+ * @param ssrc RTP flux identifier.
  */
-int set_participant_ssrc(participant_t *participant, uint32_t ssrc);
+void set_participant_ssrc(participant_t *participant, uint32_t ssrc);
 
 #endif //__PARTICIPANTS_H__
 

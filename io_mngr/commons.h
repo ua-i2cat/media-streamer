@@ -23,7 +23,7 @@
 
 /**
  * @file commons.h
- * @brief Common definitions for io_mngr entities.
+ * @brief Common definitions for the io_mngr entities.
  */
 
 #ifndef __COMMONS_H__

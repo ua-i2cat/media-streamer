@@ -1,5 +1,5 @@
 /*
- *  BasicRTSPOnlySubsession.hh
+ *  BasicRTSPOnlySubsession.hh - Manager for the participants, streams and SDP content for an RTSPOnlyServer.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -23,7 +23,7 @@
 
 /**
  * @file BasicRTSPOnlySubsession.hh
- * @brief RTSP server for io_mngr, it manages the RTSP streams.
+ * @brief Manager for the participants, streams and SDP content for an RTSPOnlyServer.
  *
  */
 
@@ -39,7 +39,7 @@ extern "C" {
 
 
 /**
- * BasicRTSPOnlySubsession class is .
+ * BasicRTSPOnlySubsession class manages the creation, destruction and handling of the participants, its associated stream and its SDP information.
  */
 class BasicRTSPOnlySubsession: public ServerMediaSubsession {
 
@@ -64,11 +64,17 @@ class BasicRTSPOnlySubsession: public ServerMediaSubsession {
         virtual ~BasicRTSPOnlySubsession();	
         
         /**
-         * Getter for fSDPLines, it generate the SDP text if needed.
-         * @return char const * which contains the SDP text.
+         * Getter for fSDPLines, generating the SDP text if needed.
+         * @return The SDP text.
          */
         virtual char const *sdpLines();
         
+        /**
+         * Registers a new participant Destination.
+         * @param clientSessionId Participant ID.
+         * @param clientRTPPort Reference to the client RTP port object.
+         * @param clientRTCPPort Reference to the client RTCP port object.
+         */
         virtual void getStreamParameters(unsigned clientSessionId,
                 netAddressBits clientAddress,
                 Port const& clientRTPPort,
@@ -83,6 +89,10 @@ class BasicRTSPOnlySubsession: public ServerMediaSubsession {
                 Port& serverRTCPPort,
                 void*& streamToken);
         
+        /**
+         * Initializes and starts a new participant for an already registered participant Destination.
+         * @param clientSessionId Participant ID.
+         */
         virtual void startStream(unsigned clientSessionId, void* streamToken,
                 TaskFunc* rtcpRRHandler, void* rtcpRRHandlerClientData,
                 unsigned short& rtpSeqNum,
@@ -90,14 +100,16 @@ class BasicRTSPOnlySubsession: public ServerMediaSubsession {
                 ServerRequestAlternativeByteHandler* serverRequestAlternativeByteHandler,
                 void* serverRequestAlternativeByteHandlerClientData);
 
+        /**
+         * Destroys a participant only if it has an already registered participant Destination.
+         * @param clientSessionId Participant ID.
+         */
         virtual void deleteStream(unsigned clientSessionId, void*& streamToken);
 
     public:
         /**
-         * Creates a new instance of a BasicRTSPOnlySubsession.
-         * @param env .
-         * @param reuseFirstSource .
-         * @return stream .
+         * Creates a new instance of a BasicRTSPOnlySubsession with the given stream.
+         * @return The stream to publish.
          */
         static BasicRTSPOnlySubsession*
             createNew(UsageEnvironment &env,
@@ -107,7 +119,7 @@ class BasicRTSPOnlySubsession: public ServerMediaSubsession {
 
 
 /**
- * Destinations class is .
+ * Destinations class is a simple container for a network media destination.
  */
 class Destinations {
 

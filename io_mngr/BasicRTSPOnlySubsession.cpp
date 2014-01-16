@@ -1,5 +1,5 @@
 /*
- *  BasicRTSPOnlySubsession.cpp
+ *  BasicRTSPOnlySubsession.cpp - Implementation of the manager for the participants, streams and SDP content for an RTSPOnlyServer.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -126,7 +126,6 @@ void BasicRTSPOnlySubsession::getStreamParameters(unsigned clientSessionId,
     destinations = new Destinations(destinationAddr, clientRTPPort, clientRTCPPort);
     fDestinationsHashTable->Add((char const*)clientSessionId, destinations);
 }
-
 
 void BasicRTSPOnlySubsession::startStream(unsigned clientSessionId,
         void* streamToken,

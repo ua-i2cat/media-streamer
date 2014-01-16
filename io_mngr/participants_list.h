@@ -1,5 +1,5 @@
 /*
- *  participants_list.h - Participants list definitions.
+ *  participants_list.h - Participant list.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -25,18 +25,13 @@
 
 /**
  * @file participants.h
- * @brief Participants data structures and functions.
+ * @brief Participants list data structures and functions.
  *
  */
 
 #ifndef __PARTICIPANTS_LIST_H__
 #define __PARTICIPANTS_LIST_H__
 
-//#include "rtpdec.h"
-//#include "video.h"
-//#include "module.h"
-//#include "commons.h"
-//#include "debug.h"
 #include "participants.h"
 
 typedef struct participant_list {
@@ -47,51 +42,52 @@ typedef struct participant_list {
 } participant_list_t;
 
 /**
- * Initializes a Participants list.
- * @param get_media_time_ptr Callback to get the media_time field address.
- * @return participant_list_t *.
+ * Initializes a Participant list.
+ * @return The participant list instance.
  */
 participant_list_t *init_participant_list(void);
 
 /**
- * Initializes a Participants list.
- * @param get_media_time_ptr Callback to get the media_time field address.
- * @return participant_list_t *.
+ * Destroys a Participant list.
+ * @param list Participant list instance.
  */
 void destroy_participant_list(participant_list_t *list);
 
 /**
- * Initializes a Participants list.
- * @param get_media_time_ptr Callback to get the media_time field address.
- * @return participant_list_t *.
+ * Adds a participant to a participant list.
+ * @param list Participant list instance.
+ * @param participant Participant instance.
  */
 void add_participant(participant_list_t *list, participant_t *participant);
 
 /**
- * Initializes a Participants list.
- * @param get_media_time_ptr Callback to get the media_time field address.
- * @return participant_list_t *.
+ * Removes a participant from a participant list using its id.
+ * @param list Participant list instance.
+ * @param id Participant internal identification.
+ * @return True if the participant was removed, false otherwise.
  */
 bool remove_participant(participant_list_t *list, unsigned int id);
 
 /**
- * Initializes a Participants list.
- * @param get_media_time_ptr Callback to get the media_time field address.
- * @return participant_list_t *.
+ * Get a participant instance searching by its id.
+ * @param list Participant list instance.
+ * @param id Participant internal identification.
+ * @return The participant instance.
  */
 participant_t *get_participant_id(participant_list_t *list, unsigned int id);
 
 /**
- * Initializes a Participants list.
- * @param get_media_time_ptr Callback to get the media_time field address.
- * @return participant_list_t *.
+ * Get a participant instance searching by its ssrc.
+ * @param list Participant list instance.
+ * @param ssrc RTP flux identifier.
+ * @return The participant instance.
  */
 participant_t *get_participant_ssrc(participant_list_t *list, uint32_t ssrc);
 
 /**
- * Initializes a Participants list.
- * @param get_media_time_ptr Callback to get the media_time field address.
- * @return participant_list_t *.
+ * Get the first unitialized participant instance whose ssrc field is 0.
+ * @param list Participant list instance.
+ * @return The participant instance if it was found, NULL otherwise.
  */
 participant_t *get_participant_non_init(participant_list_t *list);
 

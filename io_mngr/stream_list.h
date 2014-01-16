@@ -1,5 +1,5 @@
 /*
- *  stream_list.h - Stream list definitions.
+ *  stream_list.h - Stream list.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -23,6 +23,12 @@
  *            Marc Palau <marc.palau@i2cat.net>
  */
 
+/**
+ * @file stream_list.h
+ * @brief Linked list of streams.
+ *
+ */
+
 #ifndef __STREAM_LIST_H__
 #define __STREAM_LIST_H__
 
@@ -37,61 +43,59 @@ typedef struct stream_list {
 
 /**
  * Initializes a stream list.
- * @return stream_list_t * if succeeded, NULL otherwise.
+ * @return The stream list instance if succeeded, NULL otherwise.
  */
 stream_list_t *init_stream_list(void);
 
 /**
  * Destroys a stream list.
- * @param list Target stream_list_t.
+ * @param list Stream list instance.
  */
 void destroy_stream_list(stream_list_t *list);
 
 /**
- * Attaches a stream to the first free position of a stream list.
- * @param list Target stream_list_t.
- * @param stream Target stream_t.
- * @return true if succeeded, false otherwise.
+ * Adds a stream to the end of the list.
+ * @param list Stream list instance.
+ * @param stream Stream instance.
  */
 void add_stream(stream_list_t *list, stream_t *stream);
 
 /**
- * Removes a stream, identified with its id, from a stream list.
- * @param list Target stream_list_t.
- * @param id Target stream id.
- * @return true if succeeded, false otherwise.
+ * Removes a stream, identified with its internal id, from the list.
+ * @param list Stream list instance.
+ * @param id Stream internal id.
+ * @return True if succeeded, false otherwise.
  */
 bool remove_stream(stream_list_t *list, unsigned int id);
 
 /**
- * Get a pointer to the stream identified with an id from a stream list.
- * @param list Target stream_list_t.
- * @param id Target stream id.
- * @return stream_t * if the list had streams, NULL if the list was empty.
+ * Gets the instance of a stream identified with a given id.
+ * @param list Stream list instance.
+ * @param id Stream internal id.
+ * @return The stream instance if it was found, NULL otherwise.
  */
 stream_t *get_stream_id(stream_list_t *list, unsigned int id);
 
-//TODO: rethink these function names
 /**
- * Get the pointer to the first participant with an id from a stream list.
- * @param list Target stream_list_t.
- * @param id Target participant id.
- * @return participant_t * to the participant identified with id if it was found, NULL otherwise.
+ * Gets the instance of a participant, identified with the given id, that is linked by a stream from the list.
+ * @param list Stream list instance.
+ * @param id Participant internal id.
+ * @return The participant instance if it was found, NULL otherwise.
  */
 participant_t *get_participant_stream_id(stream_list_t *list, unsigned int id);
 
 /**
- * Get the pointer to the first participant with an ssrc from a stream list.
- * @param list Target stream_list_t.
- * @param ssrc Target participant ssrc.
- * @return participant_t * to the participant identified with ssrc if it was found, NULL otherwise.
+ * Gets the instance of a participant, identified with the given ssrc, that is linked by a stream from the list.
+ * @param list Stream list instance.
+ * @param ssrc Participant ssrc.
+ * @return The participant instance if it was found, NULL otherwise.
  */
 participant_t *get_participant_stream_ssrc(stream_list_t *list, uint32_t ssrc);
 
 /**
- * Get the first uninitialized participant from a stream list.
- * @param list Target stream_list_t.
- * @return participant_t * to the participant, NULL otherwise.
+ * Gets the instance of an unitialized (ssrc equal to 0) participant that is linked bya stream from the list.
+ * @param list Stream list instance.
+ * @return The participant instance if it was found, NULL otherwise.
  */
 participant_t *get_participant_stream_non_init(stream_list_t *list);
 

@@ -1,5 +1,5 @@
 /*
- *  receiver.h
+ *  receiver.h - Manager for the received media streams.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -25,7 +25,7 @@
 
 /**
  * @file receiver.h
- * @brief Receiver internal data and functions.
+ * @brief The receiver can manage multiple input streams for audio and video.
  */
 
 #ifndef __RECEIVER_H__
@@ -54,32 +54,32 @@ typedef struct receiver
 } receiver_t;
 
 /**
- * Initializes a receiver object with both audio and video.
- * @param video_stream_list Initialized stream_list_t to use for video.
- * @param audio_stream_list Initialized stream_list_t to use for audio.
+ * Initializes a receiver.
+ * @param video_stream_list Video stream list instance.
+ * @param audio_stream_list Audio stream list instance.
  * @param video_port Port to bind RTP video session.
  * @param audio_port Port to bind RTP audio session.
- * @return A pointer to the generated receiver_t object, NULL otherwise.
+ * @return The receiver instance if success, NULL otherwise.
  */
 receiver_t *init_receiver(stream_list_t *video_stream_list, stream_list_t *audio_stream_list, uint32_t video_port, uint32_t audio_port);
 
 /**
  * Starts both audio and video receiver threads.
- * @param transmitter The receiver_t target.
- * @return Returns true if both threads are running, false otherwise.
+ * @param receiver The receiver instance.
+ * @return True if both threads are running, false otherwise.
  */
-int start_receiver(receiver_t *receiver);
+bool start_receiver(receiver_t *receiver);
 
 /**
  * Stops both audio and video receiver threads.
- * @param receiver The receiver_t target.
+ * @param receiver The receiver instance.
  */
 void stop_receiver(receiver_t *receiver);
 
 /**
- * Frees the receiver_t object if the threads are stopped.
- * @param receiver The receiver_t target.
- * @return true if freed, false otherwise.
+ * Destroys receiver instance if its threads are stopped.
+ * @param receiver The receiver instance.
+ * @return True if it was destroyed, false otherwise.
  */
 int destroy_receiver(receiver_t *receiver);
 

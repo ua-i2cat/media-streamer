@@ -1,5 +1,5 @@
 /*
- *  BasicRTSPOnlyServer.hh - Main RTSP server for io_mngr.
+ *  BasicRTSPOnlyServer.hh - RTSP server for io_mngr.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -23,7 +23,7 @@
 
 /**
  * @file BasicRTSPOnlyServer.hh
- * @brief RTSP server for io_mngr, it manages the RTSP streams.
+ * @brief RTSP server for io_mngr.
  *
  */
 
@@ -38,7 +38,7 @@ extern "C" {
 }
 
 /**
- * BasicRTSPOnlyServer class is a wrapper to RTSPServer to enable the dinamic use of participants and streams on the io_mngr program.
+ * BasicRTSPOnlyServer class is a wrapper to RTSPServer to enable the dinamic use of participants and streams from a transmitter on io_mngr.
  */
 class BasicRTSPOnlyServer {
 
@@ -55,8 +55,8 @@ class BasicRTSPOnlyServer {
         /**
          * Initializes the server.
          * @param port Port to listen.
-         * @param transmitter Transmitter instance whose configuration is published.
-         * @return BasicRTSPOnlyServer* The server instance.
+         * @param transmitter Transmitter instance.
+         * @return The server instance.
          */
         static BasicRTSPOnlyServer* initInstance(int port, transmitter_t* transmitter);
 
@@ -78,8 +78,8 @@ class BasicRTSPOnlyServer {
         void update_server();
 
         /**
-         * Get the server instance.
-         * @return BasicRTSPOnlyServer* The server instance or NULL.
+         * Getter for the server instance.
+         * @return The server instance or NULL.
          */
         static BasicRTSPOnlyServer* getInstance();
 };
