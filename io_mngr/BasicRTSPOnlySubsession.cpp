@@ -26,15 +26,43 @@
 #include <GroupsockHelper.hh>
 #include "BasicRTSPOnlySubsession.hh"
 extern "C" {
-#include "participants.h"
+#include "participants_list.h"
 }
 
-    BasicRTSPOnlySubsession*
-BasicRTSPOnlySubsession::createNew(UsageEnvironment& env,
-        Boolean reuseFirstSource,
-        stream_t* stream)
+void BasicRTSPOnlySubsession::setSDPLines()
 {
-    return new BasicRTSPOnlySubsession(env, reuseFirstSource, stream);
+    //TODO: It should be more dynamic.
+    unsigned estBitrate = 5000;
+    char const* mediaType = "video";
+    uint8_t rtpPayloadType = 96;
+    AddressString ipAddressStr(fServerAddressForSDP);
+    char* rtpmapLine = strdup("a=rtpmap:96 H264/90000\n");
+    char const* auxSDPLine = "";
+
+    char const* const sdpFmt =
+        "m=%s %u RTP/AVP %u\r\n"
+        "c=IN IP4 %s\r\n"
+        "b=AS:%u\r\n"
+        "%s"
+        "a=control:%s\r\n";
+    unsigned sdpFmtSize = strlen(sdpFmt)
+        + strlen(mediaType) + 5 /* max short len */ + 3 /* max char len */
+        + strlen(ipAddressStr.val())
+        + 20 /* max int len */
+        + strlen(rtpmapLine)
+        + strlen(trackId());
+    char* sdpLines = new char[sdpFmtSize];
+
+    sprintf(sdpLines, sdpFmt,
+            mediaType, // m= <media>
+            fPortNumForSDP, // m= <port>
+            rtpPayloadType, // m= <fmt list>
+            ipAddressStr.val(), // c= address
+            estBitrate, // b=AS:<bandwidth>
+            rtpmapLine, // a=rtpmap:... (if present)
+            trackId()); // a=control:<track-id>
+
+    fSDPLines = sdpLines;
 }
 
     BasicRTSPOnlySubsession
@@ -70,43 +98,6 @@ char const* BasicRTSPOnlySubsession::sdpLines()
     }
 
     return fSDPLines;
-}
-
-    void BasicRTSPOnlySubsession
-::setSDPLines()
-{
-    //TODO: should be more dynamic
-    unsigned estBitrate = 5000;
-    char const* mediaType = "video";
-    uint8_t rtpPayloadType = 96;
-    AddressString ipAddressStr(fServerAddressForSDP);
-    char* rtpmapLine = strdup("a=rtpmap:96 H264/90000\n");
-    char const* auxSDPLine = "";
-
-    char const* const sdpFmt =
-        "m=%s %u RTP/AVP %u\r\n"
-        "c=IN IP4 %s\r\n"
-        "b=AS:%u\r\n"
-        "%s"
-        "a=control:%s\r\n";
-    unsigned sdpFmtSize = strlen(sdpFmt)
-        + strlen(mediaType) + 5 /* max short len */ + 3 /* max char len */
-        + strlen(ipAddressStr.val())
-        + 20 /* max int len */
-        + strlen(rtpmapLine)
-        + strlen(trackId());
-    char* sdpLines = new char[sdpFmtSize];
-
-    sprintf(sdpLines, sdpFmt,
-            mediaType, // m= <media>
-            fPortNumForSDP, // m= <port>
-            rtpPayloadType, // m= <fmt list>
-            ipAddressStr.val(), // c= address
-            estBitrate, // b=AS:<bandwidth>
-            rtpmapLine, // a=rtpmap:... (if present)
-            trackId()); // a=control:<track-id>
-
-    fSDPLines = sdpLines;
 }
 
 void BasicRTSPOnlySubsession::getStreamParameters(unsigned clientSessionId,
@@ -148,9 +139,7 @@ void BasicRTSPOnlySubsession::startStream(unsigned clientSessionId,
 {
     Destinations* dst = 
         (Destinations*)(fDestinationsHashTable->Lookup((char const*)clientSessionId));
-    if (dst == NULL){
-        return;
-    } else {
+    if (dst != NULL) {
         participant_t *participant;
         participant = init_participant(clientSessionId, OUTPUT, inet_ntoa(dst->addr), ntohs(dst->rtpPort.num()));
         add_participant_stream(fStream, participant);
@@ -161,10 +150,16 @@ void BasicRTSPOnlySubsession::deleteStream(unsigned clientSessionId, void*& stre
 {
     Destinations* dst = 
         (Destinations*)(fDestinationsHashTable->Lookup((char const*)clientSessionId));
-    if (dst == NULL){
-        return;
-    } else {
+    if (dst != NULL) {
         remove_participant(fStream->plist, clientSessionId);
     }
+}
+
+    BasicRTSPOnlySubsession*
+BasicRTSPOnlySubsession::createNew(UsageEnvironment& env,
+        Boolean reuseFirstSource,
+        stream_t* stream)
+{
+    return new BasicRTSPOnlySubsession(env, reuseFirstSource, stream);
 }
 

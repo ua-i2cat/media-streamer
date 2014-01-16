@@ -1,5 +1,5 @@
 /*
- *  c_basicRTSPOnlyServer.hh
+ *  c_basicRTSPOnlyServer.hh - C client to BasicRTSPOnlyServer.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -22,7 +22,7 @@
  */
 
 /**
- * @file c_basicRTSPOnlyServer.hh
+ * @file C client to BasicRTSPOnlyServer.
  * @brief 
  */
 
@@ -42,13 +42,33 @@ extern "C" {
         uint8_t run;
     } rtsp_serv_t;
 
+    /**
+     * Initializes the RTSP server.
+     * @param port Port to bind.
+     * @param transmitter_t * Transmitter instance from which the media information is fetched.
+     * @return rtsp_serv_t * Server instance pointer.
+     */
+    rtsp_serv_t *init_rtsp_server(uint port, transmitter_t *transmitter);
+
+    /**
+     * Creates and initializes all stuff needed to run the server including starting the thread.
+     * @param port Port to bind.
+     * @param transmitter_t * Transmitter instance from which the media information is fetched.
+     * @return int Returns the pthread_create returning value.
+     */
     int c_start_server(rtsp_serv_t* server);
 
-    void c_stop_server(rtsp_serv_t* server);
+    /**
+     * Stops the RTSP server.
+     * @param rtsp_serv_t * RTSP server to stop.
+     */
+    void c_stop_server(rtsp_serv_t *server);
 
-    int c_update_server(rtsp_serv_t* server); 
-
-    rtsp_serv_t* init_rtsp_server(uint port, transmitter_t *transmitter);
+    /**
+     * Reload RTSP server media infonrmation.
+     * @param rtsp_serv_t * RTSP server to refresh.
+     */
+    void c_update_server(rtsp_serv_t* server); 
 
 #ifdef __cplusplus
 }

@@ -21,34 +21,54 @@
  *            David Cassany <david.cassany@i2cat.net>
  */
 
+/**
+ * @file BasicRTSPOnlySubsession.hh
+ * @brief RTSP server for io_mngr, it manages the RTSP streams.
+ *
+ */
+
 #ifndef __BASIC_RTSP_ONLY_SUBSESSION_HH__
 #define __BASIC_RTSP_ONLY_SUBSESSION_HH__
 
 #ifndef _SERVER_MEDIA_SESSION_HH
 #include <ServerMediaSession.hh>
 #endif
-//#ifdef __cplusplus
 extern "C" {
-    //#endif
-    //#include "transmitter.h"
 #include "stream.h"
-    //#ifdef __cplusplus
 }
-//#endif
 
+
+/**
+ * BasicRTSPOnlySubsession class is .
+ */
 class BasicRTSPOnlySubsession: public ServerMediaSubsession {
 
-    public:
-        static BasicRTSPOnlySubsession*
-            createNew(UsageEnvironment& env,
-                    Boolean reuseFirstSource,
-                    stream_t* stream); 
+    private:
+        Boolean fReuseFirstSource;
+        void* fLastStreamToken;
+        char fCNAME[100];
+        stream_t *fStream;
+
+        /**
+         * Generates the SDP text and stores it on fSDPLines class member.
+         */
+        void setSDPLines();
 
     protected:
+        char *fSDPLines;
+        HashTable *fDestinationsHashTable;
+
         BasicRTSPOnlySubsession(UsageEnvironment& env, Boolean reuseFirstSource,
-                stream_t* stream);
+                stream_t *stream);
+
         virtual ~BasicRTSPOnlySubsession();	
-        virtual char const* sdpLines();
+        
+        /**
+         * Getter for fSDPLines, it generate the SDP text if needed.
+         * @return char const * which contains the SDP text.
+         */
+        virtual char const *sdpLines();
+        
         virtual void getStreamParameters(unsigned clientSessionId,
                 netAddressBits clientAddress,
                 Port const& clientRTPPort,
@@ -62,29 +82,43 @@ class BasicRTSPOnlySubsession: public ServerMediaSubsession {
                 Port& serverRTPPort,
                 Port& serverRTCPPort,
                 void*& streamToken);
+        
         virtual void startStream(unsigned clientSessionId, void* streamToken,
                 TaskFunc* rtcpRRHandler, void* rtcpRRHandlerClientData,
                 unsigned short& rtpSeqNum,
                 unsigned& rtpTimestamp, 
                 ServerRequestAlternativeByteHandler* serverRequestAlternativeByteHandler,
                 void* serverRequestAlternativeByteHandlerClientData);
+
         virtual void deleteStream(unsigned clientSessionId, void*& streamToken);
 
-    protected:
-        char* fSDPLines;
-        HashTable* fDestinationsHashTable;
-
-    private:
-        void setSDPLines();
-        Boolean fReuseFirstSource;
-        void* fLastStreamToken;
-        char fCNAME[100];
-        stream_t *fStream;
+    public:
+        /**
+         * Creates a new instance of a BasicRTSPOnlySubsession.
+         * @param env .
+         * @param reuseFirstSource .
+         * @return stream .
+         */
+        static BasicRTSPOnlySubsession*
+            createNew(UsageEnvironment &env,
+                    Boolean reuseFirstSource,
+                    stream_t* stream); 
 };
 
+
+/**
+ * Destinations class is .
+ */
 class Destinations {
 
     public:
+        Boolean isTCP;
+        struct in_addr addr;
+        Port rtpPort;
+        Port rtcpPort;
+        int tcpSocketNum;
+        unsigned char rtpChannelId, rtcpChannelId;
+
         Destinations(struct in_addr const& destAddr,
                 Port const& rtpDestPort,
                 Port const& rtcpDestPort)
@@ -94,14 +128,6 @@ class Destinations {
             : isTCP(True), rtpPort(0) /*dummy*/, rtcpPort(0) /*dummy*/,
             tcpSocketNum(tcpSockNum), rtpChannelId(rtpChanId), rtcpChannelId(rtcpChanId) {
             }
-
-    public:
-        Boolean isTCP;
-        struct in_addr addr;
-        Port rtpPort;
-        Port rtcpPort;
-        int tcpSocketNum;
-        unsigned char rtpChannelId, rtcpChannelId;
 };
 
 #endif //__BASIC_RTSP_ONLY_SUBSESSION_HH__

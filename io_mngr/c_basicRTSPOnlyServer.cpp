@@ -1,5 +1,5 @@
 /*
- *  c_basicRTSPOnlyServer.cpp
+ *  c_basicRTSPOnlyServer.cpp - C client to BasicRTSPOnlyServer implementation.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -24,7 +24,22 @@
 #include "c_basicRTSPOnlyServer.hh"
 #include "BasicRTSPOnlyServer.hh"
 
-int c_start_server(rtsp_serv_t* server)
+rtsp_serv_t *init_rtsp_server(uint port, transmitter_t *transmitter)
+{
+    rtsp_serv_t *server;
+    if ((server = (rtsp_serv_t*) malloc(sizeof(rtsp_serv_t))) == NULL) {
+        error_msg("init_rtsp_server out of memory!");
+        return NULL;
+    }
+    server->port = port;
+    server->transmitter = transmitter;
+    server->watch = 0;
+    server->run = false;
+
+    return server;
+}
+
+int c_start_server(rtsp_serv_t *server)
 {
     int ret;
 
@@ -40,18 +55,7 @@ int c_start_server(rtsp_serv_t* server)
     return ret;
 }
 
-rtsp_serv_t *init_rtsp_server(uint port, transmitter_t *transmitter)
-{
-    rtsp_serv_t *server = (rtsp_serv_t*) malloc(sizeof(rtsp_serv_t));
-    server->port = port;
-    server->transmitter = transmitter;
-    server->watch = 0;
-    server->run = false;
-
-    return server;
-}
-
-void c_stop_server(rtsp_serv_t* server)
+void c_stop_server(rtsp_serv_t *server)
 {
     server->watch = 1;
     if (server->run){
@@ -59,13 +63,12 @@ void c_stop_server(rtsp_serv_t* server)
     }
 }
 
-int c_update_server(rtsp_serv_t* server)
+void c_update_server(rtsp_serv_t *server)
 {
-    BasicRTSPOnlyServer *srv = BasicRTSPOnlyServer::getInstance();
-    if (srv == NULL) {
+    if ((BasicRTSPOnlyServer *srv = BasicRTSPOnlyServer::getInstance()) == NULL) {
         exit(1);
+    } else {
+        srv->update_server();
     }
-
-    return srv->update_server();
 }
 

@@ -50,17 +50,7 @@ BasicRTSPOnlyServer::initInstance(int port, transmitter_t* transmitter)
     return new BasicRTSPOnlyServer(port, transmitter);
 }
 
-    BasicRTSPOnlyServer* 
-BasicRTSPOnlyServer::getInstance()
-{
-    if (srvInstance != NULL) {
-        return srvInstance;
-    }
-
-    return NULL;
-}
-
-int BasicRTSPOnlyServer::init_server()
+void BasicRTSPOnlyServer::init_server()
 {
     if (env != NULL || rtspServer != NULL || 
             fTransmitter == NULL) {
@@ -81,11 +71,26 @@ int BasicRTSPOnlyServer::init_server()
         *env << "Failed to create RTSP server: " << env->getResultMsg() << "\n";
         exit(1);
     }
-
-    return 0;
 }
 
-int BasicRTSPOnlyServer::update_server()
+void *BasicRTSPOnlyServer::start_server(void *args)
+{
+    char* watch = (char*) args;
+    BasicRTSPOnlyServer* instance = getInstance();
+
+    if (instance != NULL && 
+            instance->env != NULL && 
+            instance->rtspServer != NULL) {
+        instance->env->taskScheduler().doEventLoop(watch); 
+        Medium::close(instance->rtspServer);
+        delete &instance->env->taskScheduler();
+        instance->env->reclaim();
+    }
+
+    return NULL;
+}
+
+void BasicRTSPOnlyServer::update_server()
 {
     stream_t* stream = (stream_t*) malloc(sizeof(stream_t));
 
@@ -114,19 +119,12 @@ int BasicRTSPOnlyServer::update_server()
     pthread_rwlock_unlock(&fTransmitter->video_stream_list->lock);
 }
 
-void *BasicRTSPOnlyServer::start_server(void *args)
+    BasicRTSPOnlyServer* 
+BasicRTSPOnlyServer::getInstance()
 {
-    char* watch = (char*) args;
-    BasicRTSPOnlyServer* instance = getInstance();
-
-    if (instance == NULL || instance->env == NULL || instance->rtspServer == NULL) {
-        return NULL;
+    if (srvInstance != NULL) {
+        return srvInstance;
     }
-    instance->env->taskScheduler().doEventLoop(watch); 
-
-    Medium::close(instance->rtspServer);
-    delete &instance->env->taskScheduler();
-    instance->env->reclaim();
 
     return NULL;
 }

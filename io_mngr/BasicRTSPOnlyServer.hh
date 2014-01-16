@@ -38,11 +38,17 @@ extern "C" {
 }
 
 /**
- * BasicRTSPOnlyServer class contains the main engine for RTSP protocol handling. It binds to a port and serves a transmitter_t configuration.
+ * BasicRTSPOnlyServer class is a wrapper to RTSPServer to enable the dinamic use of participants and streams on the io_mngr program.
  */
 class BasicRTSPOnlyServer {
 
     private:
+        static BasicRTSPOnlyServer* srvInstance;
+        int fPort;
+        transmitter_t* fTransmitter;
+        RTSPServer* rtspServer;
+        UsageEnvironment* env;
+
         BasicRTSPOnlyServer(int port, transmitter_t* transmitter);
 
     public:
@@ -54,17 +60,28 @@ class BasicRTSPOnlyServer {
          */
         static BasicRTSPOnlyServer* initInstance(int port, transmitter_t* transmitter);
 
-        static BasicRTSPOnlyServer* getInstance();
-        int init_server();
-        static void *start_server(void *args);
-        int update_server();
+        /**
+         * Initialize the RTSP server, if no port was configured it uses 8554 by default.
+         */
+        void init_server();
 
-    private:
-        static BasicRTSPOnlyServer* srvInstance;
-        int fPort;
-        transmitter_t* fTransmitter;
-        RTSPServer* rtspServer;
-        UsageEnvironment* env;
+        /**
+         * Callback to start the server.
+         * @param args Stop condition argument.
+         * @return NULL.
+         */
+        static void *start_server(void *args);
+
+        /**
+         * Updates the RTSP server media information for each current stream.
+         */
+        void update_server();
+
+        /**
+         * Get the server instance.
+         * @return BasicRTSPOnlyServer* The server instance or NULL.
+         */
+        static BasicRTSPOnlyServer* getInstance();
 };
 
 #endif //__BASIC_RTSP_ONLY_SERVER_HH__
