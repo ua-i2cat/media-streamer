@@ -81,7 +81,7 @@ void stop_receiver(receiver_t *receiver);
  * @param receiver The receiver instance.
  * @return True if it was destroyed, false otherwise.
  */
-int destroy_receiver(receiver_t *receiver);
+bool destroy_receiver(receiver_t *receiver);
 
 #endif //__RECEIVER_H__
 

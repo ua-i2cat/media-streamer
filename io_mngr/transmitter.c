@@ -1,5 +1,5 @@
 /*
- *  transmitter.c
+ *  transmitter.c - Implmenetation for the manager for transmitting media streams.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -159,8 +159,7 @@ static void *audio_transmitter_thread(void *arg)
     pthread_exit(NULL);
 }
 
-// TODO: Put fps param away!
-transmitter_t *init_transmitter(stream_list_t *video_stream_list, stream_list_t *audio_stream_list, float fps)
+transmitter_t *init_transmitter(stream_list_t *video_stream_list, stream_list_t *audio_stream_list)
 {
     transmitter_t *transmitter = malloc(sizeof(transmitter_t));
     if (transmitter == NULL) {
@@ -171,11 +170,7 @@ transmitter_t *init_transmitter(stream_list_t *video_stream_list, stream_list_t 
     transmitter->video_run = false;
     transmitter->audio_run = false;
 
-    if (fps <= 0.0) {
-        transmitter->fps = VIDEO_DEFAULT_FPS;
-    } else {
-        transmitter->fps = fps;
-    }
+    transmitter->fps = VIDEO_DEFAULT_FPS;
     transmitter->wait_time = (1000000.0/transmitter->fps);
 
     transmitter->video_ttl = DEFAULT_TTL;

@@ -251,14 +251,17 @@ receiver_t *init_receiver(stream_list_t *video_stream_list, stream_list_t *audio
 
 bool start_receiver(receiver_t *receiver)
 {
-    receiver->video_run = true;
-    receiver->audio_run = true;
+    if (pthread_create(&receiver->video_th_id,
+                NULL,
+                (void *)video_receiver_thread,
+                receiver) == 0)
+        receiver->video_run = true;
 
-    if (pthread_create(&receiver->video_th_id, NULL, (void *)video_receiver_thread, receiver) != 0)
-        receiver->video_run = false;
-
-    if (pthread_create(&receiver->audio_th_id, NULL, (void *)audio_receiver_thread, receiver) != 0)
-        receiver->audio_run = false;
+    if (pthread_create(&receiver->audio_th_id,
+                NULL,
+                (void *)audio_receiver_thread,
+                receiver) == 0)
+        receiver->audio_run = true;
 
     return receiver->video_run && receiver->audio_run;
 }
@@ -272,7 +275,7 @@ void stop_receiver(receiver_t *receiver)
     pthread_join(receiver->audio_th_id, NULL);
 }
 
-int destroy_receiver(receiver_t *receiver)
+bool destroy_receiver(receiver_t *receiver)
 {
     if (receiver->video_run || receiver->audio_run) {
         return false;

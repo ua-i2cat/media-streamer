@@ -23,11 +23,12 @@
 
 #include "c_basicRTSPOnlyServer.hh"
 #include "BasicRTSPOnlyServer.hh"
+#include "debug.h"
 
 rtsp_serv_t *init_rtsp_server(uint port, transmitter_t *transmitter)
 {
     rtsp_serv_t *server;
-    if ((server = (rtsp_serv_t*) malloc(sizeof(rtsp_serv_t))) == NULL) {
+    if ((server = (rtsp_serv_t *)malloc(sizeof(rtsp_serv_t))) == NULL) {
         error_msg("init_rtsp_server out of memory!");
         return NULL;
     }
@@ -65,7 +66,8 @@ void c_stop_server(rtsp_serv_t *server)
 
 void c_update_server(rtsp_serv_t *server)
 {
-    if ((BasicRTSPOnlyServer *srv = BasicRTSPOnlyServer::getInstance()) == NULL) {
+    BasicRTSPOnlyServer *srv;
+    if ((srv = BasicRTSPOnlyServer::getInstance()) == NULL) {
         exit(1);
     } else {
         srv->update_server();

@@ -1,5 +1,5 @@
 /*
- *  transmitter.h
+ *  transmitter.h - Manager for transmitting media streams.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of io_mngr.
@@ -55,8 +55,6 @@ typedef struct transmitter {
     uint32_t audio_run;
     pthread_t audio_thread;
     stream_list_t *audio_stream_list;
-    //float fps;
-    //float wait_time;
     uint32_t audio_recv_port;
     uint32_t audio_ttl;
     uint64_t audio_send_buffer_size;
@@ -64,12 +62,12 @@ typedef struct transmitter {
 } transmitter_t;
 
 /**
- * Initializes a transmitter object with both audio and video.
- * @param video_stream_list Initialized stream_list_t to use for video.
- * @param audio_stream_list Initialized stream_list_t to use for audio.
- * @return A pointer to the generated transmitter_t object, NULL otherwise.
+ * Initializes a transmitter.
+ * @param video_stream_list Video stream list instance.
+ * @param audio_stream_list Audio stream list instance.
+ * @return The transmitter instance if success, NULL otherwise.
  */
-transmitter_t *init_transmitter(stream_list_t *video_stream_list, stream_list_t *audio_stream_list, float fps);
+transmitter_t *init_transmitter(stream_list_t *video_stream_list, stream_list_t *audio_stream_list);
 
 /**
  * Starts both audio and video transmitter threads.
