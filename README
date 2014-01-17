@@ -1,12 +1,10 @@
 This is the media-streamer project from i2CAT Foundation.
 
-Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya.
-
 Only the files on the folders io_mngr and tests belongs to the project.
 
 The rest of the folders and almost all files on the src/ folder belongs to 
 the ultragrid project hosted at http://seth.ics.muni.cz/git/ultragrid.git
 
-There are few files on the src folder that were modifiedo or created for
+There are few files on the src folder that were modified or created for
 this project.
 
