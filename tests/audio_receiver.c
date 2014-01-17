@@ -67,6 +67,7 @@ int main() {
         // STREAM1 recording block
         fprintf(stderr, "  ·Waiting for audio_frame2 data\n");
         while (stream1->audio->decoded_cq->level == CIRCULAR_QUEUE_EMPTY) {
+            usleep(50);
         }
 
         fprintf(stderr, "   ·Copying to file... ");
@@ -83,7 +84,9 @@ int main() {
 
         // STREAM2 recording block
         fprintf(stderr, "  ·Waiting for audio_frame2 data\n");
-        while (stream2->audio->decoded_cq->level == CIRCULAR_QUEUE_EMPTY) { }
+        while (stream2->audio->decoded_cq->level == CIRCULAR_QUEUE_EMPTY) {
+            usleep(50);
+        }
 
         fprintf(stderr, "   ·Copying to file... ");
         start = time(NULL);
