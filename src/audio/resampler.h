@@ -1,3 +1,4 @@
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #include "config_win32.h"
@@ -9,7 +10,7 @@
 struct resampler;
 
 // resampler refactor due to privacity of the struct resample definition
-// Used by UG_modules project
+// Used by media-streamer.
 struct resampler *resampler_prepare(int dst_sample_rate);
 void resampler_set_resampled(struct resampler *s, audio_frame2 *frame);
 int resampler_compare_sample_rate(struct resampler *s, int rate);

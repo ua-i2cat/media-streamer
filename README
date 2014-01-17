@@ -1,24 +1,12 @@
-To get ug-modules form original ultragrid source:
+This is the media-streamer project from i2CAT Foundation.
 
-1- Get original code
+Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya.
 
-git clone http://seth.ics.muni.cz/git/ultragrid.git
+Only the files on the folders io_mngr and tests belongs to the project.
 
-cd ultragrid
+The rest of the folders and almost all files on the src/ folder belongs to 
+the ultragrid project hosted at http://seth.ics.muni.cz/git/ultragrid.git
 
-git checkout -b ugmodules db1b851f6848c4fd60e2b673781dec9e6e08bddb
-
-2- copy original files from ultragrid directory
-
-xargs -a files cp --parents -frvt ../ug-modules
-
-3- test patch in ug-modules directory
-
-patch --dry-run  -p1 -i patch 
-
-4- aply patch in ug-modules directory
-
-patch  -p1 -i patch
-
-
+There are few files on the src folder that were modifiedo or created for
+this project.
 

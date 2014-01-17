@@ -2,7 +2,7 @@
  *  receiver.h - Manager for the received media streams.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
- *  This file is part of io_mngr.
+ *  This file is part of media-streamer.
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by

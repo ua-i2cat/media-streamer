@@ -2,7 +2,7 @@
  *  video_frame2.h
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
- *  This file is part of UG-Modules RTP library.
+ *  This file is part of media-streamer.
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,14 +17,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  Jordi "Txor" Casas Ríos <jordi.casas@i2cat.net>,
+ *  Authors:  Jordi "Txor" Casas Ríos <txorlings@gmail.com>,
  *            David Cassany <david.cassany@i2cat.net>
  *            Marc Palau <marc.palau@i2cat.net>
- */
-
-/**
- * @file video_frame2.h
- * @brief Video frame configuration.
  */
 
 /**
@@ -64,13 +59,13 @@ typedef struct
 
 /**
  * Create and initialize a video_frame2 with some default values.
- * @return video_frame2 * if succeeded, NULL otherwise.
+ * @return A pointer to the new video_frame2 instance if succeeded, NULL otherwise.
  */
 video_frame2 *rtp_video_frame2_init(void);
 
 /**
  * Allocate memory space for the audio_frame2 buffer with specified video frame size, also configures the codec type.
- * @param frame Target video_frame2.
+ * @param frame video_frame2 instance.
  * @param width New width for the video frame.
  * @param height New height for the video frame.
  * @param codec New codec type for the video frame.
@@ -79,7 +74,7 @@ void rtp_video_frame2_allocate(video_frame2 *frame, unsigned int width, unsigned
 
 /**
  * Frees the allocated memory for a video_frame2
- * @param frame Target video_frame2.
+ * @param frame video_frame2 instance.
  */
 void rtp_video_frame2_free(video_frame2 *frame);
 

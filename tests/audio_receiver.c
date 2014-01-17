@@ -1,5 +1,5 @@
 /*
- * audio_receiver.c - Test program that starts io_mngr receiver, writes
+ * audio_receiver.c - Test program that starts media-streamer receiver, writes
  * RECORD_TIME seconds from one audio stream in to a file and then 
  * RECORD_TIME seconds more of another audio stream to another file.
  *

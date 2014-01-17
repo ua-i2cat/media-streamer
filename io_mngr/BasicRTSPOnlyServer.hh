@@ -1,8 +1,8 @@
 /*
- *  BasicRTSPOnlyServer.hh - RTSP server for io_mngr.
+ *  BasicRTSPOnlyServer.hh - RTSP server for media-streamer.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
- *  This file is part of io_mngr.
+ *  This file is part of media-streamer.
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 
 /**
  * @file BasicRTSPOnlyServer.hh
- * @brief RTSP server for io_mngr.
+ * @brief RTSP server for media-streamer.
  *
  */
 
@@ -38,7 +38,7 @@ extern "C" {
 }
 
 /**
- * BasicRTSPOnlyServer class is a wrapper to RTSPServer to enable the dinamic use of participants and streams from a transmitter on io_mngr.
+ * BasicRTSPOnlyServer class is a wrapper to RTSPServer to enable the dinamic use of participants and streams from a transmitter on media-streamer.
  */
 class BasicRTSPOnlyServer {
 

@@ -2,7 +2,7 @@
  *  commons.h - Common definitions.
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
- *  This file is part of io_mngr.
+ *  This file is part of media-streamer.
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 
 /**
  * @file commons.h
- * @brief Common definitions for the io_mngr entities.
+ * @brief Common definitions for the media-streamer entities.
  */
 
 #ifndef __COMMONS_H__

@@ -1,5 +1,5 @@
 /*
- * audio_transmitter.c - Test program that starts io_mngr transmitter,
+ * audio_transmitter.c - Test program that starts media-streamer transmitter,
  * reads PLAY_TIME seconds from a file and sends the audio to two
  * different participants.
  *

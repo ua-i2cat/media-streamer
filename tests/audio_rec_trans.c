@@ -1,6 +1,6 @@
 /*
- * audio_rec_trans.c - Test program that starts one io_mngr receiver, one
- * io_mngr transmitter and, initially, adds one stream with one participant to
+ * audio_rec_trans.c - Test program that starts one media-streamer receiver, one
+ * media-streamer transmitter and, initially, adds one stream with one participant to
  * the receiver and to the transmitter.
  * It continously forwards the audio on the receiver streams (one or two) to
  * the transmitter streams (one or two) for LIVE_TIME seconds or until user

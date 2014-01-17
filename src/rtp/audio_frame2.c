@@ -1,59 +1,28 @@
 /*
- * FILE:    audio/utils.c
- * AUTHORS: Martin Benes     <martinbenesh@gmail.com>
- *          Lukas Hejtmanek  <xhejtman@ics.muni.cz>
- *          Petr Holub       <hopet@ics.muni.cz>
- *          Milos Liska      <xliska@fi.muni.cz>
- *          Jiri Matela      <matela@ics.muni.cz>
- *          Dalibor Matura   <255899@mail.muni.cz>
- *          Ian Wesley-Smith <iwsmith@cct.lsu.edu>
+ *  audio_frame2.c
+ *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
- * Copyright (c) 2005-2010 CESNET z.s.p.o.
+ *  This file is part of media-streamer.
+ *  It is an implementation of some utils for the struct audio_frame2 used to
+ *  decouple audio_frame2 from the audio part.
+ *  This file is based on src/audio/utils.c, you can read its license and its 
+ *  original authors it that file.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, is permitted provided that the following conditions
- * are met:
- * 
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- * 
- *      This product includes software developed by CESNET z.s.p.o.
- * 
- * 4. Neither the name of CESNET nor the names of its contributors may be used 
- *    to endorse or promote products derived from this software without specific
- *    prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING,
- * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
- * EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
- * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
- * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
- * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
  *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  Authors:  Jordi "Txor" Casas Ríos <txorlings@gmail.com>
  */
-
-/*
- *
- * Implementation of some utils for the struct audio_frame2
- * Used to decouple audio_frame2 from the audio part.
- *
- */ 
-
-//#include "audio/audio.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -62,10 +31,7 @@
 #endif // HAVE_CONFIG_H
 
 #include "rtp/audio_frame2.h"
-//#include "audio/codec.h"
-//#include "audio/utils.h" 
 
-// Copy of audio_codec_info at audio/codec.h:67
 rtp_audio_codec_info_t rtp_audio_codec_info[] = {
     [AC_NONE] = { "(none)", 0 }, 
     [AC_PCM] = { "PCM", 0x0001 },
@@ -73,7 +39,7 @@ rtp_audio_codec_info_t rtp_audio_codec_info[] = {
     [AC_MULAW] = { "u-law", 0x0007 },
     [AC_ADPCM_IMA_WAV] = { "ADPCM", 0x0011 },
     [AC_SPEEX] = { "speex", 0xA109 },
-    [AC_OPUS] = { "OPUS", 0x7375704F }, // == Opus, the TwoCC isn't defined
+    [AC_OPUS] = { "OPUS", 0x7375704F },
     [AC_G722] = { "G.722", 0x028F },
     [AC_G726] = { "G.726", 0x0045 },
 };

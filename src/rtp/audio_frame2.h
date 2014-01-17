@@ -1,27 +1,40 @@
 /*
- * FILE:    rtp/audio_frame2.h
- * AUTHORS: Jordi "Txor" Casas Ríos   <jordi.casas@i2cat.net>
+ *  audio_frame2.h
+ *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
- * Provide some coupled tools from audio subsystem to RTP library.
+ *  This file is part of media-streamer.
  *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  Authors:  Jordi "Txor" Casas Ríos <txorlings@gmail.com>
  */
 
-// audio_codec_t and audio_frame2 are imported from audio/audio.h
+/**
+ * @file audio_frame2.h
+ * @brief Provide some coupled tools from audio subsystem to RTP library.
+ */
+
 #include "audio.h"
 
-#ifndef _AUDIO_FRAME2_H_
-#define _AUDIO_FRAME2_H_
+#ifndef __AUDIO_FRAME2_H__
+#define __AUDIO_FRAME2_H__
 
-// Copy of audio_codec_info_t at audio/codec.h:80
 typedef struct {
     const char *name;
-    /** @var tag
-     *  @brief TwoCC if defined, otherwise we define our tag
-     */
     uint32_t    tag;
 } rtp_audio_codec_info_t;
 
-// Copy of functions from audio/utils.c
 audio_frame2 *rtp_audio_frame2_init(void);
 void rtp_audio_frame2_allocate(audio_frame2 *, int nr_channels, int max_size);
 void rtp_audio_frame2_free(audio_frame2 *);
@@ -29,4 +42,4 @@ void rtp_audio_frame2_free(audio_frame2 *);
 uint32_t rtp_get_audio_tag(audio_codec_t codec);
 audio_codec_t rtp_get_audio_codec_to_tag(uint32_t audio_tag);
 
-#endif // _AUDIO_FRAME2_H_
+#endif // __AUDIO_FRAME2_H__
