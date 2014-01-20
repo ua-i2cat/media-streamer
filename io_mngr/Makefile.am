@@ -34,6 +34,7 @@ uginclude_HEADERS = receiver.h \
                             audio_processor.h \
                             audio_config.h \
                             circular_queue.h \
+                            ../src/rtp/video_frame2.h \
                             ../src/tv.h \
                             ../src/video.h \
                             ../src/video_codec.h \
@@ -52,6 +53,7 @@ uginclude_HEADERS = receiver.h \
                             ../src/audio/resampler.h \
                             ../src/config.h \
                             ../src/config_win32.h \
+                            ../src/config_unix.h \
                             BasicRTSPOnlyServer.hh \
                             BasicRTSPOnlySubsession.hh \
                             c_basicRTSPOnlyServer.hh
