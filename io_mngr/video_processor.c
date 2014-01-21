@@ -203,6 +203,7 @@ video_processor_t *vp_init(role_t role)
     vp->bitrate = 0;
     vp->lost_coded_frames = 0;
     vp->run = false;
+    vp->thread = 0;
 
     // Default values
     vp->internal_config->width = VIDEO_DEFAULT_INTERNAL_WIDTH;
