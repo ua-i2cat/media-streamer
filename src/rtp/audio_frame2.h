@@ -25,6 +25,7 @@
  * @brief Provide some coupled tools from audio subsystem to RTP library.
  */
 
+#include <stdint.h>
 #include "audio.h"
 
 #ifndef __AUDIO_FRAME2_H__

@@ -35,6 +35,7 @@ uginclude_HEADERS = receiver.h \
                             audio_config.h \
                             circular_queue.h \
                             ../src/rtp/video_frame2.h \
+                            ../src/rtp/audio_frame2.h \
                             ../src/tv.h \
                             ../src/video.h \
                             ../src/video_codec.h \
