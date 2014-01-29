@@ -66,7 +66,7 @@ typedef struct participant {
  * @param port Port of the RTP session.
  * @return The participant instance.
  */
-participant_t *init_participant(unsigned int id, io_type_t type, char *addr, uint32_t port);
+participant_t *init_participant(unsigned int id, io_type_t type, const char *addr, uint32_t port);
 
 /**
  * Destroys a participant and its RTP session.

@@ -27,7 +27,7 @@
 #include "debug.h"
 #include "commons.h"
 
-stream_t *init_stream(stream_type_t type, io_type_t io_type, unsigned int id, stream_state_t state, char *stream_name)
+stream_t *init_stream(stream_type_t type, io_type_t io_type, unsigned int id, stream_state_t state, const char *stream_name)
 {
     stream_t *stream = malloc(sizeof(stream_t));
     if (stream == NULL) {

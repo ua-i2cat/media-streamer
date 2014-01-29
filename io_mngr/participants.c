@@ -29,7 +29,7 @@
 
 // Prototypes
 void dummy_callback(struct rtp *session, rtp_event *e);
-rtp_session_t *init_rtp_session(uint32_t port, char *addr);
+rtp_session_t *init_rtp_session(uint32_t port, const char *addr);
 bool destroy_rtp_session(rtp_session_t *rtp);
 
 void dummy_callback(struct rtp *session, rtp_event *e)
@@ -38,7 +38,7 @@ void dummy_callback(struct rtp *session, rtp_event *e)
     UNUSED(e);
 }
 
-rtp_session_t * init_rtp_session(uint32_t port, char *addr)
+rtp_session_t * init_rtp_session(uint32_t port, const char *addr)
 {
     rtp_session_t *rtp;
     char *mcast_if = NULL;
@@ -100,7 +100,7 @@ bool destroy_rtp_session(rtp_session_t *rtp)
     return true;
 }
 
-participant_t *init_participant(unsigned int id, io_type_t type, char *addr, uint32_t port)
+participant_t *init_participant(unsigned int id, io_type_t type, const char *addr, uint32_t port)
 {
     participant_t *participant;
 

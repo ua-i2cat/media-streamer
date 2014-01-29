@@ -71,7 +71,7 @@ typedef struct stream {
  * @param stream_name Stream name.
  * @return The stream instance, NULL otherwise.
  */
-stream_t *init_stream(stream_type_t type, io_type_t io_type, unsigned int id, stream_state_t state, char *stream_name);
+stream_t *init_stream(stream_type_t type, io_type_t io_type, unsigned int id, stream_state_t state, const char *stream_name);
 
 /**
  * Destroys a stream.
