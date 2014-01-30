@@ -31,6 +31,10 @@
 #ifndef __AUDIO_FRAME2_H__
 #define __AUDIO_FRAME2_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
     const char *name;
     uint32_t    tag;
@@ -42,5 +46,9 @@ void rtp_audio_frame2_free(audio_frame2 *);
 
 uint32_t rtp_get_audio_tag(audio_codec_t codec);
 audio_codec_t rtp_get_audio_codec_to_tag(uint32_t audio_tag);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // __AUDIO_FRAME2_H__
