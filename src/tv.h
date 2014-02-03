@@ -48,6 +48,8 @@
 extern "C" {
 #endif
 
+#include "config_unix.h"
+
 uint32_t get_local_mediatime(void);
 uint32_t get_local_mediatime_us(void);
 double   tv_diff(struct timeval curr_time, struct timeval prev_time);

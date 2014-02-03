@@ -23,6 +23,7 @@
 
 #include "circular_queue.h"
 #include "debug.h"
+#include "tv.h"
 
 circular_queue_t *cq_init(int max, void *(*init_object)(void *), void *init_data, void (*destroy_object)(void *), unsigned int *(*get_media_time_ptr)(void *))
 {
@@ -41,13 +42,13 @@ circular_queue_t *cq_init(int max, void *(*init_object)(void *), void *init_data
     cq->max = max;
     cq->level = CIRCULAR_QUEUE_EMPTY;
 #ifdef STATS
-    cq->delay_sum = 0;
-    cq->remove_counter = 0;
-    cq->delay = 0;
-    cq->fps = 0.0;
-    cq->put_counter = 0;
-    cq->fps_sum = 0;
-    cq->last_frame_time = 0;
+    cq->stats.delay_sum = 0;
+    cq->stats.remove_counter = 0;
+    cq->stats.delay = 0;
+    cq->stats.fps = 0.0;
+    cq->stats.put_counter = 0;
+    cq->stats.fps_sum = 0;
+    cq->stats.last_frame_time = 0;
 #endif
     cq->init_object = init_object;
     cq->destroy_object = destroy_object;
@@ -91,15 +92,15 @@ void cq_add_bag(circular_queue_t *cq)
     cq->rear = r;
 
 #ifdef STATS
-    frame_cq->stats->put_counter++;
-    local_time = get_local_mediatime_us();
-    frame_cq->stats->fps_sum += local_time - frame_cq->stats->last_frame_time;
-    frame_cq->stats->last_frame_time = local_time;
+    cq->stats.put_counter++;
+    unsigned int local_time = get_local_mediatime_us();
+    cq->stats.fps_sum += local_time - cq->stats.last_frame_time;
+    cq->stats.last_frame_time = local_time;
 
-    if (frame_cq->stats->put_counter == MAX_COUNTER) {
-        frame_cq->stats->fps = (frame_cq->stats->put_counter * 1000000) / frame_cq->stats->fps_sum;
-        frame_cq->stats->put_counter = 0;
-        frame_cq->stats->fps_sum = 0;
+    if (cq->stats.put_counter == STATS_MAX_COUNTER) {
+        cq->stats.fps = (cq->stats.put_counter * 1000000) / cq->stats.fps_sum;
+        cq->stats.put_counter = 0;
+        cq->stats.fps_sum = 0;
     }
 #endif
 }
@@ -116,12 +117,12 @@ void* cq_get_front(circular_queue_t *cq)
 void cq_remove_bag(circular_queue_t *cq)
 {
 #ifdef STATS
-    frame_cq->stats->delay_sum += get_local_mediatime_us() - cq->bags[cq->front]->media_time;
-    frame_cq->stats->remove_counter++;
-    if (frame_cq->stats->remove_counter == MAX_COUNTER) {
-        frame_cq->stats->delay = frame_cq->stats->delay_sum/frame_cq->stats->remove_counter;
-        frame_cq->stats->delay_sum = 0;
-        frame_cq->stats->remove_counter = 0;
+    cq->stats.delay_sum += get_local_mediatime_us() - *cq->bags[cq->front]->media_time;
+    cq->stats.remove_counter++;
+    if (cq->stats.remove_counter == STATS_MAX_COUNTER) {
+        cq->stats.delay = cq->stats.delay_sum/cq->stats.remove_counter;
+        cq->stats.delay_sum = 0;
+        cq->stats.remove_counter = 0;
     }
 #endif
 

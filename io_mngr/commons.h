@@ -38,6 +38,8 @@
 #define MTU 1300 // 1400
 #define THREAD_SLEEP_TIMEOUT 50 /* Tune it up */
 
+#define STATS_MAX_COUNTER 255
+
 typedef enum role {
     ENCODER,
     DECODER,
