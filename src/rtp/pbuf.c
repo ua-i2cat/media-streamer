@@ -381,7 +381,7 @@ void pbuf_remove_first(struct pbuf *playout_buf)
     struct pbuf_node *curr;
 
 	if (playout_buf->frst->decoded) {
-		pbuf_validate(playout_buf);
+        pbuf_validate(playout_buf);
 
 		curr = playout_buf->frst;
 		if (curr->nxt == NULL){
@@ -391,7 +391,6 @@ void pbuf_remove_first(struct pbuf *playout_buf)
 		}
 		free_cdata(curr->cdata);
 		free(curr);
-	
 		pbuf_validate(playout_buf);
 	}
     return;

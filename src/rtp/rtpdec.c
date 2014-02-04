@@ -57,7 +57,7 @@ int decode_frame_h264(struct coded_data *cdata, void *rx_data)
             }
 
             if (type >= 1 && type <= 23) {
-                if(frame->type != INTRA && type == 5){
+                if(frame->type != INTRA && (type == 5 || type == 6)) {
                     frame->type = INTRA;
                 } else if (frame->type == BFRAME && nri != 0){
                     frame->type = OTHER;

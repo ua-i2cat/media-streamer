@@ -71,7 +71,8 @@ void *video_receiver_thread(receiver_t *receiver)
                 //TODO: Possible optimization using participant hash
                 if ((participant = get_participant_stream_ssrc(receiver->video_stream_list, cp->ssrc)) == NULL) {
                     if ((participant = get_participant_stream_non_init(receiver->video_stream_list)) == NULL) {
-                        debug_msg("audio_receiver_thread: Can't find configured streams, dropping data");
+                        debug_msg("video_receiver_thread: Can't find configured streams, dropping data");
+                        pbuf_remove(cp->playout_buffer, curr_time);
                         cp = pdb_iter_next(&it);
                         continue;
                     } else {
