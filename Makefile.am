@@ -1,7 +1,7 @@
 ACLOCAL_AMFLAGS= -I m4
 SUBDIRS = src io_mngr
 
-AM_CFLAGS = -std=gnu99 -g -lm -DHAVE_CONFIG_H -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
+AM_CFLAGS = -std=gnu99 -lm -DHAVE_CONFIG_H -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
 
 bin_PROGRAMS = mmforwarder video_receiver video_transmitter video_rec_trans audio_receiver audio_transmitter audio_rec_trans
 

@@ -1,7 +1,7 @@
 lib_LTLIBRARIES = libiomanager.la
 
-AM_CFLAGS = -std=gnu99 -g -lm -DHAVE_CONFIG_H -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
-AM_CXXFLAGS = -O2 -g -DHAVE_CONFIG_H -g -fPIC -Wno-multichar -Wno-deprecated -msse2
+AM_CFLAGS = -std=gnu99 -lm -DHAVE_CONFIG_H -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
+AM_CXXFLAGS = -O2 -DHAVE_CONFIG_H -fPIC -Wno-multichar -Wno-deprecated -msse2
 
 libiomanager_la_LDFLAGS = -version-info 0:1:0 -L. -L.. -L../src -lpthread -lrtp -lvcompress -lvdecompress -lacompression -lliveMedia -lBasicUsageEnvironment -lUsageEnvironment -lgroupsock
 libiomanager_la_CFLAGS = $(AM_CFLAGS) -I. -I.. -I../src -I../src/rtp -I../src/utils -I../src/audio -I/usr/include/groupsock -I/usr/include/liveMedia -I/usr/include/BasicUsageEnvironment -I/usr/include/UsageEnvironment

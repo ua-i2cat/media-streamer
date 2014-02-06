@@ -1,8 +1,8 @@
 lib_LTLIBRARIES = librtp.la libvcompress.la libvdecompress.la libacompression.la
 
 
-AM_CFLAGS = -std=gnu99 -g -lm -DHAVE_CONFIG_H -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
-AM_CXXFLAGS = -O2 -g -DHAVE_CONFIG_H -fPIC -Wno-multichar -Wno-deprecated -msse2
+AM_CFLAGS = -std=gnu99 -lm -DHAVE_CONFIG_H -fPIC -pipe -W -Wall -Wcast-qual -Wcast-align -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -msse2
+AM_CXXFLAGS = -O2 -DHAVE_CONFIG_H -fPIC -Wno-multichar -Wno-deprecated -msse2
 
 
 librtp_la_LDFLAGS = -version-info 0:1:0 -lrt -ldl -lieee -lm -lcrypto
